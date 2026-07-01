@@ -801,10 +801,14 @@ async function captureMap() {
     const mapDiv=document.getElementById('map');
     const mapW=mapDiv.offsetWidth, mapH=mapDiv.offsetHeight;
     const staticUrl=buildStaticMapUrl(center,zoom,mapW,mapH);
-    const resp=await fetch(staticUrl);
-    if(!resp.ok) throw new Error('Static Maps fetch failed: '+resp.status);
-    const blob=await resp.blob();
-    const mapDataUrl=await blobToDataUrl(blob);
+    // Load via Image tag to avoid CORS — Static Maps doesn't send CORS headers
+    const mapImg=new Image();
+    mapImg.crossOrigin='anonymous';
+    await new Promise((res,rej)=>{
+      mapImg.onload=res;
+      mapImg.onerror=()=>rej(new Error('Static Maps image failed to load. Check API key and Static Maps API is enabled.'));
+      mapImg.src=staticUrl;
+    });
     buildCaptureLegend();
     const legendEl=document.getElementById('captureLegend');
     legendEl.style.display='block';
@@ -815,8 +819,6 @@ async function captureMap() {
     finalCanvas.width=mapW+LEGEND_W;
     finalCanvas.height=mapH;
     const ctx=finalCanvas.getContext('2d');
-    const mapImg=new Image();
-    await new Promise((res,rej)=>{mapImg.onload=res;mapImg.onerror=rej;mapImg.src=mapDataUrl;});
     ctx.drawImage(mapImg,0,0,mapW,mapH);
     ctx.fillStyle='#ffffff';
     ctx.fillRect(mapW,0,LEGEND_W,mapH);
