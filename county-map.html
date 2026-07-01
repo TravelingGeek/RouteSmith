@@ -80,13 +80,6 @@
 <div class="main">
   <div id="map"></div>
   <aside class="panel">
-    <div class="section-header" onclick="toggleSection('src')">
-      <div class="panel-label">Data Source</div>
-      <span class="section-chevron open" id="chev-src">▼</span>
-    </div>
-    <div class="section-body open" id="body-src">
-      <div class="url-source" id="dataSourceDisplay">embedded JSON</div>
-    </div>
     <div class="section-header" onclick="toggleSection('viz')">
       <div class="panel-label">Visualization</div>
       <span class="section-chevron open" id="chev-viz">▼</span>
@@ -98,9 +91,8 @@
         <button id="btnE" class="active" onclick="event.stopPropagation();setVizMode('E')">E · Pins</button>
       </div>
     </div>
-    <div class="section-header" onclick="toggleSection('stat')">
+    <div class="section-header" style="cursor:default;pointer-events:none;">
       <div class="panel-label">County Status</div>
-      <span class="section-chevron open" id="chev-stat">▼</span>
     </div>
     <div class="section-body open" id="body-stat">
       <div class="status-legend">
@@ -111,9 +103,8 @@
         <div class="status-legend-row"><div class="status-swatch" style="background:transparent;border:1px solid #999"></div><span>Never found</span></div>
       </div>
     </div>
-    <div class="section-header" onclick="toggleSection('find')">
+    <div class="section-header" style="cursor:default;pointer-events:none;">
       <div class="panel-label">Finders</div>
-      <span class="section-chevron open" id="chev-find">▼</span>
     </div>
     <div class="section-body open" id="body-find">
       <div class="finder-legend" id="finderLegend"></div>
@@ -124,6 +115,13 @@
     </div>
     <div class="county-list open" id="countyList"></div>
     <div class="info-box" id="infoBox">Click a county to see finder details.</div>
+    <div class="section-header" onclick="toggleSection('src')" style="border-top:1px solid var(--border);border-bottom:none;">
+      <div class="panel-label">Data Source</div>
+      <span class="section-chevron" id="chev-src">▼</span>
+    </div>
+    <div class="section-body closed" id="body-src" style="border-bottom:none;">
+      <div class="url-source" id="dataSourceDisplay">embedded JSON</div>
+    </div>
   </aside>
 </div>
 
