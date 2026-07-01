@@ -738,19 +738,42 @@ function terrainMapStyles() {
 function buildStaticMapUrl(center, zoom, w, h) {
   const key='AIzaSyDUocvfkOfu3yJ-ptPxMbwz-AddHmHDyzg';
   const capW=Math.min(w,640), capH=Math.min(h,640);
-  let paths='';
+  const mapType=map.getMapTypeId()==='terrain'?'terrain':'roadmap';
+  let params='';
+
+  // County outlines only, no fill, up to 50 points for accuracy
   for(const fips of currentSelectedFips){
-    const def=currentFipsToCountyDef[fips];
-    const fillColor=statusFillColor(def); if(!fillColor) continue;
     const feat=countyFeatures[fips]; if(!feat) continue;
     const ring=feat.geometry.type==='Polygon'?feat.geometry.coordinates[0]:feat.geometry.coordinates[0][0];
-    const step=Math.max(1,Math.floor(ring.length/18));
+    const step=Math.max(1,Math.floor(ring.length/50));
     const pts=ring.filter((_,i)=>i%step===0).map(([lng,lat])=>lat+','+lng).join('|');
-    const fc=fillColor.replace('#','0x')+'aa';
-    paths+='&path=fillcolor:'+fc+'|color:0x22222299|weight:1|'+pts;
+    params+='&path=fillcolor:0x00000000|color:0x222222cc|weight:2|'+pts;
   }
-  const mapType=map.getMapTypeId()==='terrain'?'terrain':'roadmap';
-  return 'https://maps.googleapis.com/maps/api/staticmap?center='+center.lat()+','+center.lng()+'&zoom='+zoom+'&size='+capW+'x'+capH+'&scale=2&maptype='+mapType+paths+'&key='+key;
+
+  // Finder markers at centroid — one per finder per county, offset by finder index
+  const finderLabels={};
+  let labelIdx=0;
+  const labelChars='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  for(const fips of currentSelectedFips){
+    const def=currentFipsToCountyDef[fips]; if(!def||!def.finders) continue;
+    const feat=countyFeatures[fips]; if(!feat) continue;
+    const c=visualCentroid(feat);
+    const DOT_SPACING=0.04;
+    const n=def.finders.length;
+    const startLng=c.lng-(n-1)*DOT_SPACING/2;
+    def.finders.forEach((f,i)=>{
+      if(!finderLabels[f.name]){finderLabels[f.name]=labelChars[labelIdx%26];labelIdx++;}
+      const color=f.color.replace('#','0x');
+      params+='&markers=color:'+color+'|label:'+finderLabels[f.name]+'|size:small|'+c.lat+','+(startLng+i*DOT_SPACING);
+    });
+  }
+
+  return 'https://maps.googleapis.com/maps/api/staticmap'
+    +'?center='+center.lat()+','+center.lng()
+    +'&zoom='+zoom
+    +'&size='+capW+'x'+capH
+    +'&scale=2&maptype='+mapType
+    +params+'&key='+key;
 }
 
 function buildCaptureLegend() {
@@ -794,10 +817,24 @@ async function captureMap() {
   const btn=document.getElementById('captureBtn');
   btn.disabled=true; btn.textContent='Capturing...';
   try {
-    const center=map.getCenter(), zoom=map.getZoom();
     const mapDiv=document.getElementById('map');
     const mapW=mapDiv.offsetWidth, mapH=mapDiv.offsetHeight;
-    const staticUrl=buildStaticMapUrl(center,zoom,mapW,mapH);
+    // Compute zoom that fits all visible counties in the static map size
+    // Static Maps uses 256px tiles; we cap at 640px so scale=2 gives 1280px effective
+    const capW=Math.min(mapW,640), capH=Math.min(mapH,640);
+    const bounds=map.getBounds();
+    const ne=bounds.getNorthEast(), sw=bounds.getSouthWest();
+    // Calculate best integer zoom that fits bounds in capW x capH
+    function latRad(lat){const s=Math.sin(lat*Math.PI/180);return Math.log((1+s)/(1-s))/2;}
+    function calcZoom(mapPx,worldPx,fraction){return Math.floor(Math.log(mapPx/worldPx/fraction)/Math.LN2);}
+    const WORLD=256;
+    const latFrac=(latRad(ne.lat())-latRad(sw.lat()))/(2*Math.PI);
+    const lngFrac=(ne.lng()-sw.lng())/360;
+    const zoomLat=calcZoom(capH,WORLD,latFrac);
+    const zoomLng=calcZoom(capW,WORLD,lngFrac);
+    const staticZoom=Math.min(zoomLat,zoomLng,21);
+    const center=map.getCenter();
+    const staticUrl=buildStaticMapUrl(center,staticZoom,mapW,mapH);
 
     // Build capture legend content
     buildCaptureLegend();
