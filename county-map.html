@@ -26,7 +26,7 @@
     .status-pill.loaded { color: var(--accent); border: 1px solid var(--accent); background: #5D3FD310; }
     .main { display: flex; flex: 1; overflow: hidden; }
     #map { flex: 1; height: 100%; }
-    .panel { width: 288px; flex-shrink: 0; background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+    .panel { width: 288px; flex-shrink: 0; background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden; }
     .section-header { display: flex; align-items: center; justify-content: space-between; padding: 11px 16px; border-bottom: 1px solid var(--border); cursor: pointer; user-select: none; flex-shrink: 0; transition: background 0.12s; }
     .section-header:hover { background: var(--bg); }
     .section-header .panel-label { margin-bottom: 0; }
@@ -94,7 +94,7 @@
     <div class="section-header" style="cursor:default;pointer-events:none;">
       <div class="panel-label">County Status</div>
     </div>
-    <div class="section-body open" id="body-stat">
+    <div class="section-body open" id="body-stat" style="max-height:none;overflow:visible;">
       <div class="status-legend">
         <div class="status-legend-row"><div class="status-swatch" style="background:#5D3FD3"></div><span>All new this trip</span></div>
         <div class="status-legend-row"><div class="status-swatch" style="background:#CF9FFF"></div><span>Some new this trip</span></div>
@@ -106,7 +106,7 @@
     <div class="section-header" style="cursor:default;pointer-events:none;">
       <div class="panel-label">Finders</div>
     </div>
-    <div class="section-body open" id="body-find">
+    <div class="section-body open" id="body-find" style="max-height:none;overflow:visible;">
       <div class="finder-legend" id="finderLegend"></div>
     </div>
     <div class="counties-header" onclick="toggleSection('cnty')">
