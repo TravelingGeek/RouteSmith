@@ -734,9 +734,6 @@ function terrainMapStyles() {
 
 // ── INIT ──
 
-function blobToDataUrl(blob) {
-  return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(blob);});
-}
 
 function buildStaticMapUrl(center, zoom, w, h) {
   const key='AIzaSyDUocvfkOfu3yJ-ptPxMbwz-AddHmHDyzg';
@@ -801,34 +798,59 @@ async function captureMap() {
     const mapDiv=document.getElementById('map');
     const mapW=mapDiv.offsetWidth, mapH=mapDiv.offsetHeight;
     const staticUrl=buildStaticMapUrl(center,zoom,mapW,mapH);
-    const resp=await fetch(staticUrl);
-    if(!resp.ok) throw new Error('Static Maps fetch failed: '+resp.status);
-    const blob=await resp.blob();
-    const mapDataUrl=await blobToDataUrl(blob);
+
+    // Load static map image (no crossOrigin — let browser load normally)
+    const mapImg=new Image();
+    await new Promise((res,rej)=>{
+      mapImg.onload=res;
+      mapImg.onerror=()=>rej(new Error('Static map failed to load'));
+      mapImg.src=staticUrl;
+    });
+
+    // Render legend to canvas
     buildCaptureLegend();
     const legendEl=document.getElementById('captureLegend');
     legendEl.style.display='block';
-    const legendCanvas=await html2canvas(legendEl,{backgroundColor:'#ffffff',scale:2,logging:false,useCORS:true});
+    const legendCanvas=await html2canvas(legendEl,{backgroundColor:'#ffffff',scale:2,logging:false});
     legendEl.style.display='none';
-    const LEGEND_W=240;
+
+    // Composite onto final canvas
+    const LEGEND_W=260;
     const finalCanvas=document.createElement('canvas');
     finalCanvas.width=mapW+LEGEND_W;
     finalCanvas.height=mapH;
     const ctx=finalCanvas.getContext('2d');
-    const mapImg=new Image();
-    await new Promise((res,rej)=>{mapImg.onload=res;mapImg.onerror=rej;mapImg.src=mapDataUrl;});
+
+    // Draw map
     ctx.drawImage(mapImg,0,0,mapW,mapH);
+
+    // Draw legend panel
     ctx.fillStyle='#ffffff';
     ctx.fillRect(mapW,0,LEGEND_W,mapH);
     ctx.strokeStyle='#e0ddd8'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(mapW,0); ctx.lineTo(mapW,mapH); ctx.stroke();
-    const lScale=LEGEND_W/legendCanvas.width*2;
-    ctx.drawImage(legendCanvas,0,0,legendCanvas.width,legendCanvas.height,mapW+16,16,legendCanvas.width*lScale,legendCanvas.height*lScale);
+
+    // Scale legend to fit height
+    const lW=legendCanvas.width/2, lH=legendCanvas.height/2;
+    const scale=Math.min((LEGEND_W-32)/lW, (mapH-32)/lH);
+    ctx.drawImage(legendCanvas,0,0,legendCanvas.width,legendCanvas.height,
+      mapW+16, 16, lW*scale, lH*scale);
+
+    // Output
     const dataUrl=finalCanvas.toDataURL('image/png');
+
+    // Show preview
     document.getElementById('capturePreviewImg').src=dataUrl;
     document.getElementById('captureDownloadLink').href=dataUrl;
+    document.getElementById('captureDownloadLink').textContent='Download PNG';
+    // Remove map link if it exists from previous approach
+    const old=document.getElementById('captureMapLink'); if(old) old.remove();
     document.getElementById('capturePreviewWrap').style.display='block';
-    const a=document.createElement('a'); a.href=dataUrl; a.download='routesmith-map-'+Date.now()+'.png'; a.click();
+
+    // Auto-download
+    const a=document.createElement('a');
+    a.href=dataUrl; a.download='routesmith-map-'+Date.now()+'.png'; a.click();
+
   } catch(e) {
     console.error('Capture failed:',e);
     alert('Capture failed: '+e.message);
