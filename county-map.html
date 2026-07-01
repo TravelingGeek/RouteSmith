@@ -465,14 +465,14 @@ function renderModeD(fips, def) {
       // Fill the outer shape with finder color
       overlays.push(new google.maps.Polygon({
         paths:outerPaths, map,
-        fillColor:f.color, fillOpacity:0.7,
-        strokeColor:f.color, strokeOpacity:0.85, strokeWeight:1,
+        fillColor:f.color, fillOpacity:0.4,
+        strokeColor:f.color, strokeOpacity:0.6, strokeWeight:1,
         clickable:false, zIndex:2+i
       }));
       // Paint the inner area back with status fill to create the ring effect
       overlays.push(new google.maps.Polygon({
         paths:innerPaths, map,
-        fillColor:fillColor||'#ffffff', fillOpacity:fillColor?0.4:0.92,
+        fillColor:fillColor||'#f5f3ef', fillOpacity:1.0,
         strokeOpacity:0, strokeWeight:0,
         clickable:false, zIndex:3+i
       }));
@@ -700,7 +700,7 @@ function lightMapStyles() {
     {featureType:'water',elementType:'labels.text.fill',stylers:[{color:'#5a7a99'}]},
     {featureType:'landscape.natural',elementType:'geometry',stylers:[{color:'#eae8e2'}]},
     {featureType:'administrative.country',elementType:'geometry.stroke',stylers:[{color:'#888',visibility:'on'}]},
-    {featureType:'administrative.province',elementType:'geometry.stroke',stylers:[{color:'#444',visibility:'on'}]},
+    {featureType:'administrative.province',elementType:'geometry.stroke',stylers:[{color:'#1a1a1a',visibility:'on'},{weight:4}]},
     {featureType:'administrative.locality',elementType:'labels.text.fill',stylers:[{color:'#4a4440'}]},
     {featureType:'administrative.locality',elementType:'labels.text.stroke',stylers:[{color:'#f5f3ef'}]},
     {featureType:'administrative.neighborhood',stylers:[{visibility:'off'}]},
