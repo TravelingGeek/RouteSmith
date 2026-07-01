@@ -734,6 +734,9 @@ function terrainMapStyles() {
 
 // ── INIT ──
 
+function blobToDataUrl(blob) {
+  return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(blob);});
+}
 
 function buildStaticMapUrl(center, zoom, w, h) {
   const key='AIzaSyDUocvfkOfu3yJ-ptPxMbwz-AddHmHDyzg';
@@ -798,43 +801,34 @@ async function captureMap() {
     const mapDiv=document.getElementById('map');
     const mapW=mapDiv.offsetWidth, mapH=mapDiv.offsetHeight;
     const staticUrl=buildStaticMapUrl(center,zoom,mapW,mapH);
-
-    // Render legend to PNG and download
+    const resp=await fetch(staticUrl);
+    if(!resp.ok) throw new Error('Static Maps fetch failed: '+resp.status);
+    const blob=await resp.blob();
+    const mapDataUrl=await blobToDataUrl(blob);
     buildCaptureLegend();
     const legendEl=document.getElementById('captureLegend');
     legendEl.style.display='block';
-    const legendCanvas=await html2canvas(legendEl,{backgroundColor:'#ffffff',scale:2,logging:false});
+    const legendCanvas=await html2canvas(legendEl,{backgroundColor:'#ffffff',scale:2,logging:false,useCORS:true});
     legendEl.style.display='none';
-    const legendDataUrl=legendCanvas.toDataURL('image/png');
-
-    // Download legend PNG
-    const a=document.createElement('a');
-    a.href=legendDataUrl;
-    a.download='routesmith-legend-'+Date.now()+'.png';
-    a.click();
-
-    // Show preview + map link in sidebar
-    const previewWrap=document.getElementById('capturePreviewWrap');
-    document.getElementById('capturePreviewImg').src=legendDataUrl;
-    document.getElementById('captureDownloadLink').href=legendDataUrl;
-    document.getElementById('captureDownloadLink').textContent='Download Legend PNG';
-    // Store static URL on the element for the map link
-    previewWrap.dataset.mapUrl=staticUrl;
-
-    // Update or add map link
-    let mapLink=document.getElementById('captureMapLink');
-    if (!mapLink) {
-      mapLink=document.createElement('a');
-      mapLink.id='captureMapLink';
-      mapLink.target='_blank';
-      mapLink.style.cssText='display:block;margin-top:6px;font-family:var(--font-ui);font-size:10px;color:var(--accent);text-align:center;';
-      previewWrap.appendChild(mapLink);
-    }
-    mapLink.href=staticUrl;
-    mapLink.textContent='Open Map Image in New Tab';
-
-    previewWrap.style.display='block';
-
+    const LEGEND_W=240;
+    const finalCanvas=document.createElement('canvas');
+    finalCanvas.width=mapW+LEGEND_W;
+    finalCanvas.height=mapH;
+    const ctx=finalCanvas.getContext('2d');
+    const mapImg=new Image();
+    await new Promise((res,rej)=>{mapImg.onload=res;mapImg.onerror=rej;mapImg.src=mapDataUrl;});
+    ctx.drawImage(mapImg,0,0,mapW,mapH);
+    ctx.fillStyle='#ffffff';
+    ctx.fillRect(mapW,0,LEGEND_W,mapH);
+    ctx.strokeStyle='#e0ddd8'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(mapW,0); ctx.lineTo(mapW,mapH); ctx.stroke();
+    const lScale=LEGEND_W/legendCanvas.width*2;
+    ctx.drawImage(legendCanvas,0,0,legendCanvas.width,legendCanvas.height,mapW+16,16,legendCanvas.width*lScale,legendCanvas.height*lScale);
+    const dataUrl=finalCanvas.toDataURL('image/png');
+    document.getElementById('capturePreviewImg').src=dataUrl;
+    document.getElementById('captureDownloadLink').href=dataUrl;
+    document.getElementById('capturePreviewWrap').style.display='block';
+    const a=document.createElement('a'); a.href=dataUrl; a.download='routesmith-map-'+Date.now()+'.png'; a.click();
   } catch(e) {
     console.error('Capture failed:',e);
     alert('Capture failed: '+e.message);
