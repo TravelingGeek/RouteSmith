@@ -741,16 +741,21 @@ function buildStaticMapUrl(center, zoom, w, h) {
   const mapType=map.getMapTypeId()==='terrain'?'terrain':'roadmap';
   let params='';
 
-  // County outlines only, no fill, up to 50 points for accuracy
+  // County fills with status color
   for(const fips of currentSelectedFips){
+    const def=currentFipsToCountyDef[fips]; if(!def) continue;
+    const fillColor=statusFillColor(def); if(!fillColor) continue;
     const feat=countyFeatures[fips]; if(!feat) continue;
     const ring=feat.geometry.type==='Polygon'?feat.geometry.coordinates[0]:feat.geometry.coordinates[0][0];
     const step=Math.max(1,Math.floor(ring.length/50));
     const pts=ring.filter((_,i)=>i%step===0).map(([lng,lat])=>lat+','+lng).join('|');
-    params+='&path=fillcolor:0x00000000|color:0x222222cc|weight:2|'+pts;
+    const fc=fillColor.replace('#','0x')+'bb';
+    params+='&path=fillcolor:'+fc+'|color:0x222222cc|weight:1|'+pts;
   }
 
-  // Finder markers at centroid — one per finder per county, offset by finder index
+  // Finder dots as tiny circle markers using custom icon workaround:
+  // Static Maps doesn't support custom SVG, but we can use colored markers
+  // One marker per county centroid offset per finder
   const finderLabels={};
   let labelIdx=0;
   const labelChars='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -758,17 +763,18 @@ function buildStaticMapUrl(center, zoom, w, h) {
     const def=currentFipsToCountyDef[fips]; if(!def||!def.finders) continue;
     const feat=countyFeatures[fips]; if(!feat) continue;
     const c=visualCentroid(feat);
-    const DOT_SPACING=0.04;
+    const DOT_SPACING=0.03;
     const n=def.finders.length;
     const startLng=c.lng-(n-1)*DOT_SPACING/2;
     def.finders.forEach((f,i)=>{
       if(!finderLabels[f.name]){finderLabels[f.name]=labelChars[labelIdx%26];labelIdx++;}
       const color=f.color.replace('#','0x');
-      params+='&markers=color:'+color+'|label:'+finderLabels[f.name]+'|size:small|'+c.lat+','+(startLng+i*DOT_SPACING);
+      params+='&markers=color:'+color+'|label:'+finderLabels[f.name]+'|size:tiny|'+c.lat+','+(startLng+i*DOT_SPACING);
     });
   }
 
-  return 'https://maps.googleapis.com/maps/api/staticmap'
+  // Use proxy to avoid CORS
+  return '/api/staticmap'
     +'?center='+center.lat()+','+center.lng()
     +'&zoom='+zoom
     +'&size='+capW+'x'+capH
@@ -836,55 +842,41 @@ async function captureMap() {
     const center=map.getCenter();
     const staticUrl=buildStaticMapUrl(center,staticZoom,mapW,mapH);
 
-    // Build capture legend content
-    buildCaptureLegend();
-
-    // Create a hidden composite div: map image + legend side by side
-    const LEGEND_W=260;
-    const compositeEl=document.createElement('div');
-    compositeEl.style.cssText=`position:fixed;top:-9999px;left:-9999px;display:flex;width:${mapW+LEGEND_W}px;height:${mapH}px;background:#fff;font-family:Inter,sans-serif;`;
-
-    // Map image side
-    const mapImgEl=document.createElement('img');
-    mapImgEl.src=staticUrl;
-    mapImgEl.style.cssText=`width:${mapW}px;height:${mapH}px;flex-shrink:0;`;
-    compositeEl.appendChild(mapImgEl);
-
-    // Divider
-    const divider=document.createElement('div');
-    divider.style.cssText=`width:1px;background:#e0ddd8;flex-shrink:0;`;
-    compositeEl.appendChild(divider);
-
-    // Legend side — clone the hidden legend content
-    const legendSrc=document.getElementById('captureLegend');
-    legendSrc.style.display='block';
-    const legendClone=legendSrc.cloneNode(true);
-    legendClone.style.cssText=`display:block;position:static;width:${LEGEND_W-1}px;height:${mapH}px;padding:16px;background:#fff;overflow:hidden;`;
-    compositeEl.appendChild(legendClone);
-    legendSrc.style.display='none';
-
-    document.body.appendChild(compositeEl);
-
-    // Wait for the map image to load
+    // Load static map via CORS proxy — allows drawImage without tainting canvas
+    const mapImg=new Image();
+    mapImg.crossOrigin='anonymous';
     await new Promise((res,rej)=>{
-      if(mapImgEl.complete) { res(); return; }
-      mapImgEl.onload=res;
-      mapImgEl.onerror=()=>rej(new Error('Static map image failed to load'));
+      mapImg.onload=res;
+      mapImg.onerror=()=>rej(new Error('Static map proxy failed — is the Cloudflare Worker deployed?'));
+      mapImg.src=staticUrl;
     });
 
-    // Capture with html2canvas
-    const canvas=await html2canvas(compositeEl,{
-      backgroundColor:'#ffffff',
-      scale:1,
-      logging:false,
-      useCORS:true,
-      allowTaint:true,
-      imageTimeout:15000
-    });
+    // Render legend to canvas
+    buildCaptureLegend();
+    const legendEl=document.getElementById('captureLegend');
+    legendEl.style.display='block';
+    const legendCanvas=await html2canvas(legendEl,{backgroundColor:'#ffffff',scale:2,logging:false});
+    legendEl.style.display='none';
 
-    document.body.removeChild(compositeEl);
+    // Composite: static map + legend side by side
+    const LEGEND_W=260;
+    const finalCanvas=document.createElement('canvas');
+    finalCanvas.width=mapW+LEGEND_W;
+    finalCanvas.height=mapH;
+    const ctx=finalCanvas.getContext('2d');
 
-    const dataUrl=canvas.toDataURL('image/png');
+    ctx.drawImage(mapImg,0,0,mapW,mapH);
+
+    ctx.fillStyle='#ffffff';
+    ctx.fillRect(mapW,0,LEGEND_W,mapH);
+    ctx.strokeStyle='#e0ddd8'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(mapW,0); ctx.lineTo(mapW,mapH); ctx.stroke();
+
+    const lW=legendCanvas.width/2, lH=legendCanvas.height/2;
+    const scale=Math.min((LEGEND_W-32)/lW,(mapH-32)/lH,1);
+    ctx.drawImage(legendCanvas,0,0,legendCanvas.width,legendCanvas.height,mapW+16,16,lW*scale,lH*scale);
+
+    const dataUrl=finalCanvas.toDataURL('image/png');
 
     // Show preview
     document.getElementById('capturePreviewImg').src=dataUrl;
