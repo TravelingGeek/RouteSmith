@@ -80,11 +80,10 @@
 <div class="main">
   <div id="map"></div>
   <aside class="panel">
-    <div class="section-header" onclick="toggleSection('viz')">
+    <div class="section-header" style="cursor:default;pointer-events:none;">
       <div class="panel-label">Visualization</div>
-      <span class="section-chevron open" id="chev-viz">▼</span>
     </div>
-    <div class="section-body open" id="body-viz">
+    <div class="section-body open" id="body-viz" style="max-height:none;overflow:visible;">
       <div class="viz-toggle">
         <button id="btnB" onclick="event.stopPropagation();setVizMode('B')">B · Arcs</button>
         <button id="btnD" onclick="event.stopPropagation();setVizMode('D')">D · Rings</button>
