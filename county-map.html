@@ -156,9 +156,6 @@ let map, mapData, clickInfoWindow = null;
 let countyFeatures = {}, countyOverlays = {}, staticOverlays = [];
 let currentVizMode = 'E';
 let currentSelectedFips = new Set(), currentFipsToCountyDef = {};
-// Cache of state border polylines per visible fips set
-let stateBorderLines = [];
-
 // ── SECTION COLLAPSE ──
 function toggleSection(id) {
   const body = id === 'cnty' ? document.getElementById('countyList') : document.getElementById('body-'+id);
@@ -318,59 +315,6 @@ function shouldShowWholeState(stateFips,selected) {
   return all.length>0&&selected.length/all.length>=0.6;
 }
 
-// ── STATE BORDER EDGE DETECTION ──
-// For each county on a state border, find which edges of its outer ring
-// are shared with counties in a DIFFERENT state, and draw only those edges thick.
-// Strategy: for each edge segment of the border county, check if a cross-state
-// county has a "close" parallel segment. If so, that edge is a state boundary.
-
-function ptKey(lng, lat) {
-  // Round to 4 decimal places to handle float precision in shared vertices
-  return `${Math.round(lng*10000)},${Math.round(lat*10000)}`;
-}
-
-function buildCrossStateEdgeSet(borderFips, allVisibleFips) {
-  // Collect all edge keys from cross-state counties that are near this county
-  const tb = getBounds(countyFeatures[borderFips]);
-  const ts = borderFips.slice(0,2);
-  const eps = 0.15;
-  const crossEdgeKeys = new Set();
-
-  for (const [fips, feat] of Object.entries(countyFeatures)) {
-    if (fips.slice(0,2) === ts) continue;
-    const b = getBounds(feat);
-    if (b.maxLng < tb.minLng-eps || b.minLng > tb.maxLng+eps ||
-        b.maxLat < tb.minLat-eps || b.minLat > tb.maxLat+eps) continue;
-    // Add all edges of this cross-state county as a set of point-pair keys
-    for (const ring of getAllRings(feat)) {
-      for (let i=0; i<ring.length-1; i++) {
-        const a=ring[i], b2=ring[i+1];
-        crossEdgeKeys.add(ptKey(a[0],a[1])+'|'+ptKey(b2[0],b2[1]));
-        crossEdgeKeys.add(ptKey(b2[0],b2[1])+'|'+ptKey(a[0],a[1]));
-      }
-    }
-  }
-  return crossEdgeKeys;
-}
-
-function getStateBorderSegments(borderFips) {
-  const feat = countyFeatures[borderFips]; if(!feat) return [];
-  const crossEdgeKeys = buildCrossStateEdgeSet(borderFips);
-  const segments = []; // each segment is array of {lat,lng} points
-
-  for (const ring of getAllRings(feat)) {
-    for (let i=0; i<ring.length-1; i++) {
-      const a=ring[i], b=ring[i+1];
-      const key1 = ptKey(a[0],a[1])+'|'+ptKey(b[0],b[1]);
-      const key2 = ptKey(b[0],b[1])+'|'+ptKey(a[0],a[1]);
-      if (crossEdgeKeys.has(key1)||crossEdgeKeys.has(key2)) {
-        segments.push([{lat:a[1],lng:a[0]},{lat:b[1],lng:b[0]}]);
-      }
-    }
-  }
-  return segments;
-}
-
 // ── CLICK POPUP ──
 function showClickPopup(fips, def, latLng) {
   if (clickInfoWindow) { clickInfoWindow.close(); clickInfoWindow = null; }
@@ -411,8 +355,6 @@ function clearDynamicOverlays() {
 function clearStaticOverlays() {
   for(const o of staticOverlays) o.setMap(null);
   staticOverlays=[];
-  for(const l of stateBorderLines) l.setMap(null);
-  stateBorderLines=[];
 }
 
 function countyBorderPoly(paths, weight, opacity, zIndex) {
@@ -525,20 +467,6 @@ function buildStaticOverlays(allVisibleFips, selectedFips) {
     staticOverlays.push(poly);
   }
 
-  // State border edges only — draw thick lines only on segments shared with cross-state counties
-  const borderFipsSet = new Set([...allVisibleFips].filter(f => isOnStateBorder(f)));
-  for (const fips of borderFipsSet) {
-    const segments = getStateBorderSegments(fips);
-    for (const seg of segments) {
-      if (seg.length < 2) continue;
-      const line = new google.maps.Polyline({
-        path: seg, map,
-        strokeColor: '#111', strokeOpacity: 0.75, strokeWeight: 3.5,
-        clickable: false, zIndex: 15
-      });
-      stateBorderLines.push(line);
-    }
-  }
 }
 
 // ── VIZ MODE SWITCH ──
