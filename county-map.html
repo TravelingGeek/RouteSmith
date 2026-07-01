@@ -6,7 +6,6 @@
   <title>County Map — Routesmith POC</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
       --bg:        #f8f7f4;
       --surface:   #ffffff;
@@ -17,185 +16,41 @@
       --muted:     #7a7570;
       --font-ui:   'DM Mono', 'Courier New', monospace;
       --font-body: 'Inter', system-ui, sans-serif;
-
-      /* County status fill colors */
-      --fill-all-new:   #5D3FD3;
-      --fill-mixed:     #CF9FFF;
-      --fill-all-prev:  #b0aaa4;
     }
-
-    body {
-      font-family: var(--font-body);
-      background: var(--bg);
-      color: var(--text);
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 10px 18px;
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      flex-shrink: 0;
-    }
-
-    .rs-mark {
-      font-family: var(--font-ui);
-      font-size: 13px;
-      letter-spacing: 0.12em;
-      color: var(--accent);
-      text-transform: uppercase;
-    }
-
+    body { font-family: var(--font-body); background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+    header { display: flex; align-items: center; gap: 12px; padding: 10px 18px; background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .rs-mark { font-family: var(--font-ui); font-size: 13px; letter-spacing: 0.12em; color: var(--accent); text-transform: uppercase; }
     .rs-divider { width: 1px; height: 18px; background: var(--border); }
-
-    header h1 {
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--muted);
-      letter-spacing: 0.04em;
-    }
-
-    .status-pill {
-      margin-left: auto;
-      font-family: var(--font-ui);
-      font-size: 11px;
-      padding: 3px 10px;
-      border-radius: 20px;
-      background: var(--border);
-      color: var(--muted);
-    }
+    header h1 { font-size: 13px; font-weight: 500; color: var(--muted); letter-spacing: 0.04em; }
+    .status-pill { margin-left: auto; font-family: var(--font-ui); font-size: 11px; padding: 3px 10px; border-radius: 20px; background: var(--border); color: var(--muted); }
     .status-pill.loaded { color: var(--accent); border: 1px solid var(--accent); background: #5D3FD310; }
-
     .main { display: flex; flex: 1; overflow: hidden; }
     #map { flex: 1; height: 100%; }
-
-    /* ── PANEL ── */
-    .panel {
-      width: 288px;
-      flex-shrink: 0;
-      background: var(--surface);
-      border-left: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    .panel-section {
-      padding: 13px 16px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .panel-label {
-      font-family: var(--font-ui);
-      font-size: 10px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 9px;
-    }
-
-    /* ── THREE-WAY TOGGLE ── */
-    .viz-toggle {
-      display: flex;
-      background: var(--bg);
-      border: 1px solid var(--border2);
-      border-radius: 6px;
-      overflow: hidden;
-    }
-
-    .viz-toggle button {
-      flex: 1;
-      padding: 7px 0;
-      border: none;
-      background: transparent;
-      font-family: var(--font-ui);
-      font-size: 11px;
-      letter-spacing: 0.06em;
-      color: var(--muted);
-      cursor: pointer;
-      transition: background 0.15s, color 0.15s;
-      border-right: 1px solid var(--border2);
-    }
+    .panel { width: 288px; flex-shrink: 0; background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+    .panel-section { padding: 13px 16px; border-bottom: 1px solid var(--border); }
+    .panel-label { font-family: var(--font-ui); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 9px; }
+    .viz-toggle { display: flex; background: var(--bg); border: 1px solid var(--border2); border-radius: 6px; overflow: hidden; }
+    .viz-toggle button { flex: 1; padding: 7px 0; border: none; background: transparent; font-family: var(--font-ui); font-size: 11px; letter-spacing: 0.06em; color: var(--muted); cursor: pointer; transition: background 0.15s, color 0.15s; border-right: 1px solid var(--border2); }
     .viz-toggle button:last-child { border-right: none; }
     .viz-toggle button:hover { background: var(--border); color: var(--text); }
-    .viz-toggle button.active {
-      background: var(--accent);
-      color: #ffffff;
-      font-weight: 600;
-    }
-
-    /* ── STATUS LEGEND ── */
+    .viz-toggle button.active { background: var(--accent); color: #ffffff; font-weight: 600; }
     .status-legend { display: flex; flex-direction: column; gap: 6px; }
     .status-legend-row { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); }
-    .status-swatch {
-      width: 20px; height: 12px;
-      border-radius: 2px;
-      border: 1px solid rgba(0,0,0,0.12);
-      flex-shrink: 0;
-    }
-
-    /* ── FINDER LEGEND ── */
+    .status-swatch { width: 20px; height: 12px; border-radius: 2px; border: 1px solid rgba(0,0,0,0.12); flex-shrink: 0; }
     .finder-legend { display: flex; flex-direction: column; gap: 5px; }
     .finder-legend-row { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); }
-    .finder-dot {
-      width: 12px; height: 12px;
-      border-radius: 50%;
-      flex-shrink: 0;
-      border: 1.5px solid rgba(0,0,0,0.15);
-    }
-
-    /* ── COUNTY LIST ── */
+    .finder-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; border: 1.5px solid rgba(0,0,0,0.15); }
     .county-list { flex: 1; overflow-y: auto; padding: 6px 0; }
-
-    .county-item {
-      padding: 7px 16px;
-      border-bottom: 1px solid var(--border);
-      cursor: pointer;
-      transition: background 0.12s;
-    }
+    .county-item { padding: 7px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.12s; }
     .county-item:hover { background: var(--bg); }
     .county-item.active { background: #5D3FD308; border-left: 2px solid var(--accent); padding-left: 14px; }
-
     .county-name { font-size: 13px; font-weight: 500; color: var(--text); }
     .county-state { font-family: var(--font-ui); font-size: 10px; color: var(--muted); margin-top: 1px; }
-
     .finder-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
-    .finder-chip {
-      font-size: 10px;
-      padding: 2px 7px;
-      border-radius: 3px;
-      font-family: var(--font-ui);
-      border: 1px solid currentColor;
-    }
+    .finder-chip { font-size: 10px; padding: 2px 7px; border-radius: 3px; font-family: var(--font-ui); border: 1px solid currentColor; }
     .finder-chip.new-find { font-weight: 700; }
-
-    /* ── INFO BOX ── */
-    .info-box {
-      padding: 13px 16px;
-      border-top: 1px solid var(--border);
-      font-size: 12px;
-      color: var(--muted);
-      line-height: 1.65;
-      flex-shrink: 0;
-    }
-
-    .url-source {
-      background: #5D3FD308;
-      border: 1px solid #5D3FD330;
-      border-radius: 4px;
-      padding: 5px 9px;
-      font-family: var(--font-ui);
-      font-size: 10px;
-      color: var(--accent);
-      word-break: break-all;
-    }
-
+    .info-box { padding: 13px 16px; border-top: 1px solid var(--border); font-size: 12px; color: var(--muted); line-height: 1.65; flex-shrink: 0; }
+    .url-source { background: #5D3FD308; border: 1px solid #5D3FD330; border-radius: 4px; padding: 5px 9px; font-family: var(--font-ui); font-size: 10px; color: var(--accent); word-break: break-all; }
     ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
@@ -204,24 +59,19 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;600&family=Inter:wght@400;500&display=swap" rel="stylesheet">
 </head>
 <body>
-
 <header>
   <span class="rs-mark">Routesmith</span>
   <span class="rs-divider"></span>
   <h1>County Map — POC</h1>
   <span class="status-pill" id="statusPill">Loading…</span>
 </header>
-
 <div class="main">
   <div id="map"></div>
   <aside class="panel">
-
     <div class="panel-section">
       <div class="panel-label">Data Source</div>
       <div id="dataSourceDisplay" class="url-source">embedded JSON</div>
     </div>
-
-    <!-- THREE-WAY TOGGLE -->
     <div class="panel-section">
       <div class="panel-label">Visualization</div>
       <div class="viz-toggle">
@@ -230,102 +80,43 @@
         <button id="btnE" class="active" onclick="setVizMode('E')">E · Pins</button>
       </div>
     </div>
-
-    <!-- STATUS LEGEND -->
     <div class="panel-section">
       <div class="panel-label">County status</div>
       <div class="status-legend">
-        <div class="status-legend-row">
-          <div class="status-swatch" style="background:#5D3FD3"></div>
-          <span>All new finds</span>
-        </div>
-        <div class="status-legend-row">
-          <div class="status-swatch" style="background:#CF9FFF"></div>
-          <span>At least one new find</span>
-        </div>
-        <div class="status-legend-row">
-          <div class="status-swatch" style="background:#b0aaa4"></div>
-          <span>All previous finds</span>
-        </div>
+        <div class="status-legend-row"><div class="status-swatch" style="background:#5D3FD3"></div><span>All new finds</span></div>
+        <div class="status-legend-row"><div class="status-swatch" style="background:#CF9FFF"></div><span>At least one new find</span></div>
+        <div class="status-legend-row"><div class="status-swatch" style="background:#b0aaa4"></div><span>All previous finds</span></div>
       </div>
     </div>
-
-    <!-- FINDER LEGEND -->
     <div class="panel-section">
       <div class="panel-label">Finders</div>
       <div class="finder-legend" id="finderLegend"></div>
     </div>
-
     <div class="panel-label" style="padding: 11px 16px 3px;">Counties</div>
     <div class="county-list" id="countyList"></div>
-
     <div class="info-box" id="infoBox">Click a county to see finder details.</div>
   </aside>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════
-     EMBEDDED JSON BLOCK  (Option B — embedded data)
-     Edit this to change the default dataset.
-     To override via URL param, add ?data=path/to/file.json
-     ═══════════════════════════════════════════════════════════ -->
 <script type="application/json" id="mapData">
 {
   "title": "Texas Hill Country Run",
   "counties": [
-    {
-      "state": "TX", "county": "Travis",
-      "finders": [
-        { "name": "TravelingGeek", "status": "new",      "color": "#5D3FD3" },
-        { "name": "CacheQueen",    "status": "previous", "color": "#e8a838" }
-      ]
-    },
-    {
-      "state": "TX", "county": "Hays",
-      "finders": [
-        { "name": "TravelingGeek", "status": "new", "color": "#5D3FD3" }
-      ]
-    },
-    {
-      "state": "TX", "county": "Blanco",
-      "finders": [
-        { "name": "TravelingGeek",  "status": "previous", "color": "#5D3FD3" },
-        { "name": "TrailBlazer99",  "status": "new",      "color": "#2e7d32" }
-      ]
-    },
-    {
-      "state": "TX", "county": "Gillespie",
-      "finders": [
-        { "name": "TrailBlazer99", "status": "new", "color": "#2e7d32" }
-      ]
-    },
-    {
-      "state": "TX", "county": "Kerr",
-      "finders": [
-        { "name": "CacheQueen", "status": "new", "color": "#e8a838" }
-      ]
-    },
-    {
-      "state": "TX", "county": "Bandera",
-      "finders": [
-        { "name": "CacheQueen",   "status": "previous", "color": "#e8a838" },
-        { "name": "NightOwl",     "status": "previous", "color": "#e57373" }
-      ]
-    }
+    { "state": "TX", "county": "Travis",    "finders": [{ "name": "TravelingGeek", "status": "new",      "color": "#5D3FD3" }, { "name": "CacheQueen",   "status": "previous", "color": "#e8a838" }] },
+    { "state": "TX", "county": "Hays",      "finders": [{ "name": "TravelingGeek", "status": "new",      "color": "#5D3FD3" }] },
+    { "state": "TX", "county": "Blanco",    "finders": [{ "name": "TravelingGeek", "status": "previous", "color": "#5D3FD3" }, { "name": "TrailBlazer99","status": "new",      "color": "#2e7d32" }] },
+    { "state": "TX", "county": "Gillespie", "finders": [{ "name": "TrailBlazer99", "status": "new",      "color": "#2e7d32" }] },
+    { "state": "TX", "county": "Kerr",      "finders": [{ "name": "CacheQueen",    "status": "new",      "color": "#e8a838" }] },
+    { "state": "TX", "county": "Bandera",   "finders": [{ "name": "CacheQueen",    "status": "previous", "color": "#e8a838" }, { "name": "NightOwl", "status": "previous", "color": "#e57373" }] }
   ]
 }
 </script>
 
 <script>
-// ═══════════════════════════════════════════
-// CONFIG
-// ═══════════════════════════════════════════
-const GOOGLE_MAPS_API_KEY = 'AIzaSyDUocvfkOfu3yJ-ptPxMbwz-AddHmHDyzg';
-const COUNTY_GEOJSON_URL  = 'https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json';
-
+const COUNTY_GEOJSON_URL = 'https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json';
 const FILL_ALL_NEW  = '#5D3FD3';
 const FILL_MIXED    = '#CF9FFF';
 const FILL_ALL_PREV = '#b0aaa4';
-const FILL_BUFFER   = '#e8e6e2';
 
 const STATE_FIPS = {
   AL:'01',AK:'02',AZ:'04',AR:'05',CA:'06',CO:'08',CT:'09',DE:'10',FL:'12',GA:'13',
@@ -335,21 +126,20 @@ const STATE_FIPS = {
   SD:'46',TN:'47',TX:'48',UT:'49',VT:'50',VA:'51',WA:'53',WV:'54',WI:'55',WY:'56',DC:'11'
 };
 
-// ═══════════════════════════════════════════
-// STATE
-// ═══════════════════════════════════════════
+// Reverse lookup: FIPS -> abbr
+const FIPS_TO_STATE = Object.fromEntries(Object.entries(STATE_FIPS).map(([k,v]) => [v,k]));
+
 let map, mapData;
-let countyFeatures    = {};   // fips -> GeoJSON feature
-let countyOverlays    = {};   // fips -> array of overlay objects (polylines / markers)
-let currentVizMode    = 'E';
-let currentSelectedFips    = new Set();
+let countyFeatures = {};
+let countyOverlays = {};   // fips -> array of overlays
+let staticOverlays = [];   // unfound county outlines + state borders (persist across viz mode changes)
+let currentVizMode = 'E';
+let currentSelectedFips = new Set();
 let currentFipsToCountyDef = {};
 
-// ═══════════════════════════════════════════
-// COUNTY STATUS HELPERS
-// ═══════════════════════════════════════════
+// ── STATUS HELPERS ──
 function countyStatus(def) {
-  if (!def || !def.finders || def.finders.length === 0) return 'none';
+  if (!def || !def.finders || !def.finders.length) return 'none';
   const hasNew  = def.finders.some(f => f.status === 'new');
   const hasPrev = def.finders.some(f => f.status === 'previous');
   if (hasNew && !hasPrev) return 'all-new';
@@ -362,12 +152,10 @@ function statusFillColor(def) {
   if (s === 'all-new')  return FILL_ALL_NEW;
   if (s === 'mixed')    return FILL_MIXED;
   if (s === 'all-prev') return FILL_ALL_PREV;
-  return FILL_BUFFER;
+  return '#e8e6e2';
 }
 
-// ═══════════════════════════════════════════
-// DATA LOADING
-// ═══════════════════════════════════════════
+// ── DATA LOADING ──
 async function loadMapData() {
   const params  = new URLSearchParams(window.location.search);
   const dataUrl = params.get('data');
@@ -385,16 +173,13 @@ async function loadMapData() {
   return JSON.parse(document.getElementById('mapData').textContent);
 }
 
-// ═══════════════════════════════════════════
-// FIPS / GEO UTILITIES
-// ═══════════════════════════════════════════
+// ── GEO UTILITIES ──
 function fipsForCounty(stateAbbr, countyName) {
   const stateFips = STATE_FIPS[stateAbbr.toUpperCase()];
   if (!stateFips) return null;
   for (const [fips, feat] of Object.entries(countyFeatures)) {
     if (fips.startsWith(stateFips)) {
-      const name = feat.properties.NAME || '';
-      if (name.toLowerCase() === countyName.toLowerCase()) return fips;
+      if ((feat.properties.NAME || '').toLowerCase() === countyName.toLowerCase()) return fips;
     }
   }
   return null;
@@ -403,88 +188,38 @@ function fipsForCounty(stateAbbr, countyName) {
 function getBounds(feature) {
   let minLat=90, maxLat=-90, minLng=180, maxLng=-180;
   for (const [lng, lat] of flatCoords(feature.geometry)) {
-    if (lat < minLat) minLat = lat;
-    if (lat > maxLat) maxLat = lat;
-    if (lng < minLng) minLng = lng;
-    if (lng > maxLng) maxLng = lng;
+    if (lat < minLat) minLat = lat; if (lat > maxLat) maxLat = lat;
+    if (lng < minLng) minLng = lng; if (lng > maxLng) maxLng = lng;
   }
   return { minLat, maxLat, minLng, maxLng };
 }
 
 function flatCoords(geometry) {
   const out = [];
-  function walk(arr, depth) {
-    if (depth === 0) { out.push(arr); return; }
-    for (const item of arr) walk(item, depth - 1);
-  }
-  if (geometry.type === 'Polygon')      walk(geometry.coordinates, 2);
+  function walk(arr, depth) { if (depth === 0) { out.push(arr); return; } for (const item of arr) walk(item, depth-1); }
+  if (geometry.type === 'Polygon') walk(geometry.coordinates, 2);
   else if (geometry.type === 'MultiPolygon') walk(geometry.coordinates, 3);
   return out;
 }
 
-function getAdjacentFips(targetFips) {
-  const target = countyFeatures[targetFips];
-  if (!target) return [];
-  const tb = getBounds(target);
-  const eps = 0.05;
-  const adjacent = [];
-  for (const [fips, feat] of Object.entries(countyFeatures)) {
-    if (fips === targetFips) continue;
-    if (fips.slice(0,2) !== targetFips.slice(0,2)) continue;
-    const b = getBounds(feat);
-    if (b.maxLng >= tb.minLng-eps && b.minLng <= tb.maxLng+eps &&
-        b.maxLat >= tb.minLat-eps && b.minLat <= tb.maxLat+eps) {
-      adjacent.push(fips);
-    }
-  }
-  return adjacent;
-}
-
-function isOnStateBorder(targetFips) {
-  const target = countyFeatures[targetFips];
-  if (!target) return false;
-  const tb = getBounds(target);
-  const targetState = targetFips.slice(0,2);
-  const eps = 0.05;
-  for (const [fips, feat] of Object.entries(countyFeatures)) {
-    if (fips.slice(0,2) === targetState) continue;
-    const b = getBounds(feat);
-    if (b.maxLng >= tb.minLng-eps && b.minLng <= tb.maxLng+eps &&
-        b.maxLat >= tb.minLat-eps && b.minLat <= tb.maxLat+eps) return true;
-  }
-  return false;
-}
-
-function shouldShowWholeState(stateFips, selectedFipsInState) {
-  const allInState = Object.keys(countyFeatures).filter(f => f.startsWith(stateFips));
-  return allInState.length > 0 && selectedFipsInState.length / allInState.length >= 0.6;
-}
-
-// ═══════════════════════════════════════════
-// POLYGON PATH HELPERS
-// ═══════════════════════════════════════════
 function featureToGooglePaths(feature) {
   const paths = [];
-  function ringToPath(ring) {
-    return ring.map(([lng, lat]) => ({ lat, lng }));
-  }
+  const toPath = ring => ring.map(([lng, lat]) => ({ lat, lng }));
   if (feature.geometry.type === 'Polygon') {
-    for (const ring of feature.geometry.coordinates) paths.push(ringToPath(ring));
+    for (const ring of feature.geometry.coordinates) paths.push(toPath(ring));
   } else if (feature.geometry.type === 'MultiPolygon') {
-    for (const poly of feature.geometry.coordinates)
-      for (const ring of poly) paths.push(ringToPath(ring));
+    for (const poly of feature.geometry.coordinates) for (const ring of poly) paths.push(toPath(ring));
   }
   return paths;
 }
 
 function centroidOfFeature(feature) {
   const coords = flatCoords(feature.geometry);
-  let sumLat = 0, sumLng = 0, count = 0;
-  for (const [lng, lat] of coords) { sumLat += lat; sumLng += lng; count++; }
-  return { lat: sumLat / count, lng: sumLng / count };
+  let sLat=0, sLng=0, n=0;
+  for (const [lng, lat] of coords) { sLat+=lat; sLng+=lng; n++; }
+  return { lat: sLat/n, lng: sLng/n };
 }
 
-// For Mode B: get perimeter points of the outer ring as an array of LatLng
 function outerRingPoints(feature) {
   const ring = feature.geometry.type === 'Polygon'
     ? feature.geometry.coordinates[0]
@@ -494,104 +229,108 @@ function outerRingPoints(feature) {
 
 function perimeter(pts) {
   let d = 0;
-  for (let i = 1; i < pts.length; i++) {
-    d += Math.sqrt(
-      Math.pow(pts[i].lat - pts[i-1].lat, 2) +
-      Math.pow(pts[i].lng - pts[i-1].lng, 2)
-    );
-  }
+  for (let i = 1; i < pts.length; i++)
+    d += Math.sqrt(Math.pow(pts[i].lat-pts[i-1].lat,2) + Math.pow(pts[i].lng-pts[i-1].lng,2));
   return d;
 }
 
-// Split perimeter into N equal arc segments, return array of point arrays
 function splitPerimeterArcs(pts, n) {
   const totalDist = perimeter(pts);
   const segLen = totalDist / n;
   const arcs = [];
-  let currentArc = [pts[0]];
-  let accumulated = 0;
-  let arcIdx = 0;
-
-  for (let i = 1; i < pts.length && arcIdx < n - 1; i++) {
-    const segD = Math.sqrt(
-      Math.pow(pts[i].lat - pts[i-1].lat, 2) +
-      Math.pow(pts[i].lng - pts[i-1].lng, 2)
-    );
+  let currentArc = [pts[0]], accumulated = 0, arcIdx = 0;
+  for (let i = 1; i < pts.length && arcIdx < n-1; i++) {
+    const segD = Math.sqrt(Math.pow(pts[i].lat-pts[i-1].lat,2)+Math.pow(pts[i].lng-pts[i-1].lng,2));
     accumulated += segD;
     currentArc.push(pts[i]);
-    if (accumulated >= segLen * (arcIdx + 1)) {
-      arcs.push(currentArc);
-      currentArc = [pts[i]];
-      arcIdx++;
-    }
+    if (accumulated >= segLen * (arcIdx+1)) { arcs.push(currentArc); currentArc = [pts[i]]; arcIdx++; }
   }
-  // Last arc gets remaining points
-  for (let i = currentArc.length > 0 ? pts.indexOf(currentArc[currentArc.length-1]) + 1 : 1; i < pts.length; i++) {
-    currentArc.push(pts[i]);
-  }
+  const lastIdx = currentArc.length > 0 ? pts.indexOf(currentArc[currentArc.length-1])+1 : 1;
+  for (let i = lastIdx; i < pts.length; i++) currentArc.push(pts[i]);
   arcs.push(currentArc);
   return arcs;
 }
 
-// Shrink polygon paths inward by a degree offset (approximate)
-function shrinkPaths(paths, offsetDeg) {
+function shrinkPaths(paths, factor) {
   return paths.map(ring => {
-    const cx = ring.reduce((s,p) => s + p.lat, 0) / ring.length;
-    const cy = ring.reduce((s,p) => s + p.lng, 0) / ring.length;
-    return ring.map(p => ({
-      lat: cx + (p.lat - cx) * (1 - offsetDeg),
-      lng: cy + (p.lng - cy) * (1 - offsetDeg)
-    }));
+    const cx = ring.reduce((s,p)=>s+p.lat,0)/ring.length;
+    const cy = ring.reduce((s,p)=>s+p.lng,0)/ring.length;
+    return ring.map(p => ({ lat: cx+(p.lat-cx)*(1-factor), lng: cy+(p.lng-cy)*(1-factor) }));
   });
 }
 
-// ═══════════════════════════════════════════
-// OVERLAY MANAGEMENT
-// ═══════════════════════════════════════════
-function clearOverlays() {
-  for (const overlays of Object.values(countyOverlays)) {
+function getAdjacentFips(targetFips) {
+  const tb = getBounds(countyFeatures[targetFips]);
+  const eps = 0.05;
+  return Object.entries(countyFeatures)
+    .filter(([fips, feat]) => {
+      if (fips === targetFips || fips.slice(0,2) !== targetFips.slice(0,2)) return false;
+      const b = getBounds(feat);
+      return b.maxLng>=tb.minLng-eps && b.minLng<=tb.maxLng+eps && b.maxLat>=tb.minLat-eps && b.minLat<=tb.maxLat+eps;
+    })
+    .map(([fips]) => fips);
+}
+
+function isOnStateBorder(targetFips) {
+  const tb = getBounds(countyFeatures[targetFips]);
+  const targetState = targetFips.slice(0,2);
+  const eps = 0.05;
+  return Object.entries(countyFeatures).some(([fips, feat]) => {
+    if (fips.slice(0,2) === targetState) return false;
+    const b = getBounds(feat);
+    return b.maxLng>=tb.minLng-eps && b.minLng<=tb.maxLng+eps && b.maxLat>=tb.minLat-eps && b.minLat<=tb.maxLat+eps;
+  });
+}
+
+function shouldShowWholeState(stateFips, selected) {
+  const all = Object.keys(countyFeatures).filter(f => f.startsWith(stateFips));
+  return all.length > 0 && selected.length / all.length >= 0.6;
+}
+
+// ── OVERLAY MANAGEMENT ──
+function clearDynamicOverlays() {
+  for (const overlays of Object.values(countyOverlays))
     for (const o of overlays) o.setMap(null);
-  }
   countyOverlays = {};
 }
 
-// ═══════════════════════════════════════════
-// VIZ MODE RENDERING
-// ═══════════════════════════════════════════
+function clearStaticOverlays() {
+  for (const o of staticOverlays) o.setMap(null);
+  staticOverlays = [];
+}
 
+// ── VIZ MODE RENDERERS ──
 function renderModeB(fips, def) {
   const feat = countyFeatures[fips];
   if (!feat) return;
   const overlays = [];
-  const fillColor = statusFillColor(def);
   const paths = featureToGooglePaths(feat);
+  const fillColor = statusFillColor(def);
 
-  // Base polygon fill
-  const poly = new google.maps.Polygon({
-    paths, map,
-    fillColor, fillOpacity: 0.35,
-    strokeColor: '#555', strokeOpacity: 0.4, strokeWeight: 0.5,
-    clickable: false
-  });
-  overlays.push(poly);
+  // Status fill
+  overlays.push(new google.maps.Polygon({
+    paths, map, fillColor, fillOpacity: 0.35,
+    strokeOpacity: 0, strokeWeight: 0, clickable: false
+  }));
 
-  // Border arcs per finder
-  const finders = def.finders;
-  if (finders.length > 0) {
+  // Colored border arcs per finder
+  if (def.finders.length > 0) {
     const pts = outerRingPoints(feat);
-    const arcs = splitPerimeterArcs(pts, finders.length);
-    finders.forEach((f, i) => {
+    const arcs = splitPerimeterArcs(pts, def.finders.length);
+    def.finders.forEach((f, i) => {
       if (!arcs[i] || arcs[i].length < 2) return;
-      const line = new google.maps.Polyline({
+      overlays.push(new google.maps.Polyline({
         path: arcs[i], map,
-        strokeColor: f.color,
-        strokeOpacity: 1.0,
-        strokeWeight: 5,
-        clickable: false
-      });
-      overlays.push(line);
+        strokeColor: f.color, strokeOpacity: 1.0, strokeWeight: 5, clickable: false
+      }));
     });
   }
+
+  // Black county border
+  overlays.push(new google.maps.Polygon({
+    paths, map, fillOpacity: 0,
+    strokeColor: '#222', strokeOpacity: 0.7, strokeWeight: 1.5, clickable: false
+  }));
 
   countyOverlays[fips] = overlays;
 }
@@ -603,34 +342,33 @@ function renderModeD(fips, def) {
   const finders = def.finders;
   const n = finders.length;
   const basePaths = featureToGooglePaths(feat);
+  const fillColor = statusFillColor(def);
 
-  // Rings from outside in, one per finder
-  // Outermost ring = last finder; innermost = first finder (primary)
-  const ringsReversed = [...finders].reverse();
-
-  ringsReversed.forEach((f, i) => {
-    const shrink = i * (0.18 / Math.max(n, 1));
-    const paths = shrinkPaths(basePaths, shrink);
-    const poly = new google.maps.Polygon({
-      paths, map,
-      fillColor: f.color,
-      fillOpacity: i === 0 ? 0.25 : 0.35,
-      strokeColor: f.color,
-      strokeOpacity: 0.7,
-      strokeWeight: 1,
-      clickable: false
-    });
-    overlays.push(poly);
-  });
-
-  // County border on top
-  const border = new google.maps.Polygon({
+  // Base status fill
+  overlays.push(new google.maps.Polygon({
     paths: basePaths, map,
-    fillColor: 'transparent', fillOpacity: 0,
-    strokeColor: '#666', strokeOpacity: 0.5, strokeWeight: 0.75,
-    clickable: false
+    fillColor, fillOpacity: 0.35,
+    strokeOpacity: 0, strokeWeight: 0, clickable: false
+  }));
+
+  // Rings from outside in: last finder outermost, first finder innermost
+  const reversed = [...finders].reverse();
+  reversed.forEach((f, i) => {
+    const shrink = (i + 1) * (0.16 / Math.max(n, 1));
+    const paths = shrinkPaths(basePaths, shrink);
+    overlays.push(new google.maps.Polygon({
+      paths, map,
+      fillColor: f.color, fillOpacity: 0.55,
+      strokeColor: f.color, strokeOpacity: 0.8, strokeWeight: 1,
+      clickable: false
+    }));
   });
-  overlays.push(border);
+
+  // Black county border on top
+  overlays.push(new google.maps.Polygon({
+    paths: basePaths, map, fillOpacity: 0,
+    strokeColor: '#222', strokeOpacity: 0.7, strokeWeight: 1.5, clickable: false
+  }));
 
   countyOverlays[fips] = overlays;
 }
@@ -639,73 +377,110 @@ function renderModeE(fips, def) {
   const feat = countyFeatures[fips];
   if (!feat) return;
   const overlays = [];
-  const fillColor = statusFillColor(def);
   const paths = featureToGooglePaths(feat);
+  const fillColor = statusFillColor(def);
 
-  // Status fill polygon
-  const poly = new google.maps.Polygon({
-    paths, map,
-    fillColor, fillOpacity: 0.4,
-    strokeColor: '#555', strokeOpacity: 0.4, strokeWeight: 0.5,
-    clickable: false
-  });
-  overlays.push(poly);
+  // Status fill
+  overlays.push(new google.maps.Polygon({
+    paths, map, fillColor, fillOpacity: 0.4,
+    strokeOpacity: 0, strokeWeight: 0, clickable: false
+  }));
 
-  // Centroid dot cluster
+  // Black county border
+  overlays.push(new google.maps.Polygon({
+    paths, map, fillOpacity: 0,
+    strokeColor: '#222', strokeOpacity: 0.7, strokeWeight: 1.5, clickable: false
+  }));
+
+  // Centroid dot cluster — wider spacing, slightly larger dots
   const center = centroidOfFeature(feat);
   const finders = def.finders;
-  const dotSpacingDeg = 0.04;
-  const totalWidth = (finders.length - 1) * dotSpacingDeg;
+  const DOT_SPACING = 0.07;  // increased from 0.04
+  const totalWidth = (finders.length - 1) * DOT_SPACING;
   const startLng = center.lng - totalWidth / 2;
 
   finders.forEach((f, i) => {
-    const marker = new google.maps.Marker({
-      position: { lat: center.lat, lng: startLng + i * dotSpacingDeg },
+    overlays.push(new google.maps.Marker({
+      position: { lat: center.lat, lng: startLng + i * DOT_SPACING },
       map,
       icon: {
         path: google.maps.SymbolPath.CIRCLE,
-        scale: 7,
-        fillColor: f.color,
-        fillOpacity: 1,
-        strokeColor: '#ffffff',
-        strokeWeight: 1.5
+        scale: 8,
+        fillColor: f.color, fillOpacity: 1,
+        strokeColor: '#ffffff', strokeWeight: 2
       },
       title: `${f.name} (${f.status})`,
       clickable: false
-    });
-    overlays.push(marker);
+    }));
   });
 
   countyOverlays[fips] = overlays;
 }
 
-function renderBufferCounty(fips) {
-  const feat = countyFeatures[fips];
-  if (!feat) return;
-  const paths = featureToGooglePaths(feat);
-  const poly = new google.maps.Polygon({
-    paths, map,
-    fillColor: FILL_BUFFER, fillOpacity: 0.15,
-    strokeColor: '#aaa', strokeOpacity: 0.3, strokeWeight: 0.5,
-    clickable: false
-  });
-  countyOverlays[fips] = [poly];
+// ── STATIC OVERLAYS: unfound county outlines + state borders ──
+function buildStaticOverlays(allVisibleFips, selectedFips, visibleStateFips) {
+  clearStaticOverlays();
+
+  // Unfound county outlines (thin dark gray)
+  for (const fips of allVisibleFips) {
+    if (selectedFips.has(fips)) continue;
+    const feat = countyFeatures[fips];
+    if (!feat) continue;
+    const paths = featureToGooglePaths(feat);
+    staticOverlays.push(new google.maps.Polygon({
+      paths, map,
+      fillColor: '#888', fillOpacity: 0.05,
+      strokeColor: '#666', strokeOpacity: 0.35, strokeWeight: 0.75,
+      clickable: false, zIndex: 1
+    }));
+  }
+
+  // State boundaries — drawn as polylines along each county's edges that touch a state border
+  // Simpler approach: draw a thick polygon border for each state's bounding outline
+  // We do this by collecting all counties per visible state and drawing a merged border effect
+  // using a high-zIndex polygon outline per state FIPS
+  for (const stateFips of visibleStateFips) {
+    const stateCounties = Object.entries(countyFeatures)
+      .filter(([fips]) => fips.startsWith(stateFips));
+
+    for (const [, feat] of stateCounties) {
+      const paths = featureToGooglePaths(feat);
+      staticOverlays.push(new google.maps.Polygon({
+        paths, map,
+        fillOpacity: 0,
+        strokeColor: '#333', strokeOpacity: 0.0, strokeWeight: 0,
+        clickable: false, zIndex: 2
+      }));
+    }
+  }
+
+  // Draw actual state borders using the administrative.province layer via the map style.
+  // Additionally draw a thick polyline along state edges by detecting cross-state adjacency.
+  // For each county in our visible set, check if it borders a county in a different state;
+  // if so, draw that shared edge thicker.
+  // Approximate: draw the outer ring of each county that is on the state border with a thick stroke.
+  const visibleFipsSet = new Set(allVisibleFips);
+  for (const fips of allVisibleFips) {
+    if (!isOnStateBorder(fips)) continue;
+    const feat = countyFeatures[fips];
+    if (!feat) continue;
+    const paths = featureToGooglePaths(feat);
+    // Draw a thick border-only polygon for state-border counties
+    staticOverlays.push(new google.maps.Polygon({
+      paths, map, fillOpacity: 0,
+      strokeColor: '#222', strokeOpacity: 0.55, strokeWeight: 2.5,
+      clickable: false, zIndex: 3
+    }));
+  }
 }
 
-// ═══════════════════════════════════════════
-// VIZ MODE SWITCH
-// ═══════════════════════════════════════════
+// ── VIZ MODE SWITCH ──
 function setVizMode(mode) {
   currentVizMode = mode;
-
-  // Update toggle buttons
-  ['B','D','E'].forEach(m => {
-    document.getElementById(`btn${m}`).classList.toggle('active', m === mode);
-  });
-
-  // Re-render overlays
-  clearOverlays();
+  ['B','D','E'].forEach(m => document.getElementById(`btn${m}`).classList.toggle('active', m === mode));
+  clearDynamicOverlays();
   applyVizMode();
+  addHitPolygons();
 }
 
 function applyVizMode() {
@@ -718,30 +493,37 @@ function applyVizMode() {
   }
 }
 
-// ═══════════════════════════════════════════
-// MAIN RENDER
-// ═══════════════════════════════════════════
+function addHitPolygons() {
+  for (const fips of currentSelectedFips) {
+    const feat = countyFeatures[fips];
+    if (!feat) continue;
+    const paths = featureToGooglePaths(feat);
+    const hitPoly = new google.maps.Polygon({
+      paths, map,
+      fillColor: '#000', fillOpacity: 0.001,
+      strokeOpacity: 0, strokeWeight: 0,
+      clickable: true, zIndex: 10
+    });
+    hitPoly.addListener('click', () => highlightCounty(currentFipsToCountyDef[fips], fips));
+    if (!countyOverlays[fips]) countyOverlays[fips] = [];
+    countyOverlays[fips].push(hitPoly);
+  }
+}
+
+// ── MAIN RENDER ──
 function renderMap(data) {
-  // Resolve FIPS
   const selectedFips = new Set();
   const fipsToCountyDef = {};
 
   for (const c of data.counties) {
     const fips = fipsForCounty(c.state, c.county);
-    if (fips) {
-      selectedFips.add(fips);
-      fipsToCountyDef[fips] = c;
-      c._fips = fips;
-    } else {
-      console.warn(`County not found: ${c.county}, ${c.state}`);
-    }
+    if (fips) { selectedFips.add(fips); fipsToCountyDef[fips] = c; c._fips = fips; }
+    else console.warn(`County not found: ${c.county}, ${c.state}`);
   }
 
-  // Buffer / whole-state logic
   const bufferFips = new Set();
   const wholeStateFips = new Set();
   const byState = {};
-
   for (const fips of selectedFips) {
     const s = fips.slice(0,2);
     if (!byState[s]) byState[s] = [];
@@ -762,14 +544,18 @@ function renderMap(data) {
     }
   }
 
-  // Store for mode switching
   currentSelectedFips    = selectedFips;
   currentFipsToCountyDef = fipsToCountyDef;
 
-  // Clear old overlays
-  clearOverlays();
+  clearDynamicOverlays();
+  clearStaticOverlays();
 
-  // Fit bounds
+  const allVisibleFips = new Set([...selectedFips, ...bufferFips, ...wholeStateFips]);
+
+  // Collect all visible state FIPS codes
+  const visibleStateFips = new Set([...allVisibleFips].map(f => f.slice(0,2)));
+
+  // Fit bounds to selected counties
   const bounds = new google.maps.LatLngBounds();
   for (const fips of selectedFips) {
     const feat = countyFeatures[fips];
@@ -779,33 +565,14 @@ function renderMap(data) {
     bounds.extend({ lat: b.maxLat, lng: b.maxLng });
   }
 
-  // Draw buffer counties
-  for (const fips of [...bufferFips, ...wholeStateFips]) {
-    if (!selectedFips.has(fips)) renderBufferCounty(fips);
-  }
+  // Draw static overlays first (unfound outlines + state borders) — lowest z
+  buildStaticOverlays(allVisibleFips, selectedFips, visibleStateFips);
 
-  // Draw selected counties in current viz mode
+  // Draw selected counties in viz mode
   applyVizMode();
 
-  // Click detection — invisible polygon layer on top
-  for (const fips of selectedFips) {
-    const feat = countyFeatures[fips];
-    if (!feat) continue;
-    const paths = featureToGooglePaths(feat);
-    const hitPoly = new google.maps.Polygon({
-      paths, map,
-      fillColor: '#000', fillOpacity: 0.001,
-      strokeOpacity: 0, strokeWeight: 0,
-      clickable: true,
-      zIndex: 10
-    });
-    hitPoly.addListener('click', () => {
-      highlightCounty(fipsToCountyDef[fips], fips);
-    });
-    // Store with overlays so they get cleared on mode switch
-    if (!countyOverlays[fips]) countyOverlays[fips] = [];
-    countyOverlays[fips].push(hitPoly);
-  }
+  // Hit polygons for click detection
+  addHitPolygons();
 
   map.fitBounds(bounds, { top: 40, bottom: 40, left: 40, right: 300 });
 
@@ -817,9 +584,7 @@ function renderMap(data) {
   document.getElementById('statusPill').classList.add('loaded');
 }
 
-// ═══════════════════════════════════════════
-// SIDEBAR
-// ═══════════════════════════════════════════
+// ── SIDEBAR ──
 function buildSidebar(data) {
   const list = document.getElementById('countyList');
   list.innerHTML = '';
@@ -828,22 +593,14 @@ function buildSidebar(data) {
     item.className = 'county-item';
     item.dataset.fips = c._fips || '';
 
-    const statusColor = statusFillColor(c);
-
     const nameRow = document.createElement('div');
-    nameRow.style.display = 'flex';
-    nameRow.style.alignItems = 'center';
-    nameRow.style.gap = '7px';
-
+    nameRow.style.cssText = 'display:flex;align-items:center;gap:7px;';
     const dot = document.createElement('div');
-    dot.style.cssText = `width:9px;height:9px;border-radius:50%;background:${statusColor};flex-shrink:0;`;
-
+    dot.style.cssText = `width:9px;height:9px;border-radius:50%;background:${statusFillColor(c)};flex-shrink:0;`;
     const name = document.createElement('div');
     name.className = 'county-name';
     name.textContent = c.county;
-
-    nameRow.appendChild(dot);
-    nameRow.appendChild(name);
+    nameRow.appendChild(dot); nameRow.appendChild(name);
 
     const state = document.createElement('div');
     state.className = 'county-state';
@@ -853,20 +610,17 @@ function buildSidebar(data) {
     const chips = document.createElement('div');
     chips.className = 'finder-chips';
     chips.style.paddingLeft = '16px';
-
     for (const f of c.finders) {
       const chip = document.createElement('span');
       chip.className = `finder-chip ${f.status === 'new' ? 'new-find' : ''}`;
       chip.textContent = f.name + (f.status === 'new' ? ' ★' : ' ◇');
       chip.style.color = f.color;
       chip.style.borderColor = f.color + '88';
-      chip.style.background = f.color + '12';
+      chip.style.background   = f.color + '12';
       chips.appendChild(chip);
     }
 
-    item.appendChild(nameRow);
-    item.appendChild(state);
-    item.appendChild(chips);
+    item.appendChild(nameRow); item.appendChild(state); item.appendChild(chips);
     list.appendChild(item);
     item.addEventListener('click', () => highlightCounty(c, c._fips));
   }
@@ -888,8 +642,7 @@ function buildFinderLegend(data) {
     dot.style.background = f.color;
     const label = document.createElement('span');
     label.textContent = f.name;
-    row.appendChild(dot);
-    row.appendChild(label);
+    row.appendChild(dot); row.appendChild(label);
     legend.appendChild(row);
   }
 }
@@ -899,57 +652,48 @@ function highlightCounty(def, fips) {
   const item = document.querySelector(`.county-item[data-fips="${fips}"]`);
   if (item) { item.classList.add('active'); item.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
 
-  const box = document.getElementById('infoBox');
   const status = countyStatus(def);
   const statusLabel = status === 'all-new' ? 'All new' : status === 'mixed' ? 'Mixed' : 'All previous';
   const finderLines = def.finders.map(f =>
     `<span style="color:${f.color};font-weight:${f.status==='new'?'700':'400'}">${f.name}</span> <span style="color:var(--muted);font-size:10px">${f.status === 'new' ? '★ new' : '◇ previous'}</span>`
   ).join('<br>');
-  box.innerHTML = `<strong style="color:var(--text)">${def.county} County, ${def.state}</strong>
-    <div style="font-size:10px;font-family:var(--font-ui);color:var(--muted);margin:3px 0 8px">${statusLabel}</div>
-    ${finderLines}`;
+
+  document.getElementById('infoBox').innerHTML =
+    `<strong style="color:var(--text)">${def.county} County, ${def.state}</strong>
+     <div style="font-size:10px;font-family:var(--font-ui);color:var(--muted);margin:3px 0 8px">${statusLabel}</div>
+     ${finderLines}`;
 
   if (countyFeatures[fips]) {
     const b = getBounds(countyFeatures[fips]);
-    map.panTo({ lat: (b.minLat + b.maxLat) / 2, lng: (b.minLng + b.maxLng) / 2 });
+    map.panTo({ lat: (b.minLat+b.maxLat)/2, lng: (b.minLng+b.maxLng)/2 });
   }
 }
 
-// ═══════════════════════════════════════════
-// LIGHT MAP STYLES
-// Major highways + city labels, everything else suppressed
-// ═══════════════════════════════════════════
+// ── MAP STYLES ──
 function lightMapStyles() {
   return [
     { elementType: 'geometry',            stylers: [{ color: '#f5f3ef' }] },
     { elementType: 'labels.text.stroke',  stylers: [{ color: '#f5f3ef' }] },
     { elementType: 'labels.text.fill',    stylers: [{ color: '#6b6560' }] },
-
     { featureType: 'poi',                 stylers: [{ visibility: 'off' }] },
     { featureType: 'transit',             stylers: [{ visibility: 'off' }] },
     { featureType: 'road.local',          stylers: [{ visibility: 'off' }] },
     { featureType: 'road.arterial',       stylers: [{ visibility: 'off' }] },
-
-    { featureType: 'road.highway', elementType: 'geometry',       stylers: [{ color: '#d4c9b0' }] },
-    { featureType: 'road.highway', elementType: 'geometry.stroke', stylers: [{ color: '#c4b89a' }] },
+    { featureType: 'road.highway', elementType: 'geometry',        stylers: [{ color: '#d4c9b0' }] },
+    { featureType: 'road.highway', elementType: 'geometry.stroke',  stylers: [{ color: '#c4b89a' }] },
     { featureType: 'road.highway', elementType: 'labels.text.fill', stylers: [{ color: '#5a5048' }] },
-
-    { featureType: 'water', elementType: 'geometry',           stylers: [{ color: '#b8d4e8' }] },
-    { featureType: 'water', elementType: 'labels.text.fill',   stylers: [{ color: '#5a7a99' }] },
-
+    { featureType: 'water', elementType: 'geometry',          stylers: [{ color: '#b8d4e8' }] },
+    { featureType: 'water', elementType: 'labels.text.fill',  stylers: [{ color: '#5a7a99' }] },
     { featureType: 'landscape.natural', elementType: 'geometry', stylers: [{ color: '#eae8e2' }] },
-
-    { featureType: 'administrative.country',  elementType: 'geometry.stroke', stylers: [{ color: '#b0a898', visibility: 'on' }] },
-    { featureType: 'administrative.province', elementType: 'geometry.stroke', stylers: [{ color: '#c0b8aa', visibility: 'on' }] },
-    { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{ color: '#4a4440' }] },
+    { featureType: 'administrative.country',  elementType: 'geometry.stroke', stylers: [{ color: '#888', visibility: 'on' }] },
+    { featureType: 'administrative.province', elementType: 'geometry.stroke', stylers: [{ color: '#555', strokeWeight: 3, visibility: 'on' }] },
+    { featureType: 'administrative.locality', elementType: 'labels.text.fill',   stylers: [{ color: '#4a4440' }] },
     { featureType: 'administrative.locality', elementType: 'labels.text.stroke', stylers: [{ color: '#f5f3ef' }] },
     { featureType: 'administrative.neighborhood', stylers: [{ visibility: 'off' }] },
   ];
 }
 
-// ═══════════════════════════════════════════
-// GOOGLE MAPS INIT
-// ═══════════════════════════════════════════
+// ── INIT ──
 async function initMap() {
   map = new google.maps.Map(document.getElementById('map'), {
     zoom: 6,
@@ -967,15 +711,12 @@ async function initMap() {
     document.getElementById('statusPill').textContent = 'Loading counties…';
     const resp = await fetch(COUNTY_GEOJSON_URL);
     const geojson = await resp.json();
-
     for (const feat of geojson.features) {
       const fips = feat.id || feat.properties.GEO_ID?.slice(-5);
       if (fips) countyFeatures[fips] = feat;
     }
-
     mapData = await loadMapData();
     renderMap(mapData);
-
   } catch(e) {
     console.error(e);
     document.getElementById('statusPill').textContent = 'Error';
@@ -985,7 +726,6 @@ async function initMap() {
 
 window.initMap = initMap;
 </script>
-
 <script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDUocvfkOfu3yJ-ptPxMbwz-AddHmHDyzg&callback=initMap"></script>
 </body>
 </html>
