@@ -90,6 +90,13 @@
         <button id="btnD" onclick="event.stopPropagation();setVizMode('D')">D · Rings</button>
         <button id="btnE" class="active" onclick="event.stopPropagation();setVizMode('E')">E · Pins</button>
       </div>
+      <div style="margin-top:10px;">
+        <div class="panel-label" style="margin-bottom:6px;">Base Map</div>
+        <div class="viz-toggle">
+          <button id="btnRoad" class="active" onclick="event.stopPropagation();setBaseMap('road')">Road</button>
+          <button id="btnTerrain" onclick="event.stopPropagation();setBaseMap('terrain')">Terrain</button>
+        </div>
+      </div>
     </div>
     <div class="section-header" style="cursor:default;pointer-events:none;">
       <div class="panel-label">County Status</div>
@@ -468,6 +475,19 @@ function buildStaticOverlays(allVisibleFips, selectedFips) {
 }
 
 // ── VIZ MODE SWITCH ──
+function setBaseMap(mode) {
+  const isRoad = mode === 'road';
+  document.getElementById('btnRoad').classList.toggle('active', isRoad);
+  document.getElementById('btnTerrain').classList.toggle('active', !isRoad);
+  if (isRoad) {
+    map.setMapTypeId('roadmap');
+    map.setOptions({ styles: lightMapStyles() });
+  } else {
+    map.setMapTypeId('terrain');
+    map.setOptions({ styles: terrainMapStyles() });
+  }
+}
+
 function setVizMode(mode) {
   currentVizMode=mode;
   ['B','D','E'].forEach(m=>document.getElementById(`btn${m}`).classList.toggle('active',m===mode));
@@ -629,6 +649,23 @@ function lightMapStyles() {
     {featureType:'administrative.province',elementType:'geometry.stroke',stylers:[{color:'#1a1a1a',visibility:'on'},{weight:4}]},
     {featureType:'administrative.locality',elementType:'labels.text.fill',stylers:[{color:'#4a4440'}]},
     {featureType:'administrative.locality',elementType:'labels.text.stroke',stylers:[{color:'#f5f3ef'}]},
+    {featureType:'administrative.neighborhood',stylers:[{visibility:'off'}]},
+  ];
+}
+
+function terrainMapStyles() {
+  return [
+    {featureType:'poi',                  stylers:[{visibility:'off'}]},
+    {featureType:'transit',              stylers:[{visibility:'off'}]},
+    {featureType:'road.local',           stylers:[{visibility:'off'}]},
+    {featureType:'road.arterial',        stylers:[{visibility:'off'}]},
+    {featureType:'road.highway',elementType:'geometry',        stylers:[{color:'#c9b99a'}]},
+    {featureType:'road.highway',elementType:'geometry.stroke', stylers:[{color:'#b8a888'}]},
+    {featureType:'road.highway',elementType:'labels.text.fill',stylers:[{color:'#4a3e30'}]},
+    {featureType:'administrative.country', elementType:'geometry.stroke',stylers:[{color:'#888',visibility:'on'}]},
+    {featureType:'administrative.province',elementType:'geometry.stroke',stylers:[{color:'#1a1a1a',visibility:'on'},{weight:4}]},
+    {featureType:'administrative.locality',elementType:'labels.text.fill',  stylers:[{color:'#3a3020'}]},
+    {featureType:'administrative.locality',elementType:'labels.text.stroke',stylers:[{color:'#f0ebe0'}]},
     {featureType:'administrative.neighborhood',stylers:[{visibility:'off'}]},
   ];
 }
