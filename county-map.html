@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-<!--RouteSmith POC v0.5-->
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -64,10 +63,17 @@
     .finder-chip.new-find { font-weight: 700; }
     .info-box { padding: 13px 16px; border-top: 1px solid var(--border); font-size: 12px; color: var(--muted); line-height: 1.65; flex-shrink: 0; }
     .url-source { font-family: var(--font-ui); font-size: 10px; color: var(--accent); word-break: break-all; }
+    .capture-btn { display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:8px 0;border:none;border-radius:5px;background:var(--accent);color:#fff;font-family:var(--font-ui);font-size:11px;letter-spacing:0.08em;cursor:pointer;transition:opacity 0.15s; }
+    .capture-btn:hover { opacity:0.85; }
+    .capture-btn:disabled { opacity:0.5;cursor:not-allowed; }
+    #capturePreviewWrap { display:none;padding:12px 16px;border-top:1px solid var(--border); }
+    #capturePreviewWrap img { width:100%;border-radius:4px;border:1px solid var(--border); }
+    #capturePreviewWrap a { display:block;margin-top:8px;font-family:var(--font-ui);font-size:10px;color:var(--accent);text-align:center; }
     ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;600&family=Inter:wght@400;500&display=swap" rel="stylesheet">
 </head>
@@ -123,6 +129,13 @@
     </div>
     <div class="county-list closed" id="countyList"></div>
     <div class="info-box" id="infoBox">Click a county to see finder details.</div>
+    <div style="padding:12px 16px;border-top:1px solid var(--border);flex-shrink:0;">
+      <button class="capture-btn" id="captureBtn" onclick="captureMap()">Capture Map PNG</button>
+    </div>
+    <div id="capturePreviewWrap">
+      <img id="capturePreviewImg" src="" alt="Map capture"/>
+      <a id="captureDownloadLink" href="" download="routesmith-map.png">Download PNG</a>
+    </div>
     <div class="section-header" onclick="toggleSection('src')" style="border-top:1px solid var(--border);border-bottom:none;">
       <div class="panel-label">Data Source</div>
       <span class="section-chevron" id="chev-src">▼</span>
@@ -131,6 +144,19 @@
       <div class="url-source" id="dataSourceDisplay">embedded JSON</div>
     </div>
   </aside>
+</div>
+
+<!-- Hidden legend for capture -->
+<div id="captureLegend" style="display:none;position:fixed;top:-9999px;left:-9999px;width:260px;padding:16px;background:#fff;font-family:Inter,sans-serif;border-radius:6px;">
+  <div id="capLegendTitle" style="font-size:14px;font-weight:600;color:#1a1814;margin-bottom:12px;"></div>
+  <div style="margin-bottom:12px;">
+    <div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:#7a7570;margin-bottom:7px;">County Status</div>
+    <div id="capStatusLegend"></div>
+  </div>
+  <div>
+    <div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:#7a7570;margin-bottom:7px;">Finders</div>
+    <div id="capFinderLegend"></div>
+  </div>
 </div>
 
 <script type="application/json" id="mapData">
@@ -593,6 +619,7 @@ function renderMap(data) {
   buildFinderLegend(data);
   document.getElementById('statusPill').textContent=`${data.counties.length} counties · ${bufferFips.size} buffer`;
   document.getElementById('statusPill').classList.add('loaded');
+  checkAutoCaptureParam();
 }
 
 // ── SIDEBAR ──
@@ -706,6 +733,115 @@ function terrainMapStyles() {
 }
 
 // ── INIT ──
+
+function blobToDataUrl(blob) {
+  return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(blob);});
+}
+
+function buildStaticMapUrl(center, zoom, w, h) {
+  const key='AIzaSyDUocvfkOfu3yJ-ptPxMbwz-AddHmHDyzg';
+  const capW=Math.min(w,640), capH=Math.min(h,640);
+  let paths='';
+  for(const fips of currentSelectedFips){
+    const def=currentFipsToCountyDef[fips];
+    const fillColor=statusFillColor(def); if(!fillColor) continue;
+    const feat=countyFeatures[fips]; if(!feat) continue;
+    const ring=feat.geometry.type==='Polygon'?feat.geometry.coordinates[0]:feat.geometry.coordinates[0][0];
+    const step=Math.max(1,Math.floor(ring.length/18));
+    const pts=ring.filter((_,i)=>i%step===0).map(([lng,lat])=>lat+','+lng).join('|');
+    const fc=fillColor.replace('#','0x')+'aa';
+    paths+='&path=fillcolor:'+fc+'|color:0x22222299|weight:1|'+pts;
+  }
+  const mapType=map.getMapTypeId()==='terrain'?'terrain':'roadmap';
+  return 'https://maps.googleapis.com/maps/api/staticmap?center='+center.lat()+','+center.lng()+'&zoom='+zoom+'&size='+capW+'x'+capH+'&scale=2&maptype='+mapType+paths+'&key='+key;
+}
+
+function buildCaptureLegend() {
+  document.getElementById('capLegendTitle').textContent=mapData&&mapData.title?mapData.title:'Routesmith Map';
+  const presentStatuses=new Set();
+  for(const fips of currentSelectedFips) presentStatuses.add(countyStatus(currentFipsToCountyDef[fips]));
+  const statusDefs=[
+    {key:'all-new',color:'#5D3FD3',label:'All new this trip'},
+    {key:'some-new',color:'#CF9FFF',label:'Some new this trip'},
+    {key:'all-prev',color:'#b0aaa4',label:'All previous, none new'},
+    {key:'some-prev',color:'#dedad6',label:'Some previous, none new'},
+    {key:'never',color:null,label:'Never found'},
+  ];
+  const capStatus=document.getElementById('capStatusLegend'); capStatus.innerHTML='';
+  for(const s of statusDefs){
+    if(!presentStatuses.has(s.key)) continue;
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:5px;font-size:11px;color:#7a7570;';
+    const sw=document.createElement('div');
+    sw.style.cssText='width:18px;height:11px;border-radius:2px;background:'+(s.color||'transparent')+';border:1px solid '+(s.color?'rgba(0,0,0,0.15)':'#999')+';flex-shrink:0;';
+    const lb=document.createElement('span'); lb.textContent=s.label;
+    row.appendChild(sw); row.appendChild(lb); capStatus.appendChild(row);
+  }
+  const allFinders={};
+  for(const fips of currentSelectedFips){
+    const def=currentFipsToCountyDef[fips];
+    if(def&&def.finders) for(const f of def.finders) if(!allFinders[f.name]) allFinders[f.name]=f;
+  }
+  const capFinders=document.getElementById('capFinderLegend'); capFinders.innerHTML='';
+  for(const f of Object.values(allFinders)){
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:5px;font-size:11px;color:#7a7570;';
+    const dot=document.createElement('div');
+    dot.style.cssText='width:12px;height:12px;border-radius:50%;background:'+f.color+';border:1.5px solid rgba(0,0,0,0.15);flex-shrink:0;';
+    const lb=document.createElement('span'); lb.textContent=f.name;
+    row.appendChild(dot); row.appendChild(lb); capFinders.appendChild(row);
+  }
+}
+
+async function captureMap() {
+  const btn=document.getElementById('captureBtn');
+  btn.disabled=true; btn.textContent='Capturing...';
+  try {
+    const center=map.getCenter(), zoom=map.getZoom();
+    const mapDiv=document.getElementById('map');
+    const mapW=mapDiv.offsetWidth, mapH=mapDiv.offsetHeight;
+    const staticUrl=buildStaticMapUrl(center,zoom,mapW,mapH);
+    const resp=await fetch(staticUrl);
+    if(!resp.ok) throw new Error('Static Maps fetch failed: '+resp.status);
+    const blob=await resp.blob();
+    const mapDataUrl=await blobToDataUrl(blob);
+    buildCaptureLegend();
+    const legendEl=document.getElementById('captureLegend');
+    legendEl.style.display='block';
+    const legendCanvas=await html2canvas(legendEl,{backgroundColor:'#ffffff',scale:2,logging:false,useCORS:true});
+    legendEl.style.display='none';
+    const LEGEND_W=240;
+    const finalCanvas=document.createElement('canvas');
+    finalCanvas.width=mapW+LEGEND_W;
+    finalCanvas.height=mapH;
+    const ctx=finalCanvas.getContext('2d');
+    const mapImg=new Image();
+    await new Promise((res,rej)=>{mapImg.onload=res;mapImg.onerror=rej;mapImg.src=mapDataUrl;});
+    ctx.drawImage(mapImg,0,0,mapW,mapH);
+    ctx.fillStyle='#ffffff';
+    ctx.fillRect(mapW,0,LEGEND_W,mapH);
+    ctx.strokeStyle='#e0ddd8'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(mapW,0); ctx.lineTo(mapW,mapH); ctx.stroke();
+    const lScale=LEGEND_W/legendCanvas.width*2;
+    ctx.drawImage(legendCanvas,0,0,legendCanvas.width,legendCanvas.height,mapW+16,16,legendCanvas.width*lScale,legendCanvas.height*lScale);
+    const dataUrl=finalCanvas.toDataURL('image/png');
+    document.getElementById('capturePreviewImg').src=dataUrl;
+    document.getElementById('captureDownloadLink').href=dataUrl;
+    document.getElementById('capturePreviewWrap').style.display='block';
+    const a=document.createElement('a'); a.href=dataUrl; a.download='routesmith-map-'+Date.now()+'.png'; a.click();
+  } catch(e) {
+    console.error('Capture failed:',e);
+    alert('Capture failed: '+e.message);
+  } finally {
+    btn.disabled=false; btn.textContent='Capture Map PNG';
+  }
+}
+
+function checkAutoCaptureParam() {
+  const params=new URLSearchParams(window.location.search);
+  if(params.get('capture')==='true') setTimeout(()=>captureMap(),3500);
+}
+
 async function initMap() {
   map=new google.maps.Map(document.getElementById('map'),{
     zoom:6,center:{lat:31.0,lng:-99.0},mapTypeId:'roadmap',styles:lightMapStyles(),
