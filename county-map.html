@@ -486,7 +486,8 @@ function setBaseMap(mode) {
   document.getElementById('btn' + mode.charAt(0).toUpperCase() + mode.slice(1)).classList.add('active');
 
   // Remove topo overlay if switching away
-  if (topoOverlay) { topoOverlay.setMap(null); topoOverlay = null; }
+  map.overlayMapTypes.clear();
+  topoOverlay = null;
 
   if (mode === 'road') {
     map.setMapTypeId('roadmap');
