@@ -841,9 +841,10 @@ async function captureMap() {
     const mapW=mapDiv.offsetWidth, mapH=mapDiv.offsetHeight;
     // Compute zoom that fits all visible counties in the static map size
     // Static Maps uses 256px tiles; we cap at 640px so scale=2 gives 1280px effective
-    const capW=Math.min(mapW,640), capH=Math.min(mapH,640);
+    // Use fixed output size for consistent capture quality
+    const CAP_W=640, CAP_H=480;
 
-    // Compute tight bounds from selected counties only (not full visible area)
+    // Compute tight bounds from selected counties only
     let minLat=90,maxLat=-90,minLng=180,maxLng=-180;
     for(const fips of currentSelectedFips){
       const feat=countyFeatures[fips]; if(!feat) continue;
@@ -851,22 +852,22 @@ async function captureMap() {
       if(b.minLat<minLat) minLat=b.minLat; if(b.maxLat>maxLat) maxLat=b.maxLat;
       if(b.minLng<minLng) minLng=b.minLng; if(b.maxLng>maxLng) maxLng=b.maxLng;
     }
-    // Add small padding (5%)
+    // Add 8% padding
     const latPad=(maxLat-minLat)*0.08, lngPad=(maxLng-minLng)*0.08;
     minLat-=latPad; maxLat+=latPad; minLng-=lngPad; maxLng+=lngPad;
     const centerLat=(minLat+maxLat)/2, centerLng=(minLng+maxLng)/2;
     const center=new google.maps.LatLng(centerLat,centerLng);
 
-    // Calculate zoom to fit tight bounds in static map size
+    // Calculate zoom to fit tight bounds in fixed capture size
     function latRad(lat){const s=Math.sin(lat*Math.PI/180);return Math.log((1+s)/(1-s))/2;}
     function calcZoom(mapPx,worldPx,fraction){return Math.floor(Math.log(mapPx/worldPx/fraction)/Math.LN2);}
     const WORLD=256;
     const latFrac=(latRad(maxLat)-latRad(minLat))/(2*Math.PI);
     const lngFrac=(maxLng-minLng)/360;
-    const zoomLat=calcZoom(capH,WORLD,Math.max(latFrac,0.0001));
-    const zoomLng=calcZoom(capW,WORLD,Math.max(lngFrac,0.0001));
+    const zoomLat=calcZoom(CAP_H,WORLD,Math.max(latFrac,0.0001));
+    const zoomLng=calcZoom(CAP_W,WORLD,Math.max(lngFrac,0.0001));
     const staticZoom=Math.min(zoomLat,zoomLng,21);
-    const staticUrl=buildStaticMapUrl(center,staticZoom,mapW,mapH);
+    const staticUrl=buildStaticMapUrl(center,staticZoom,CAP_W,CAP_H);
 
     // Load static map via CORS proxy — allows drawImage without tainting canvas
     const mapImg=new Image();
@@ -887,19 +888,19 @@ async function captureMap() {
     // Composite: static map + legend side by side
     const LEGEND_W=260;
     const finalCanvas=document.createElement('canvas');
-    finalCanvas.width=mapW+LEGEND_W;
-    finalCanvas.height=mapH;
+    finalCanvas.width=CAP_W+LEGEND_W;
+    finalCanvas.height=CAP_H;
     const ctx=finalCanvas.getContext('2d');
 
-    ctx.drawImage(mapImg,0,0,mapW,mapH);
+    ctx.drawImage(mapImg,0,0,CAP_W,CAP_H);
 
     ctx.fillStyle='#ffffff';
-    ctx.fillRect(mapW,0,LEGEND_W,mapH);
+    ctx.fillRect(CAP_W,0,LEGEND_W,CAP_H);
     ctx.strokeStyle='#e0ddd8'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.moveTo(mapW,0); ctx.lineTo(mapW,mapH); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(CAP_W,0); ctx.lineTo(CAP_W,CAP_H); ctx.stroke();
 
     const lW=legendCanvas.width/2, lH=legendCanvas.height/2;
-    const scale=Math.min((LEGEND_W-32)/lW,(mapH-32)/lH,1);
+    const scale=Math.min((LEGEND_W-32)/lW,(CAP_H-32)/lH,1);
     ctx.drawImage(legendCanvas,0,0,legendCanvas.width,legendCanvas.height,mapW+16,16,lW*scale,lH*scale);
 
     const dataUrl=finalCanvas.toDataURL('image/png');
