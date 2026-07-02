@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Routesmith · County Map — POC · v0.7.0-poc · 2026-07-02 00:41 UTC</title>
+  <title>Routesmith · County Map — POC · v0.7.0-poc · 2026-07-01 20:23 CT</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -81,7 +81,7 @@
 <header>
   <span class="rs-mark">Routesmith</span>
   <span class="rs-divider"></span>
-  <h1>County Map — POC · v0.7.0-poc · 2026-07-02 00:41 UTC</h1>
+  <h1>County Map — POC · v0.7.0-poc · 2026-07-01 20:23 CT</h1>
   <span class="status-pill" id="statusPill">Loading…</span>
 </header>
 <div class="main">
@@ -739,9 +739,29 @@ function buildStaticMapUrl(center, zoom, w, h) {
   const key='AIzaSyDUocvfkOfu3yJ-ptPxMbwz-AddHmHDyzg';
   const capW=Math.min(w,640), capH=Math.min(h,640);
   const mapType=map.getMapTypeId()==='terrain'?'terrain':'roadmap';
+
+  // Light road map styles matching the page
+  const styleParams=[
+    'feature:poi|visibility:off',
+    'feature:transit|visibility:off',
+    'feature:road.local|visibility:off',
+    'feature:road.arterial|visibility:off',
+    'feature:road.highway|element:geometry|color:0xd4c9b0',
+    'feature:road.highway|element:geometry.stroke|color:0xc4b89a',
+    'feature:road.highway|element:labels.text.fill|color:0x5a5048',
+    'feature:water|element:geometry|color:0xb8d4e8',
+    'feature:landscape.natural|element:geometry|color:0xeae8e2',
+    'feature:administrative.locality|element:labels.text.fill|color:0x4a4440',
+    'feature:administrative.province|element:geometry.stroke|color:0x111111|weight:4',
+    'feature:administrative.country|element:geometry.stroke|color:0x888888',
+    'element:geometry|color:0xf5f3ef',
+    'element:labels.text.stroke|color:0xf5f3ef',
+    'element:labels.text.fill|color:0x6b6560',
+  ].map(s=>'&style='+encodeURIComponent(s)).join('');
+
   let params='';
 
-  // County fills with status color
+  // County fills
   for(const fips of currentSelectedFips){
     const def=currentFipsToCountyDef[fips]; if(!def) continue;
     const fillColor=statusFillColor(def); if(!fillColor) continue;
@@ -753,7 +773,7 @@ function buildStaticMapUrl(center, zoom, w, h) {
     params+='&path=fillcolor:'+fc+'|color:0x222222cc|weight:1|'+pts;
   }
 
-  // Custom dot markers — pre-generated PNGs hosted at /markers/dot-{color}.png
+  // 6px custom dot markers
   for(const fips of currentSelectedFips){
     const def=currentFipsToCountyDef[fips]; if(!def||!def.finders) continue;
     const feat=countyFeatures[fips]; if(!feat) continue;
@@ -773,7 +793,7 @@ function buildStaticMapUrl(center, zoom, w, h) {
     +'&zoom='+zoom
     +'&size='+capW+'x'+capH
     +'&scale=2&maptype='+mapType
-    +params+'&key='+key;
+    +styleParams+params+'&key='+key;
 }
 
 function buildCaptureLegend() {
