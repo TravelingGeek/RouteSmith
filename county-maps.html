@@ -216,6 +216,13 @@ const BASE_STYLES = {
   topo:    'mapbox://styles/mapbox/outdoors-v12'
 };
 
+// Tile sources for each base map mode — swapped without full style reload
+const BASE_TILE_SOURCES = {
+  road:    null,  // uses Mapbox style tiles (light-v11 loaded at init)
+  terrain: 'mapbox://styles/mapbox/outdoors-v12',
+  topo:    'mapbox://styles/mapbox/outdoors-v12'
+};
+
 let map, mapData, countyFeatures = {}, allVisibleFipsGlobal = new Set();
 let currentVizMode = 'E';
 let currentSelectedFips = new Set();
@@ -445,12 +452,16 @@ function buildDotMarkers(fips, def) {
 // ── MAP LAYER MANAGEMENT ──
 function removeLayersAndSources(...ids) {
   for(const id of ids) {
-    if(map.getLayer(id)) map.removeLayer(id);
-    if(map.getSource(id)) map.removeSource(id);
+    try { if(map.getLayer(id)) map.removeLayer(id); } catch(e) {}
+    try { if(map.getSource(id)) map.removeSource(id); } catch(e) {}
   }
 }
 
 function renderLayers() {
+  if(!map.isStyleLoaded()) {
+    map.once('style.load', ()=>renderLayers());
+    return;
+  }
   // Remove all dynamic layers
   removeLayersAndSources(
     'selected-fill','selected-fill-src',
@@ -584,15 +595,30 @@ function setVizMode(mode) {
 }
 
 // ── BASE MAP ──
+let _styleLoadPending = false;
+
 function setBaseMap(mode) {
+  if(currentBaseMap === mode) return;  // no-op if already active
   currentBaseMap = mode;
   ['Road','Terrain','Topo'].forEach(m=>document.getElementById('btn'+m).classList.remove('active'));
   document.getElementById('btn'+mode.charAt(0).toUpperCase()+mode.slice(1)).classList.add('active');
 
   const style = BASE_STYLES[mode] || BASE_STYLES.road;
-  map.setStyle(style);
-  // Re-render layers after style loads
-  map.once('style.load', ()=>renderLayers());
+
+  // Remove existing listener to prevent double-fire
+  if(_styleLoadPending) {
+    map.off('style.load', _onStyleLoad);
+    _styleLoadPending = false;
+  }
+
+  map.setStyle(style, { diff: false });  // diff:false forces full clean reload
+  _styleLoadPending = true;
+  map.once('style.load', _onStyleLoad);
+}
+
+function _onStyleLoad() {
+  _styleLoadPending = false;
+  renderLayers();
 }
 
 // ── SIDEBAR ──
