@@ -136,6 +136,7 @@
       <img id="capturePreviewImg" src="" alt="Map capture"/>
       <a id="captureDownloadLink" href="" download="routesmith-map.png">Download PNG</a>
     </div>
+    <div style="padding:8px 16px;text-align:center;font-family:var(--font-ui);font-size:9px;color:var(--border2);flex-shrink:0;letter-spacing:0.08em;">ROUTESMITH COUNTY MAP v0.7.0-poc</div>
     <div class="section-header" onclick="toggleSection('src')" style="border-top:1px solid var(--border);border-bottom:none;">
       <div class="panel-label">Data Source</div>
       <span class="section-chevron" id="chev-src">▼</span>
@@ -753,12 +754,7 @@ function buildStaticMapUrl(center, zoom, w, h) {
     params+='&path=fillcolor:'+fc+'|color:0x222222cc|weight:1|'+pts;
   }
 
-  // Finder dots as tiny circle markers using custom icon workaround:
-  // Static Maps doesn't support custom SVG, but we can use colored markers
-  // One marker per county centroid offset per finder
-  const finderLabels={};
-  let labelIdx=0;
-  const labelChars='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  // Custom dot markers — small SVG dots from our marker Worker
   for(const fips of currentSelectedFips){
     const def=currentFipsToCountyDef[fips]; if(!def||!def.finders) continue;
     const feat=countyFeatures[fips]; if(!feat) continue;
@@ -767,13 +763,11 @@ function buildStaticMapUrl(center, zoom, w, h) {
     const n=def.finders.length;
     const startLng=c.lng-(n-1)*DOT_SPACING/2;
     def.finders.forEach((f,i)=>{
-      if(!finderLabels[f.name]){finderLabels[f.name]=labelChars[labelIdx%26];labelIdx++;}
-      const color=f.color.replace('#','0x');
-      params+='&markers=color:'+color+'|label:'+finderLabels[f.name]+'|size:tiny|'+c.lat+','+(startLng+i*DOT_SPACING);
+      const iconUrl=encodeURIComponent('https://routesmithing.com/api/marker?color='+f.color.replace('#','')+'&size=14');
+      params+='&markers=icon:'+iconUrl+'|anchor:center|'+c.lat+','+(startLng+i*DOT_SPACING);
     });
   }
 
-  // Use proxy to avoid CORS
   return '/api/staticmap'
     +'?center='+center.lat()+','+center.lng()
     +'&zoom='+zoom
@@ -828,18 +822,30 @@ async function captureMap() {
     // Compute zoom that fits all visible counties in the static map size
     // Static Maps uses 256px tiles; we cap at 640px so scale=2 gives 1280px effective
     const capW=Math.min(mapW,640), capH=Math.min(mapH,640);
-    const bounds=map.getBounds();
-    const ne=bounds.getNorthEast(), sw=bounds.getSouthWest();
-    // Calculate best integer zoom that fits bounds in capW x capH
+
+    // Compute tight bounds from selected counties only (not full visible area)
+    let minLat=90,maxLat=-90,minLng=180,maxLng=-180;
+    for(const fips of currentSelectedFips){
+      const feat=countyFeatures[fips]; if(!feat) continue;
+      const b=getBounds(feat);
+      if(b.minLat<minLat) minLat=b.minLat; if(b.maxLat>maxLat) maxLat=b.maxLat;
+      if(b.minLng<minLng) minLng=b.minLng; if(b.maxLng>maxLng) maxLng=b.maxLng;
+    }
+    // Add small padding (5%)
+    const latPad=(maxLat-minLat)*0.08, lngPad=(maxLng-minLng)*0.08;
+    minLat-=latPad; maxLat+=latPad; minLng-=lngPad; maxLng+=lngPad;
+    const centerLat=(minLat+maxLat)/2, centerLng=(minLng+maxLng)/2;
+    const center=new google.maps.LatLng(centerLat,centerLng);
+
+    // Calculate zoom to fit tight bounds in static map size
     function latRad(lat){const s=Math.sin(lat*Math.PI/180);return Math.log((1+s)/(1-s))/2;}
     function calcZoom(mapPx,worldPx,fraction){return Math.floor(Math.log(mapPx/worldPx/fraction)/Math.LN2);}
     const WORLD=256;
-    const latFrac=(latRad(ne.lat())-latRad(sw.lat()))/(2*Math.PI);
-    const lngFrac=(ne.lng()-sw.lng())/360;
-    const zoomLat=calcZoom(capH,WORLD,latFrac);
-    const zoomLng=calcZoom(capW,WORLD,lngFrac);
+    const latFrac=(latRad(maxLat)-latRad(minLat))/(2*Math.PI);
+    const lngFrac=(maxLng-minLng)/360;
+    const zoomLat=calcZoom(capH,WORLD,Math.max(latFrac,0.0001));
+    const zoomLng=calcZoom(capW,WORLD,Math.max(lngFrac,0.0001));
     const staticZoom=Math.min(zoomLat,zoomLng,21);
-    const center=map.getCenter();
     const staticUrl=buildStaticMapUrl(center,staticZoom,mapW,mapH);
 
     // Load static map via CORS proxy — allows drawImage without tainting canvas
