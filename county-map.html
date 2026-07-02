@@ -753,7 +753,7 @@ function buildStaticMapUrl(center, zoom, w, h) {
     params+='&path=fillcolor:'+fc+'|color:0x222222cc|weight:1|'+pts;
   }
 
-  // Custom dot markers — small SVG dots from our marker Worker
+  // Custom dot markers — pre-generated PNGs hosted at /markers/dot-{color}.png
   for(const fips of currentSelectedFips){
     const def=currentFipsToCountyDef[fips]; if(!def||!def.finders) continue;
     const feat=countyFeatures[fips]; if(!feat) continue;
@@ -762,7 +762,8 @@ function buildStaticMapUrl(center, zoom, w, h) {
     const n=def.finders.length;
     const startLng=c.lng-(n-1)*DOT_SPACING/2;
     def.finders.forEach((f,i)=>{
-      const iconUrl=encodeURIComponent('https://routesmithing.com/api/marker?color='+f.color.replace('#','')+'&size=14');
+      const hex=f.color.replace('#','').toLowerCase();
+      const iconUrl=encodeURIComponent('https://routesmithing.com/markers/dot-'+hex+'.png');
       params+='&markers=icon:'+iconUrl+'|anchor:center|'+c.lat+','+(startLng+i*DOT_SPACING);
     });
   }
