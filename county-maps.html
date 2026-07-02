@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Routesmith · County Map — POC · v0.8.1-poc.</title>
+  <title>Routesmith · County Map — POC · v0.8.1-poc</title>
   <script src='https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js'></script>
   <link href='https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css' rel='stylesheet' />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -486,7 +486,7 @@ function renderLayers() {
     paint: { 'line-color':'#111', 'line-width':2.0, 'line-opacity':0.85 }
   });
 
-  // State boundaries — find and darken Mapbox's built-in admin layers
+  // State boundaries — darken built-in admin layers for road/terrain
   const styleLayers = map.getStyle().layers || [];
   for(const layer of styleLayers) {
     if(layer.type === 'line' && layer.id && (
@@ -499,6 +499,30 @@ function renderLayers() {
       } catch(e) {}
     }
   }
+
+  // For topo mode, also add our own GeoJSON state border layer on top of USGS tiles
+  // Collect unique state FIPS from all visible counties
+  const visibleStateFips = new Set([...currentSelectedFips,...bufferFipsGlobal].map(f=>f.slice(0,2)));
+  // Build one MultiLineString per state from its county outer rings
+  const stateBorderFeatures = [];
+  for(const sf of visibleStateFips){
+    const lines = [];
+    for(const [fips, feat] of Object.entries(countyFeatures)){
+      if(!fips.startsWith(sf)) continue;
+      const geom = feat.geometry;
+      const rings = geom.type==='Polygon' ? geom.coordinates : geom.coordinates.map(p=>p[0]);
+      for(const ring of rings) lines.push(ring);
+    }
+    if(lines.length) stateBorderFeatures.push({
+      type:'Feature',
+      geometry:{ type:'MultiLineString', coordinates:lines },
+      properties:{ sf }
+    });
+  }
+  map.addSource('state-bounds-src',{type:'geojson',data:{type:'FeatureCollection',features:stateBorderFeatures}});
+  map.addLayer({ id:'state-bounds', type:'line', source:'state-bounds-src',
+    paint:{ 'line-color':'#111', 'line-width':2.5, 'line-opacity':0.85 }
+  });
 
   // Viz mode overlays
   if(currentVizMode==='B') renderModeB();
