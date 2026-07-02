@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Routesmith · County Map — POC · v0.8.5-poc</title>
+  <title>Routesmith · County Map — POC · v0.8.6-poc</title>
   <script src='https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js'></script>
   <link href='https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css' rel='stylesheet' />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -85,7 +85,7 @@
 <header>
   <span class="rs-mark">Routesmith</span>
   <span class="rs-divider"></span>
-  <h1>County Map — POC · v0.8.5-poc</h1>
+  <h1>County Map — POC · v0.8.6-poc</h1>
   <span class="status-pill" id="statusPill">Loading…</span>
 </header>
 <div class="main">
@@ -331,24 +331,7 @@ function visualCentroid(feature) {
   return [cx/a,cy/a];
 }
 
-function getAdjacentFips(targetFips) {
-  const tb=getBounds(countyFeatures[targetFips]),eps=0.05;
-  return Object.entries(countyFeatures)
-    .filter(([fips,feat])=>{
-      if(fips===targetFips||fips.slice(0,2)!==targetFips.slice(0,2)) return false;
-      const b=getBounds(feat);
-      return b.maxLng>=tb.minLng-eps&&b.minLng<=tb.maxLng+eps&&b.maxLat>=tb.minLat-eps&&b.minLat<=tb.maxLat+eps;
-    }).map(([f])=>f);
-}
 
-function isOnStateBorder(targetFips) {
-  const tb=getBounds(countyFeatures[targetFips]),ts=targetFips.slice(0,2),eps=0.05;
-  return Object.entries(countyFeatures).some(([fips,feat])=>{
-    if(fips.slice(0,2)===ts) return false;
-    const b=getBounds(feat);
-    return b.maxLng>=tb.minLng-eps&&b.minLng<=tb.maxLng+eps&&b.maxLat>=tb.minLat-eps&&b.minLat<=tb.maxLat+eps;
-  });
-}
 
 function shouldShowWholeState(stateFips,selected) {
   const all=Object.keys(countyFeatures).filter(f=>f.startsWith(stateFips));
@@ -460,21 +443,14 @@ function buildDotMarkers(fips, def) {
 
 // ── MAP LAYER MANAGEMENT ──
 function removeDynamicLayers() {
-  const layers = ['selected-fill','selected-outline','buffer-outline','arcs','rings','dots','county-grid','state-bounds-thick'];
-  const sources = ['selected-fill-src','buffer-outline-src','arcs-src','rings-src','dots-src','county-grid-src','state-perim-src'];
+  const layers = ['selected-fill','selected-outline','arcs','rings','dots','county-grid','state-bounds-thick'];
+  const sources = ['selected-fill-src','arcs-src','rings-src','dots-src','county-grid-src','state-perim-src'];
   for(const id of layers)   { try { if(map.getLayer(id))   map.removeLayer(id);   } catch(e) {} }
   for(const id of sources)  { try { if(map.getSource(id))  map.removeSource(id);  } catch(e) {} }
 }
 
 function renderLayers() {
   removeDynamicLayers();
-
-  // Buffer/unselected counties — visible outline
-  const bufferGJ = buildGeoJSON(bufferFipsGlobal, null);
-  map.addSource('buffer-outline-src', { type:'geojson', data: bufferGJ });
-  map.addLayer({ id:'buffer-outline', type:'line', source:'buffer-outline-src',
-    paint: { 'line-color':'#555', 'line-width':1.0, 'line-opacity':0.6 }
-  });
 
   // Selected counties — status fill + darkened outline
   const selectedGJ = buildGeoJSON(currentSelectedFips, currentFipsToCountyDef);
@@ -501,7 +477,7 @@ function renderLayers() {
   }
 
   // Build county edge grid and dissolved state perimeters as separate GeoJSON sources
-  const visibleStateFips = new Set([...currentSelectedFips,...bufferFipsGlobal].map(f=>f.slice(0,2)));
+  const visibleStateFips = new Set([...currentSelectedFips].map(f=>f.slice(0,2)));
 
   // County outlines — all rings from ALL visible counties (thin grid)
   const countyLines = [];
@@ -558,9 +534,7 @@ function renderLayers() {
 
   // Click handlers — off first to prevent accumulation on re-render
   map.off('click', 'selected-fill', onCountyClick);
-  map.off('click', 'buffer-outline', onBufferClick);
   map.on('click', 'selected-fill', onCountyClick);
-  map.on('click', 'buffer-outline', onBufferClick);
   map.on('mouseenter', 'selected-fill', ()=>map.getCanvas().style.cursor='pointer');
   map.on('mouseleave', 'selected-fill', ()=>map.getCanvas().style.cursor='');
 }
@@ -635,11 +609,6 @@ function onCountyClick(e) {
   const def = currentFipsToCountyDef[fips];
   showPopup(e.lngLat, fips, def);
   highlightCounty(def, fips);
-}
-
-function onBufferClick(e) {
-  const fips = e.features[0].properties.fips;
-  showPopup(e.lngLat, fips, null);
 }
 
 function showPopup(lngLat, fips, def) {
@@ -857,23 +826,10 @@ function renderMap(data) {
     else console.warn(`County not found: ${c.county}, ${c.state}`);
   }
 
-  const bufferFips=new Set(), wholeStateFips=new Set(), byState={};
-  for(const fips of selectedFips){const s=fips.slice(0,2);if(!byState[s])byState[s]=[];byState[s].push(fips);}
-  for(const [stateFips,codes] of Object.entries(byState)){
-    if(shouldShowWholeState(stateFips,codes)){
-      for(const fips of Object.keys(countyFeatures)) if(fips.startsWith(stateFips)) wholeStateFips.add(fips);
-    } else {
-      for(const fips of codes)
-        if(!isOnStateBorder(fips))
-          for(const a of getAdjacentFips(fips))
-            if(!selectedFips.has(a)) bufferFips.add(a);
-    }
-  }
-
   currentSelectedFips=selectedFips;
   currentFipsToCountyDef=fipsToCountyDef;
-  bufferFipsGlobal=bufferFips;
-  allVisibleFipsGlobal=new Set([...selectedFips,...bufferFips,...wholeStateFips]);
+  bufferFipsGlobal=new Set();
+  allVisibleFipsGlobal=new Set([...selectedFips]);
 
   // Fit map to all visible counties
   const bounds=new mapboxgl.LngLatBounds();
@@ -889,7 +845,7 @@ function renderMap(data) {
   buildSidebar(data);
   buildFinderLegend(data);
 
-  document.getElementById('statusPill').textContent=`${data.counties.length} counties · ${bufferFips.size} buffer`;
+  document.getElementById('statusPill').textContent=`${data.counties.length} counties`;
   document.getElementById('statusPill').classList.add('loaded');
 }
 
