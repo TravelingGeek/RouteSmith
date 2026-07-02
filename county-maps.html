@@ -458,10 +458,6 @@ function removeLayersAndSources(...ids) {
 }
 
 function renderLayers() {
-  if(!map.isStyleLoaded()) {
-    map.once('style.load', ()=>renderLayers());
-    return;
-  }
   // Remove all dynamic layers
   removeLayersAndSources(
     'selected-fill','selected-fill-src',
@@ -618,7 +614,8 @@ function setBaseMap(mode) {
 
 function _onStyleLoad() {
   _styleLoadPending = false;
-  renderLayers();
+  // Only render if we have data loaded
+  if(currentSelectedFips.size > 0) renderLayers();
 }
 
 // ── SIDEBAR ──
@@ -844,9 +841,12 @@ async function init() {
     }
     mapData=await loadMapData();
 
-    // Wait for map style to load before rendering
-    if(map.isStyleLoaded()) renderMap(mapData);
-    else map.once('style.load',()=>renderMap(mapData));
+    // Wait for BOTH style and data — whichever finishes last wins
+    await new Promise(res => {
+      if(map.isStyleLoaded()) res();
+      else map.once('style.load', res);
+    });
+    renderMap(mapData);
 
   } catch(e){
     console.error(e);
