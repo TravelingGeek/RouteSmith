@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Routesmith · County Map — POC · v0.8.0-poc · 2026-07-01 22:56 CT</title>
+  <title>Routesmith · County Map — POC · v0.8.0-poc · boo</title>
   <script src='https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js'></script>
   <link href='https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css' rel='stylesheet' />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -837,12 +837,20 @@ async function init() {
   try {
     document.getElementById('statusPill').textContent='Loading counties…';
 
-    // Load GeoJSON and map style in parallel
+    // Load GeoJSON and wait for map style — use 'load' event which is more reliable than 'style.load'
     const [geojsonResp] = await Promise.all([
       fetch(COUNTY_GEOJSON_URL),
       new Promise(res => {
-        if(map.isStyleLoaded()) res();
-        else map.once('style.load', res);
+        // Check multiple ready states — v3 can miss style.load if map loads fast
+        if(map.isStyleLoaded()) { res(); return; }
+        const onLoad = () => res();
+        map.once('style.load', onLoad);
+        map.once('load', onLoad);
+        // Fallback: poll every 100ms up to 10s
+        const poll = setInterval(() => {
+          if(map.isStyleLoaded()) { clearInterval(poll); res(); }
+        }, 100);
+        setTimeout(() => { clearInterval(poll); res(); }, 10000);
       })
     ]);
 
