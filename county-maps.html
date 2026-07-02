@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Routesmith · County Map — POC · v0.8.0-poc · 2026-07-01 </title>
+  <title>Routesmith · County Map — POC · v0.8.0-poc · 2026-07-01 22:56 CT</title>
   <script src='https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js'></script>
   <link href='https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css' rel='stylesheet' />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -260,8 +260,17 @@ async function loadMapData() {
   const params=new URLSearchParams(window.location.search), dataUrl=params.get('data');
   if(dataUrl){
     document.getElementById('dataSourceDisplay').textContent=dataUrl;
-    try{ const r=await fetch(dataUrl); if(!r.ok) throw new Error(); return await r.json(); }
-    catch(e){ document.getElementById('dataSourceDisplay').textContent='embedded JSON (fallback)'; }
+    try{
+      const r=await fetch(dataUrl);
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      const data=await r.json();
+      if(!data||!data.counties) throw new Error('Invalid data format');
+      return data;
+    }
+    catch(e){
+      console.warn('URL data load failed, using embedded:',e);
+      document.getElementById('dataSourceDisplay').textContent='embedded JSON (fallback)';
+    }
   }
   return JSON.parse(document.getElementById('mapData').textContent);
 }
@@ -827,23 +836,31 @@ async function init() {
 
   try {
     document.getElementById('statusPill').textContent='Loading counties…';
-    const resp=await fetch(COUNTY_GEOJSON_URL);
-    const geojson=await resp.json();
+
+    // Load GeoJSON and map style in parallel
+    const [geojsonResp] = await Promise.all([
+      fetch(COUNTY_GEOJSON_URL),
+      new Promise(res => {
+        if(map.isStyleLoaded()) res();
+        else map.once('style.load', res);
+      })
+    ]);
+
+    document.getElementById('statusPill').textContent='Parsing counties…';
+    const geojson = await geojsonResp.json();
     for(const feat of geojson.features){
       const fips=feat.id||feat.properties.GEO_ID?.slice(-5);
       if(fips) countyFeatures[fips]=feat;
     }
+
+    document.getElementById('statusPill').textContent='Loading trip data…';
     mapData=await loadMapData();
 
-    // Wait for BOTH style and data — whichever finishes last wins
-    await new Promise(res => {
-      if(map.isStyleLoaded()) res();
-      else map.once('style.load', res);
-    });
+    document.getElementById('statusPill').textContent='Rendering…';
     renderMap(mapData);
 
   } catch(e){
-    console.error(e);
+    console.error('Init error:', e);
     document.getElementById('statusPill').textContent='Error';
     document.getElementById('infoBox').textContent='Failed to load: '+e.message;
   }
