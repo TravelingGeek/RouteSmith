@@ -211,7 +211,7 @@ const STATE_FIPS = {
 };
 
 const BASE_STYLES = {
-  road:    'mapbox://styles/mapbox/light-v11',
+  road:    'mapbox://styles/mapbox/streets-v12',
   terrain: 'mapbox://styles/mapbox/outdoors-v12',
   topo:    'mapbox://styles/mapbox/outdoors-v12'
 };
@@ -450,24 +450,16 @@ function buildDotMarkers(fips, def) {
 }
 
 // ── MAP LAYER MANAGEMENT ──
-function removeLayersAndSources(...ids) {
-  for(const id of ids) {
-    try { if(map.getLayer(id)) map.removeLayer(id); } catch(e) {}
-    try { if(map.getSource(id)) map.removeSource(id); } catch(e) {}
-  }
+function removeDynamicLayers() {
+  const layers = ['selected-fill','selected-outline','buffer-outline','arcs','rings','dots'];
+  const sources = ['selected-fill-src','buffer-outline-src','arcs-src','rings-src','dots-src'];
+  // Remove layers first, then sources
+  for(const id of layers)   { try { if(map.getLayer(id))   map.removeLayer(id);   } catch(e) {} }
+  for(const id of sources)  { try { if(map.getSource(id))  map.removeSource(id);  } catch(e) {} }
 }
 
 function renderLayers() {
-  // Remove all dynamic layers
-  removeLayersAndSources(
-    'selected-fill','selected-fill-src',
-    'buffer-fill','buffer-fill-src',
-    'buffer-outline','buffer-outline-src',
-    'selected-outline','selected-outline-src',
-    'arcs','arcs-src',
-    'rings','rings-src',
-    'dots','dots-src'
-  );
+  removeDynamicLayers();
 
   // Buffer counties — outline only
   const bufferGJ = buildGeoJSON(bufferFipsGlobal, null);
@@ -491,7 +483,9 @@ function renderLayers() {
   else if(currentVizMode==='D') renderModeD();
   else renderModeE();
 
-  // Click handlers
+  // Click handlers — off first to prevent accumulation on re-render
+  map.off('click', 'selected-fill', onCountyClick);
+  map.off('click', 'buffer-outline', onBufferClick);
   map.on('click', 'selected-fill', onCountyClick);
   map.on('click', 'buffer-outline', onBufferClick);
   map.on('mouseenter', 'selected-fill', ()=>map.getCanvas().style.cursor='pointer');
