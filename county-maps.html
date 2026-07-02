@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Routesmith · County Map — POC · v0.8.3-poc</title>
+  <title>Routesmith · County Map — POC · v0.8.4-poc</title>
   <script src='https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js'></script>
   <link href='https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css' rel='stylesheet' />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -85,7 +85,7 @@
 <header>
   <span class="rs-mark">Routesmith</span>
   <span class="rs-divider"></span>
-  <h1>County Map — POC · v0.8.3-poc</h1>
+  <h1>County Map — POC · v0.8.4-poc</h1>
   <span class="status-pill" id="statusPill">Loading…</span>
 </header>
 <div class="main">
@@ -460,8 +460,8 @@ function buildDotMarkers(fips, def) {
 
 // ── MAP LAYER MANAGEMENT ──
 function removeDynamicLayers() {
-  const layers = ['selected-fill','selected-outline','buffer-outline','arcs','rings','dots','state-bounds','state-bounds-thick'];
-  const sources = ['selected-fill-src','buffer-outline-src','arcs-src','rings-src','dots-src','state-bounds-src'];
+  const layers = ['selected-fill','selected-outline','buffer-outline','arcs','rings','dots','county-grid','state-bounds-thick'];
+  const sources = ['selected-fill-src','buffer-outline-src','arcs-src','rings-src','dots-src','county-grid-src','state-perim-src'];
   for(const id of layers)   { try { if(map.getLayer(id))   map.removeLayer(id);   } catch(e) {} }
   for(const id of sources)  { try { if(map.getSource(id))  map.removeSource(id);  } catch(e) {} }
 }
@@ -486,7 +486,7 @@ function renderLayers() {
     paint: { 'line-color':'#111', 'line-width':2.0, 'line-opacity':0.85 }
   });
 
-  // State boundaries — darken built-in admin layers for road/terrain
+  // Darken built-in admin layers for road/terrain base maps
   const styleLayers = map.getStyle().layers || [];
   for(const layer of styleLayers) {
     if(layer.type === 'line' && layer.id && (
@@ -500,38 +500,55 @@ function renderLayers() {
     }
   }
 
-  // For topo mode, also add our own GeoJSON state border layer on top of USGS tiles
-  // Collect unique state FIPS from all visible counties
+  // Build county edge grid and dissolved state perimeters as separate GeoJSON sources
   const visibleStateFips = new Set([...currentSelectedFips,...bufferFipsGlobal].map(f=>f.slice(0,2)));
-  // Build one MultiLineString per state from its county outer rings
-  const stateBorderFeatures = [];
+
+  // County outlines — all rings from all visible counties (thin grid)
+  const countyLines = [];
+  for(const fips of [...currentSelectedFips,...bufferFipsGlobal]){
+    const feat = countyFeatures[fips]; if(!feat) continue;
+    const geom = feat.geometry;
+    const rings = geom.type==='Polygon' ? geom.coordinates : geom.coordinates.flatMap(p=>p);
+    for(const ring of rings) countyLines.push(ring);
+  }
+  map.addSource('county-grid-src',{type:'geojson',data:{type:'Feature',geometry:{type:'MultiLineString',coordinates:countyLines}}});
+  map.addLayer({ id:'county-grid', type:'line', source:'county-grid-src',
+    paint:{ 'line-color':'#444', 'line-width':0.75, 'line-opacity':0.5 }
+  });
+
+  // State perimeter — dissolve: edges shared by 2 counties in same state cancel out
+  // Key each edge by rounded coords; edges appearing once are on the state border
+  function edgeKey(a, b) {
+    const r = n => Math.round(n * 10000);
+    const ka = r(a[0])+','+r(a[1]), kb = r(b[0])+','+r(b[1]);
+    return ka < kb ? ka+'|'+kb : kb+'|'+ka;
+  }
+
+  const statePerimCoords = [];
   for(const sf of visibleStateFips){
-    const lines = [];
+    const edgeCounts = {};
+    const edgeCoords = {};
     for(const [fips, feat] of Object.entries(countyFeatures)){
       if(!fips.startsWith(sf)) continue;
       const geom = feat.geometry;
-      const rings = geom.type==='Polygon' ? geom.coordinates : geom.coordinates.map(p=>p[0]);
-      for(const ring of rings) lines.push(ring);
+      const rings = geom.type==='Polygon' ? geom.coordinates : geom.coordinates.flatMap(p=>p);
+      for(const ring of rings){
+        for(let i=0; i<ring.length-1; i++){
+          const key = edgeKey(ring[i], ring[i+1]);
+          edgeCounts[key] = (edgeCounts[key]||0) + 1;
+          if(!edgeCoords[key]) edgeCoords[key] = [ring[i], ring[i+1]];
+        }
+      }
     }
-    if(lines.length) stateBorderFeatures.push({
-      type:'Feature',
-      geometry:{ type:'MultiLineString', coordinates:lines },
-      properties:{ sf }
-    });
+    // Edges appearing exactly once are on the outer state border
+    for(const [key, count] of Object.entries(edgeCounts)){
+      if(count === 1) statePerimCoords.push(edgeCoords[key]);
+    }
   }
-  map.addSource('state-bounds-src',{type:'geojson',data:{type:'FeatureCollection',features:stateBorderFeatures}});
-  // County-level grid — thin
-  map.addLayer({ id:'state-bounds', type:'line', source:'state-bounds-src',
-    paint:{ 'line-color':'#333', 'line-width':1.0, 'line-opacity':0.5 }
-  });
-  // State border overlay — thick, on top
-  map.addLayer({ id:'state-bounds-thick', type:'line', source:'state-bounds-src',
-    paint:{
-      'line-color':'#111',
-      'line-width':3.5,
-      'line-opacity':0.85,
-      'line-blur':0.5
-    }
+
+  map.addSource('state-perim-src',{type:'geojson',data:{type:'Feature',geometry:{type:'MultiLineString',coordinates:statePerimCoords}}});
+  map.addLayer({ id:'state-bounds-thick', type:'line', source:'state-perim-src',
+    paint:{ 'line-color':'#111', 'line-width':3.0, 'line-opacity':0.9 }
   });
 
   // Viz mode overlays
