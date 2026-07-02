@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Routesmith · County Map — P0C · v0.8.2-poc</title>
+  <title>Routesmith · County Map — POC · v0.8.3-poc</title>
   <script src='https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js'></script>
   <link href='https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css' rel='stylesheet' />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -85,7 +85,7 @@
 <header>
   <span class="rs-mark">Routesmith</span>
   <span class="rs-divider"></span>
-  <h1>County Map — POC · v0.8.1-poc</h1>
+  <h1>County Map — POC · v0.8.3-poc</h1>
   <span class="status-pill" id="statusPill">Loading…</span>
 </header>
 <div class="main">
@@ -99,9 +99,9 @@
     <div class="section-body open" id="body-viz" style="max-height:none;overflow:visible;">
       <div class="panel-label" style="margin-bottom:6px;">Style</div>
       <div class="viz-toggle">
-        <button id="btnB" onclick="setVizMode('B')">B · Arcs</button>
-        <button id="btnD" onclick="setVizMode('D')">D · Rings</button>
-        <button id="btnE" class="active" onclick="setVizMode('E')">E · Pins</button>
+        <button id="btnE" class="active" onclick="setVizMode('E')">Pins</button>
+        <button id="btnB" onclick="setVizMode('B')">Arcs</button>
+        <button id="btnD" onclick="setVizMode('D')">Rings</button>
       </div>
       <div class="panel-label" style="margin-bottom:6px;">Base Map</div>
       <div class="viz-toggle">
@@ -460,7 +460,7 @@ function buildDotMarkers(fips, def) {
 
 // ── MAP LAYER MANAGEMENT ──
 function removeDynamicLayers() {
-  const layers = ['selected-fill','selected-outline','buffer-outline','arcs','rings','dots','state-bounds'];
+  const layers = ['selected-fill','selected-outline','buffer-outline','arcs','rings','dots','state-bounds','state-bounds-thick'];
   const sources = ['selected-fill-src','buffer-outline-src','arcs-src','rings-src','dots-src','state-bounds-src'];
   for(const id of layers)   { try { if(map.getLayer(id))   map.removeLayer(id);   } catch(e) {} }
   for(const id of sources)  { try { if(map.getSource(id))  map.removeSource(id);  } catch(e) {} }
@@ -520,8 +520,18 @@ function renderLayers() {
     });
   }
   map.addSource('state-bounds-src',{type:'geojson',data:{type:'FeatureCollection',features:stateBorderFeatures}});
+  // County-level grid — thin
   map.addLayer({ id:'state-bounds', type:'line', source:'state-bounds-src',
-    paint:{ 'line-color':'#111', 'line-width':2.5, 'line-opacity':0.85 }
+    paint:{ 'line-color':'#333', 'line-width':1.0, 'line-opacity':0.5 }
+  });
+  // State border overlay — thick, on top
+  map.addLayer({ id:'state-bounds-thick', type:'line', source:'state-bounds-src',
+    paint:{
+      'line-color':'#111',
+      'line-width':3.5,
+      'line-opacity':0.85,
+      'line-blur':0.5
+    }
   });
 
   // Viz mode overlays
