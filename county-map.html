@@ -747,7 +747,7 @@ function buildStaticMapUrl(center, zoom, w, h) {
     const fillColor=statusFillColor(def); if(!fillColor) continue;
     const feat=countyFeatures[fips]; if(!feat) continue;
     const ring=feat.geometry.type==='Polygon'?feat.geometry.coordinates[0]:feat.geometry.coordinates[0][0];
-    const step=Math.max(1,Math.floor(ring.length/50));
+    const step=Math.max(1,Math.floor(ring.length/150));
     const pts=ring.filter((_,i)=>i%step===0).map(([lng,lat])=>lat+','+lng).join('|');
     const fc=fillColor.replace('#','0x')+'bb';
     params+='&path=fillcolor:'+fc+'|color:0x222222cc|weight:1|'+pts;
@@ -758,7 +758,7 @@ function buildStaticMapUrl(center, zoom, w, h) {
     const def=currentFipsToCountyDef[fips]; if(!def||!def.finders) continue;
     const feat=countyFeatures[fips]; if(!feat) continue;
     const c=visualCentroid(feat);
-    const DOT_SPACING=0.03;
+    const DOT_SPACING=0.06;
     const n=def.finders.length;
     const startLng=c.lng-(n-1)*DOT_SPACING/2;
     def.finders.forEach((f,i)=>{
