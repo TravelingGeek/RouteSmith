@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Routesmith · County Map — POC · v0.8.4-poc</title>
+  <title>Routesmith · County Map — POC · v0.8.5-poc</title>
   <script src='https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js'></script>
   <link href='https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css' rel='stylesheet' />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -85,7 +85,7 @@
 <header>
   <span class="rs-mark">Routesmith</span>
   <span class="rs-divider"></span>
-  <h1>County Map — POC · v0.8.4-poc</h1>
+  <h1>County Map — POC · v0.8.5-poc</h1>
   <span class="status-pill" id="statusPill">Loading…</span>
 </header>
 <div class="main">
@@ -503,9 +503,9 @@ function renderLayers() {
   // Build county edge grid and dissolved state perimeters as separate GeoJSON sources
   const visibleStateFips = new Set([...currentSelectedFips,...bufferFipsGlobal].map(f=>f.slice(0,2)));
 
-  // County outlines — all rings from all visible counties (thin grid)
+  // County outlines — all rings from ALL visible counties (thin grid)
   const countyLines = [];
-  for(const fips of [...currentSelectedFips,...bufferFipsGlobal]){
+  for(const fips of allVisibleFipsGlobal){
     const feat = countyFeatures[fips]; if(!feat) continue;
     const geom = feat.geometry;
     const rings = geom.type==='Polygon' ? geom.coordinates : geom.coordinates.flatMap(p=>p);
