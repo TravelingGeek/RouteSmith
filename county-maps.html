@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Routesmith · County Map — POC · v0.8.6-poc</title>
+  <title>Routesmith · County Map — POC · v0.8.7-poc</title>
   <script src='https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js'></script>
   <link href='https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css' rel='stylesheet' />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -85,7 +85,7 @@
 <header>
   <span class="rs-mark">Routesmith</span>
   <span class="rs-divider"></span>
-  <h1>County Map — POC · v0.8.6-poc</h1>
+  <h1>County Map — POC · v0.8.7-poc</h1>
   <span class="status-pill" id="statusPill">Loading…</span>
 </header>
 <div class="main">
@@ -826,10 +826,16 @@ function renderMap(data) {
     else console.warn(`County not found: ${c.county}, ${c.state}`);
   }
 
+  // Expand visible set to all counties in any state that has a selected county
+  const selectedStateFips = new Set([...selectedFips].map(f=>f.slice(0,2)));
+  const stateWideFips = new Set();
+  for(const [fips] of Object.entries(countyFeatures))
+    if(selectedStateFips.has(fips.slice(0,2))) stateWideFips.add(fips);
+
   currentSelectedFips=selectedFips;
   currentFipsToCountyDef=fipsToCountyDef;
   bufferFipsGlobal=new Set();
-  allVisibleFipsGlobal=new Set([...selectedFips]);
+  allVisibleFipsGlobal=stateWideFips;
 
   // Fit map to all visible counties
   const bounds=new mapboxgl.LngLatBounds();
