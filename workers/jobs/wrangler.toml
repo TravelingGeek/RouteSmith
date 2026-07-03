@@ -1,11 +1,18 @@
-name = "routesmith-report"
+name = "routesmith-jobs"
 main = "src/worker.ts"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 
+[[queues.consumers]]
+queue = "routesmith-jobs"
+max_batch_size = 10
+max_batch_timeout = 30
+max_retries = 3
+dead_letter_queue = "routesmith-jobs-dlq"
+
 [[r2_buckets]]
 binding = "REPORT_BUCKET"
-bucket_name = "routesmith-report"
+bucket_name = "routesmith-data"
 
 [[d1_databases]]
 binding = "DB"
@@ -16,9 +23,5 @@ database_id = "25ef5dcc-2999-496a-83e8-39a616d4daaf"
 command = "npm run build"
 
 [dev]
-port = 8787
+port = 8788
 local_protocol = "http"
-
-[[queues.producers]]
-binding = "JOBS_QUEUE"
-queue = "routesmith-jobs"

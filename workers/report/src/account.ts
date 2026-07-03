@@ -55,20 +55,21 @@ export async function handleAccountSync(
       .first<{ user_id: string; created_at: number }>();
 
     if (existing) {
-      // Update mutable fields (email and display name can change in Clerk)
+      // Update mutable fields (can change in Clerk)
       await env.DB
         .prepare(`
           UPDATE users
-          SET email = ?, display_name = ?, updated_at = ?
+          SET email = ?, display_name = ?, username = ?, updated_at = ?
           WHERE user_id = ?
         `)
-        .bind(user.email, user.displayName, now, user.userId)
+        .bind(user.email, user.displayName, user.username, now, user.userId)
         .run();
 
       return jsonResponse({
         userId: user.userId,
         email: user.email,
         displayName: user.displayName,
+        username: user.username,
         createdAt: existing.created_at,
         updatedAt: now,
         isNewUser: false,
@@ -78,10 +79,10 @@ export async function handleAccountSync(
     // New user — insert row
     await env.DB
       .prepare(`
-        INSERT INTO users (user_id, email, display_name, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO users (user_id, email, display_name, username, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?)
       `)
-      .bind(user.userId, user.email, user.displayName, now, now)
+      .bind(user.userId, user.email, user.displayName, user.username, now, now)
       .run();
 
     // Also create their default finder record
@@ -98,7 +99,7 @@ export async function handleAccountSync(
       .bind(
         finderId,
         user.userId,
-        '',            // gc_username set later in account settings
+        user.username, // pre-fill with Clerk username; user can update in settings
         user.displayName,
         '#1f4068',     // default navy — matches CHART_PRIMARY in charts.ts
         now,
@@ -110,6 +111,7 @@ export async function handleAccountSync(
       userId: user.userId,
       email: user.email,
       displayName: user.displayName,
+      username: user.username,
       createdAt: now,
       updatedAt: now,
       isNewUser: true,

@@ -362,3 +362,131 @@ export function checkGpxCompleteness(waypoints: Waypoint[]): {
 
   return { hasCounty, hasFp, warnings };
 }
+
+// ============================================================================
+// Data-through extraction
+// ============================================================================
+
+/**
+ * Return the ISO date string of the most recent find in a waypoint list.
+ * Used to populate gpx_files.data_through on upload confirm.
+ * Returns null if no waypoints have a findDate.
+ */
+export function extractDataThrough(waypoints: Waypoint[]): string | null {
+  let latest: Date | null = null;
+  for (const w of waypoints) {
+    if (!w.findDate) continue;
+    if (!latest || w.findDate > latest) latest = w.findDate;
+  }
+  return latest ? latest.toISOString().slice(0, 10) : null;
+}
+
+// ============================================================================
+// Workers-compatible metadata extraction (no DOMParser)
+// ============================================================================
+
+/**
+ * Extract find dates and find count from GPX text using fast-xml-parser.
+ * Used in the Workers confirm endpoint where DOMParser is unavailable.
+ * Returns { findCount, dataThrough } without full waypoint parsing.
+ */
+export async function extractGpxMetadata(gpxText: string): Promise<{
+  findCount: number;
+  dataThrough: string | null;
+  format: string;
+}> {
+  const { XMLParser } = await import('fast-xml-parser');
+
+  const parser = new XMLParser({
+    ignoreAttributes: false,
+    attributeNamePrefix: '@_',
+    isArray: (name: string) => name === 'wpt' || name === 'log',
+    parseAttributeValue: true,
+    processEntities: {
+      enabled: true,
+      maxEntityCount: 100000,  // raise limit well above any real GPX file
+    } as unknown as boolean,
+    htmlEntities: false,
+  });
+
+  const doc = parser.parse(gpxText);
+
+  // Detect format
+  let format = 'unknown';
+  const raw = JSON.stringify(doc);
+  if (raw.includes('gsak.net')) format = 'pgc';
+  else if (raw.includes('geocaching.com') || raw.includes('Groundspeak')) format = 'gccom';
+
+  // Navigate to wpt array — GPX root varies by namespace prefix
+  const root = doc.gpx ?? doc['gpx:gpx'] ?? Object.values(doc)[0];
+  const wpts: unknown[] = root?.wpt ?? [];
+
+  if (!Array.isArray(wpts) || wpts.length === 0) {
+    return { findCount: 0, dataThrough: null, format };
+  }
+
+  // Extract find dates from logs
+  let latest: Date | null = null;
+  let findCount = 0;
+
+  for (const wpt of wpts) {
+    if (typeof wpt !== 'object' || wpt === null) continue;
+    const w = wpt as Record<string, unknown>;
+
+    // Navigate to groundspeak:cache > groundspeak:logs > groundspeak:log
+    const cacheNode = findNode(w, 'cache');
+    if (!cacheNode) continue;
+
+    const logsNode = findNode(cacheNode as Record<string, unknown>, 'logs');
+    if (!logsNode) continue;
+
+    const logs = findArray(logsNode as Record<string, unknown>, 'log');
+    for (const log of logs) {
+      const logObj = log as Record<string, unknown>;
+      const logType = findText(logObj, 'type') ?? '';
+      const foundTypes = ['Found it', 'Attended', 'Webcam Photo Taken'];
+      if (!foundTypes.includes(logType)) continue;
+
+      findCount++;
+      const dateStr = findText(logObj, 'date');
+      if (dateStr) {
+        const d = new Date(dateStr.trim());
+        if (!isNaN(d.getTime())) {
+          if (!latest || d > latest) latest = d;
+        }
+      }
+      break; // first matching log per wpt
+    }
+  }
+
+  const dataThrough = latest ? latest.toISOString().slice(0, 10) : null;
+  return { findCount, dataThrough, format };
+}
+
+// Helpers for navigating fast-xml-parser output (which strips namespace prefixes)
+function findNode(obj: Record<string, unknown>, localName: string): unknown {
+  for (const key of Object.keys(obj)) {
+    const stripped = key.includes(':') ? key.split(':').pop()! : key;
+    if (stripped === localName) return obj[key];
+  }
+  return null;
+}
+
+function findText(obj: Record<string, unknown>, localName: string): string | null {
+  const val = findNode(obj, localName);
+  if (val === null || val === undefined) return null;
+  if (typeof val === 'string') return val;
+  if (typeof val === 'number') return String(val);
+  if (typeof val === 'object') {
+    const o = val as Record<string, unknown>;
+    if ('#text' in o) return String(o['#text']);
+  }
+  return null;
+}
+
+function findArray(obj: Record<string, unknown>, localName: string): unknown[] {
+  const val = findNode(obj, localName);
+  if (!val) return [];
+  if (Array.isArray(val)) return val;
+  return [val];
+}

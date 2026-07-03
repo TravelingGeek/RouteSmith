@@ -211,3 +211,74 @@ export const STATE_COUNTY_TOTALS: Record<string, number> = {
 export function countyKey(county: string, state: string): string {
   return `${county}|${state}`;
 }
+
+// ============================================================================
+// Cloudflare runtime types
+// Defined once here; imported by worker.ts, account.ts, upload.ts, etc.
+// ============================================================================
+
+export interface R2ObjectBody {
+  key: string;
+  size: number;
+  text(): Promise<string>;
+  arrayBuffer(): Promise<ArrayBuffer>;
+}
+
+export interface R2Bucket {
+  get(key: string): Promise<R2ObjectBody | null>;
+  put(
+    key: string,
+    value: ArrayBuffer | ReadableStream,
+    options?: {
+      httpMetadata?: { contentType?: string };
+      customMetadata?: Record<string, string>;
+    }
+  ): Promise<{ key: string; size: number }>;
+  delete(key: string): Promise<void>;
+}
+
+export interface D1Result {
+  success: boolean;
+  meta: { changes: number };
+}
+
+export interface D1PreparedStatement {
+  bind(...args: unknown[]): D1PreparedStatement;
+  first<T>(): Promise<T | null>;
+  all<T>(): Promise<{ results: T[] }>;
+  run(): Promise<D1Result>;
+}
+
+export interface D1Database {
+  prepare(query: string): D1PreparedStatement;
+  batch(statements: D1PreparedStatement[]): Promise<D1Result[]>;
+}
+
+/** Shared Worker environment bindings — see Queue section below for full definition. */
+
+// ============================================================================
+// Queue types
+// ============================================================================
+
+export interface Queue<T> {
+  send(message: T): Promise<void>;
+}
+
+export type JobType = 'gpx_parse';
+export type JobModule = 'report' | 'plan' | 'navigate';
+
+export interface JobMessage {
+  job_id: string;
+  job_type: JobType;
+  module: JobModule;
+  user_id: string;
+  payload: Record<string, unknown>;
+}
+
+// Extend Env with queue binding
+export interface Env {
+  REPORT_BUCKET: R2Bucket;
+  DB: D1Database;
+  CLERK_SECRET_KEY: string;
+  JOBS_QUEUE: Queue<JobMessage>;
+}

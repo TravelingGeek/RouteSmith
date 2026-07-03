@@ -17,45 +17,64 @@ import { fetchReferenceListsFromR2 } from './referenceLists.js';
 import { renderReport } from './renderer.js';
 import { requireAuth, unauthorizedResponse, AuthError } from './auth.js';
 import { handleAccountSync, handleAccountMe } from './account.js';
+import { handlePresign, handleUploadData, handleConfirm, handleJobStatus } from './upload.js';
 import type { TripInput } from './types.js';
 
 // ============================================================================
-// Environment type
+// Environment type — imported from types.ts (single source of truth)
 // ============================================================================
 
-export interface Env {
-  REPORT_BUCKET: R2Bucket;
-  DB: D1Database;
-  CLERK_SECRET_KEY: string;
-}
-
-interface R2Bucket {
-  get(key: string): Promise<{ text(): Promise<string>; arrayBuffer(): Promise<ArrayBuffer> } | null>;
-}
-
-interface D1Database {
-  prepare(query: string): D1PreparedStatement;
-}
-
-interface D1PreparedStatement {
-  bind(...args: unknown[]): D1PreparedStatement;
-  first<T>(): Promise<T | null>;
-  all<T>(): Promise<{ results: T[] }>;
-}
+export type { Env } from './types.js';
+import type { Env } from './types.js';
 
 // ============================================================================
 // Request routing
 // ============================================================================
 
+// ============================================================================
+// CORS
+// ============================================================================
+
+const ALLOWED_ORIGINS = new Set([
+  'https://routesmithing.com',
+  'https://www.routesmithing.com',
+  'http://localhost:8788',   // wrangler pages dev
+  'http://localhost:3000',
+]);
+
+function corsHeaders(request: Request): Record<string, string> {
+  const origin = request.headers.get('Origin') ?? '';
+  const allowed = ALLOWED_ORIGINS.has(origin) ? origin : 'https://routesmithing.com';
+  return {
+    'Access-Control-Allow-Origin': allowed,
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
+    'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+    'Access-Control-Max-Age': '86400',
+  };
+}
+
+function addCors(response: Response, request: Request): Response {
+  const headers = new Headers(response.headers);
+  for (const [k, v] of Object.entries(corsHeaders(request))) {
+    headers.set(k, v);
+  }
+  return new Response(response.body, { status: response.status, headers });
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
+    // Handle CORS preflight for all routes
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { status: 204, headers: corsHeaders(request) });
+    }
+
     // Health check — no auth required
     if (url.pathname === '/api/report/health') {
-      return new Response(JSON.stringify({ status: 'ok' }), {
+      return addCors(new Response(JSON.stringify({ status: 'ok' }), {
         headers: { 'Content-Type': 'application/json' },
-      });
+      }), request);
     }
 
     // All other routes require authentication
@@ -63,17 +82,37 @@ export default {
     try {
       user = await requireAuth(request);
     } catch (e) {
-      if (e instanceof AuthError) return unauthorizedResponse(e.message);
-      return unauthorizedResponse('Authentication failed');
+      if (e instanceof AuthError) return addCors(unauthorizedResponse(e.message), request);
+      return addCors(unauthorizedResponse('Authentication failed'), request);
+    }
+
+    // Upload routes
+    if (url.pathname === '/api/upload/presign' && request.method === 'POST') {
+      return addCors(await handlePresign(request, user, env), request);
+    }
+
+    const uploadDataMatch = url.pathname.match(/^\/api\/upload\/data\/([\w-]+)$/);
+    if (uploadDataMatch && request.method === 'PUT') {
+      return addCors(await handleUploadData(request, user, env, uploadDataMatch[1]), request);
+    }
+
+    const confirmMatch = url.pathname.match(/^\/api\/upload\/confirm\/([\w-]+)$/);
+    if (confirmMatch && request.method === 'POST') {
+      return addCors(await handleConfirm(request, user, env, confirmMatch[1]), request);
+    }
+
+    const statusMatch = url.pathname.match(/^\/api\/upload\/status\/([\w-]+)$/);
+    if (statusMatch && request.method === 'GET') {
+      return addCors(await handleJobStatus(statusMatch[1], user, env), request);
     }
 
     // Account routes
     if (url.pathname === '/api/account/sync' && request.method === 'POST') {
-      return handleAccountSync(user, env);
+      return addCors(await handleAccountSync(user, env), request);
     }
 
     if (url.pathname === '/api/account/me' && request.method === 'GET') {
-      return handleAccountMe(user, env);
+      return addCors(await handleAccountMe(user, env), request);
     }
 
     if (request.method !== 'POST') {
@@ -81,11 +120,11 @@ export default {
     }
 
     if (url.pathname === '/api/report/run') {
-      return handleReportRun(request, env, user, 'html');
+      return addCors(await handleReportRun(request, env, user, 'html'), request);
     }
 
     if (url.pathname === '/api/report/data') {
-      return handleReportRun(request, env, user, 'json');
+      return addCors(await handleReportRun(request, env, user, 'json'), request);
     }
 
     return new Response('Not Found', { status: 404 });

@@ -17,6 +17,7 @@ export interface AuthUser {
   userId: string;       // Clerk user ID (the JWT `sub` claim)
   email: string;
   displayName: string;
+  username: string;     // Clerk username (encouraged to match gc.com handle)
 }
 
 export class AuthError extends Error {
@@ -92,6 +93,7 @@ interface JwtHeader {
 interface JwtClaims {
   sub: string;
   email?: string;
+  username?: string;
   display_name?: string;
   image_url?: string;
   exp?: number;
@@ -186,6 +188,7 @@ export async function requireAuth(request: Request): Promise<AuthUser> {
     userId: claims.sub,
     email: claims.email ?? '',
     displayName: claims.display_name ?? claims.email ?? claims.sub,
+    username: claims.username ?? '',
   };
 }
 
