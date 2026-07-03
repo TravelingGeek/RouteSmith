@@ -134,8 +134,8 @@ async function verifyJwt(token: string): Promise<JwtClaims> {
   const valid = await crypto.subtle.verify(
     'RSASSA-PKCS1-v1_5',
     publicKey,
-    signature,
-    signingInput,
+    signature.buffer as ArrayBuffer,
+    signingInput.buffer as ArrayBuffer,
   );
   if (!valid) throw new AuthError('JWT signature invalid');
 
