@@ -5,7 +5,7 @@ compatibility_flags = ["nodejs_compat"]
 
 [[r2_buckets]]
 binding = "REPORT_BUCKET"
-bucket_name = "routesmith-report"
+bucket_name = "routesmith-data"
 
 [[d1_databases]]
 binding = "DB"
