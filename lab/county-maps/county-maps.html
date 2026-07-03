@@ -257,7 +257,7 @@ function statusFillColor(def) { return STATUS_COLORS[countyStatus(def)]||'rgba(0
 
 // ── DATA LOADING ──
 async function loadMapData() {
-  const params=new URLSearchParams(window.location.search), dataUrl=params.get('data');
+  const params=new URLSearchParams(window.location.search), rawData=params.get('data'), dataUrl=rawData?'/data/'+rawData.split('/').pop():null;
   if(dataUrl){
     document.getElementById('dataSourceDisplay').textContent=dataUrl;
     try{
