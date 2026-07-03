@@ -10,12 +10,11 @@ bucket_name = "routesmith-report"
 [[d1_databases]]
 binding = "DB"
 database_name = "routesmith"
-database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+database_id = "25ef5dcc-2999-496a-83e8-39a616d4daaf"
 
 [build]
 command = "npm run build"
 
-# Dev configuration
 [dev]
 port = 8787
 local_protocol = "http"
