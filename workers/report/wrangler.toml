@@ -1,0 +1,21 @@
+name = "routesmith-report"
+main = "src/worker.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+[[r2_buckets]]
+binding = "REPORT_BUCKET"
+bucket_name = "routesmith-report"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "routesmith"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+
+[build]
+command = "npm run build"
+
+# Dev configuration
+[dev]
+port = 8787
+local_protocol = "http"

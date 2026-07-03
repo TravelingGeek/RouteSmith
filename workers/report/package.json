@@ -1,0 +1,20 @@
+{
+  "name": "routesmith-report",
+  "version": "1.0.0",
+  "description": "Routesmith REPORT module — TypeScript port of the v0.6 Python POC",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "wrangler dev src/worker.ts",
+    "deploy": "wrangler deploy src/worker.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "fflate": "^0.8.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260702.1",
+    "typescript": "^5.9.3",
+    "wrangler": "^3.0.0"
+  }
+}
