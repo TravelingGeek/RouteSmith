@@ -16,6 +16,7 @@ import { runPipeline, type GpxSources } from './pipeline.js';
 import { fetchReferenceListsFromR2 } from './referenceLists.js';
 import { renderReport } from './renderer.js';
 import { requireAuth, unauthorizedResponse, AuthError } from './auth.js';
+import { handleAccountSync, handleAccountMe } from './account.js';
 import type { TripInput } from './types.js';
 
 // ============================================================================
@@ -64,6 +65,15 @@ export default {
     } catch (e) {
       if (e instanceof AuthError) return unauthorizedResponse(e.message);
       return unauthorizedResponse('Authentication failed');
+    }
+
+    // Account routes
+    if (url.pathname === '/api/account/sync' && request.method === 'POST') {
+      return handleAccountSync(user, env);
+    }
+
+    if (url.pathname === '/api/account/me' && request.method === 'GET') {
+      return handleAccountMe(user, env);
     }
 
     if (request.method !== 'POST') {

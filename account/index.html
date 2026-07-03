@@ -532,17 +532,38 @@
     signoutBtn.addEventListener('click', handleSignOut);
     navSignoutBtn.addEventListener('click', handleSignOut);
 
+    // Call sync endpoint after sign-in to upsert user in D1
+    async function syncUser() {
+      try {
+        const token = await window.Clerk.session.getToken({ template: 'routesmith' });
+        await fetch('https://routesmith-report.gtl6645.workers.dev/api/account/sync', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + token,
+            'Content-Type': 'application/json',
+          },
+        });
+      } catch (e) {
+        console.warn('Account sync failed:', e);
+      }
+    }
+
     // Check current auth state
     const user = window.Clerk.user;
     if (user) {
       showSignedIn(user);
+      // Sync on page load in case display name / email changed in Clerk
+      syncUser();
     } else {
       showSignedOut();
     }
 
-    // Listen for auth state changes
-    window.Clerk.addListener(({ user }) => {
-      if (user) showSignedIn(user);
+    // Listen for auth state changes (fires after sign-in completes)
+    window.Clerk.addListener(async ({ user }) => {
+      if (user) {
+        showSignedIn(user);
+        await syncUser();
+      }
     });
   });
 </script>
