@@ -30,6 +30,7 @@ export async function handleGpxParseJob(
   let findCount: number;
   let dataThrough: string | null;
   let detectedFormat: string;
+  let detectedUsername: string | null = null;
 
   try {
     const arrayBuffer = await r2Object.arrayBuffer();
@@ -45,13 +46,43 @@ export async function handleGpxParseJob(
       if (meta.dataThrough && (!latestDate || meta.dataThrough > latestDate)) {
         latestDate = meta.dataThrough;
       }
+      if (meta.detectedUsername && !detectedUsername) detectedUsername = meta.detectedUsername;
     }
 
     findCount      = totalFinds;
     dataThrough    = latestDate;
     detectedFormat = format;
+
+    // Option B: validate detected username against finder's gc_username
+    // Option A: warn on dramatic find count drop (secondary check)
+    if (detectedUsername) {
+      const finder = await env.DB
+        .prepare('SELECT gc_username, lifetime_find_count FROM finders WHERE finder_id = ?')
+        .bind(finder_id)
+        .first<{ gc_username: string | null; lifetime_find_count: number | null }>();
+
+      if (finder?.gc_username) {
+        const expected = finder.gc_username.toLowerCase();
+        const detected = detectedUsername.toLowerCase();
+        if (expected !== detected) {
+          const msg = `Username mismatch: file contains finds for '${detectedUsername}' but this finder is '${finder.gc_username}'. Upload rejected.`;
+          await markJobFailed(env, jobId, gpx_file_id, userId, msg, ts);
+          throw new Error(`${msg} — marked failed, not retrying`);
+        }
+      }
+
+      // Option A: count drop warning (catches wrong file even if gc_username not set)
+      const existingCount = finder?.lifetime_find_count ?? 0;
+      if (existingCount > 100 && findCount < existingCount * 0.5) {
+        const msg = `Find count dropped dramatically: file has ${findCount} finds but existing lifetime data has ${existingCount}. This may be the wrong file. Upload rejected.`;
+        await markJobFailed(env, jobId, gpx_file_id, userId, msg, ts);
+        throw new Error(`${msg} — marked failed, not retrying`);
+      }
+    }
   } catch (e) {
-    const msg = `GPX parse failed: ${(e as Error).message}`;
+    const errMsg = (e as Error).message;
+    if (errMsg.includes('not retrying')) throw e; // already handled
+    const msg = `GPX parse failed: ${errMsg}`;
     await markJobFailed(env, jobId, gpx_file_id, userId, msg, ts);
     throw new Error(`${msg} — marked failed, not retrying`);
   }
@@ -141,6 +172,7 @@ function extractGpxMetadata(gpxText: string): {
   findCount: number;
   dataThrough: string | null;
   format: string;
+  detectedUsername: string | null;
 } {
   const header = gpxText.slice(0, 10000);
   let format = 'unknown';
@@ -208,8 +240,22 @@ function extractGpxMetadata(gpxText: string): {
     }
   }
 
-  console.log(`[extractGpxMetadata] findCount=${findCount} dataThrough=${latestDate}`);
-  return { findCount, dataThrough: latestDate, format };
+  // Extract the most common finder username from log entries
+  let detectedUsername: string | null = null;
+  const finderRe = /<groundspeak:finder[^>]*>([^<]+)<\/groundspeak:finder>/g;
+  const finderCounts = new Map<string, number>();
+  let fm: RegExpExecArray | null;
+  while ((fm = finderRe.exec(gpxText)) !== null) {
+    const name = fm[1].trim();
+    finderCounts.set(name, (finderCounts.get(name) ?? 0) + 1);
+  }
+  if (finderCounts.size > 0) {
+    detectedUsername = [...finderCounts.entries()]
+      .sort((a, b) => b[1] - a[1])[0][0];
+  }
+
+  console.log(`[extractGpxMetadata] findCount=${findCount} dataThrough=${latestDate} detectedUsername=${detectedUsername}`);
+  return { findCount, dataThrough: latestDate, format, detectedUsername };
 }
 
 async function decompressToTexts(buffer: ArrayBuffer, r2Key: string): Promise<string[]> {
