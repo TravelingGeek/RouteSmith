@@ -12,14 +12,8 @@
  */
 
 import type { AuthUser } from './auth.js';
-
-export interface Env {
-  DB: D1Database;
-}
-
-interface D1Database {
-  prepare(query: string): D1PreparedStatement;
-}
+import type { Env, D1Database } from './types.js';
+export type { Env };
 
 interface D1PreparedStatement {
   bind(...args: unknown[]): D1PreparedStatement;
@@ -208,4 +202,42 @@ function jsonResponse(body: unknown, status = 200): Response {
     status,
     headers: { 'Content-Type': 'application/json' },
   });
+}
+
+// ============================================================================
+// GET /api/account/gpx-files
+// ============================================================================
+
+/**
+ * Return the caller's active GPX files for the summary panel.
+ */
+export async function handleGpxFiles(
+  user: AuthUser,
+  env: Env,
+): Promise<Response> {
+  try {
+    const finder = await env.DB
+      .prepare(`SELECT finder_id FROM finders WHERE owner_user_id = ? AND finder_id = 'finder_' || ?`)
+      .bind(user.userId, user.userId)
+      .first<{ finder_id: string }>();
+
+    if (!finder) return jsonResponse({ files: [] });
+
+    const { results } = await env.DB
+      .prepare(`
+        SELECT file_role, scope, format, find_count, data_through, uploaded_at
+        FROM gpx_files
+        WHERE owner_finder_id = ? AND is_active = 1 AND deleted_at IS NULL
+        ORDER BY uploaded_at DESC
+      `)
+      .bind(finder.finder_id)
+      .all<{
+        file_role: string; scope: string; format: string;
+        find_count: number | null; data_through: string | null; uploaded_at: number;
+      }>();
+
+    return jsonResponse({ files: results });
+  } catch (e) {
+    return jsonResponse({ error: `Database error: ${(e as Error).message}` }, 500);
+  }
 }

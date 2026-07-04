@@ -16,7 +16,7 @@ import { runPipeline, type GpxSources } from './pipeline.js';
 import { fetchReferenceListsFromR2 } from './referenceLists.js';
 import { renderReport } from './renderer.js';
 import { requireAuth, unauthorizedResponse, AuthError } from './auth.js';
-import { handleAccountSync, handleAccountMe } from './account.js';
+import { handleAccountSync, handleAccountMe, handleGpxFiles } from './account.js';
 import { handlePresign, handleUploadData, handleConfirm, handleJobStatus } from './upload.js';
 import type { TripInput } from './types.js';
 
@@ -113,6 +113,10 @@ export default {
 
     if (url.pathname === '/api/account/me' && request.method === 'GET') {
       return addCors(await handleAccountMe(user, env), request);
+    }
+
+    if (url.pathname === '/api/account/gpx-files' && request.method === 'GET') {
+      return addCors(await handleGpxFiles(user, env), request);
     }
 
     if (request.method !== 'POST') {

@@ -10,12 +10,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "fflate": "^0.8.0",
-    "fast-xml-parser": "^4.4.0"
+    "fast-xml-parser": "^4.4.0",
+    "fflate": "^0.8.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260702.1",
     "typescript": "^5.9.3",
-    "wrangler": "^3.0.0"
+    "wrangler": "^4.107.0"
   }
 }

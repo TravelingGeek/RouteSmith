@@ -3,12 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Routesmith — Sign in</title>
+<title>Routesmith — Account</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
-<!-- Clerk JS — loads the embedded sign-in component -->
 <script
   async
   crossorigin="anonymous"
@@ -33,7 +32,6 @@
   }
 
   * { box-sizing: border-box; }
-
   html { -webkit-font-smoothing: antialiased; }
 
   body {
@@ -51,315 +49,238 @@
     font-size: 17px;
   }
 
-  /* ============================================================ */
-  /* Header / nav                                                 */
-  /* ============================================================ */
+  /* ── Nav ─────────────────────────────────────────────────────── */
   .site-header {
-    max-width: 920px;
-    margin: 0 auto;
-    padding: 20px 40px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 24px;
+    max-width: 920px; margin: 0 auto; padding: 20px 40px;
+    display: flex; justify-content: space-between; align-items: center; gap: 24px;
   }
-
   .site-brand-mark {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.78rem;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.14em;
-    color: var(--brass-deep);
-    text-decoration: none;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.14em; color: var(--brass-deep); text-decoration: none;
   }
-
-  .site-nav {
-    display: flex;
-    align-items: center;
-    gap: 0;
-    flex: 1;
-    justify-content: flex-end;
-  }
-
+  .site-nav { display: flex; align-items: center; gap: 0; flex: 1; justify-content: flex-end; }
   .nav-modules {
-    display: flex;
-    align-items: center;
-    border: 1px solid var(--rule);
-    border-radius: 2px;
-    overflow: hidden;
-    margin-right: 16px;
+    display: flex; align-items: center; border: 1px solid var(--rule);
+    border-radius: 2px; overflow: hidden; margin-right: 16px;
   }
-
   .nav-module {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.72rem;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--ink-muted);
-    text-decoration: none;
-    padding: 6px 14px;
-    border-right: 1px solid var(--rule);
-    transition: color 0.15s, background 0.15s;
-    white-space: nowrap;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-muted);
+    text-decoration: none; padding: 6px 14px; border-right: 1px solid var(--rule);
+    transition: color 0.15s, background 0.15s; white-space: nowrap;
   }
-
   .nav-module:last-child { border-right: none; }
-
-  .nav-module:hover {
-    color: var(--brass-deep);
-    background: rgba(168, 120, 50, 0.06);
-  }
-
-  .nav-module.disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-    pointer-events: none;
-  }
-
-  /* User menu — shown when signed in; hidden until Clerk loads */
-  .nav-user {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.72rem;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--brass-deep);
-    display: none; /* shown by JS after auth */
-    align-items: center;
-    gap: 12px;
-  }
-
-  .nav-user-name {
-    color: var(--ink-soft);
-  }
-
+  .nav-module:hover { color: var(--brass-deep); background: rgba(168,120,50,0.06); }
+  .nav-module.disabled { opacity: 0.45; cursor: not-allowed; pointer-events: none; }
+  .nav-user { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.12em; color: var(--brass-deep);
+    display: none; align-items: center; gap: 12px; }
+  .nav-user-name { color: var(--ink-soft); }
   .nav-signout {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.72rem;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--ink-muted);
-    background: none;
-    border: 1px solid var(--rule);
-    padding: 6px 12px;
-    border-radius: 2px;
-    cursor: pointer;
-    transition: color 0.15s, border-color 0.15s;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-muted);
+    background: none; border: 1px solid var(--rule); padding: 6px 12px;
+    border-radius: 2px; cursor: pointer; transition: color 0.15s, border-color 0.15s;
   }
-
-  .nav-signout:hover {
-    color: var(--stamp);
-    border-color: var(--stamp);
-  }
-
+  .nav-signout:hover { color: var(--stamp); border-color: var(--stamp); }
   .nav-signin-link {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.72rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--paper);
-    background: var(--brass-deep);
-    text-decoration: none;
-    padding: 7px 16px;
-    border-radius: 2px;
-    transition: background 0.15s;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.12em; color: var(--paper);
+    background: var(--brass-deep); text-decoration: none; padding: 7px 16px;
+    border-radius: 2px; transition: background 0.15s;
   }
-
   .nav-signin-link:hover { background: var(--ink); }
 
-  /* ============================================================ */
-  /* Page layout                                                  */
-  /* ============================================================ */
-  .page {
-    max-width: 480px;
-    margin: 0 auto;
-    padding: 48px 40px 80px;
-  }
+  /* ── Page layout ─────────────────────────────────────────────── */
+  .page { max-width: 640px; margin: 0 auto; padding: 48px 40px 80px; }
 
-  /* ============================================================ */
-  /* Page header                                                  */
-  /* ============================================================ */
   .page-eyebrow {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.74rem;
-    text-transform: uppercase;
-    letter-spacing: 0.18em;
-    color: var(--brass-deep);
-    margin-bottom: 10px;
-    text-align: center;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.74rem; text-transform: uppercase;
+    letter-spacing: 0.18em; color: var(--brass-deep); margin-bottom: 10px; text-align: center;
   }
-
   .page-title {
-    font-family: 'Fraunces', serif;
-    font-variation-settings: "opsz" 60;
-    font-weight: 600;
-    font-size: 2rem;
-    text-align: center;
-    margin: 0 0 8px;
-    color: var(--ink);
-    letter-spacing: -0.01em;
+    font-family: 'Fraunces', serif; font-variation-settings: "opsz" 60; font-weight: 600;
+    font-size: 2rem; text-align: center; margin: 0 0 8px; color: var(--ink); letter-spacing: -0.01em;
   }
-
   .page-subtitle {
-    font-family: 'Fraunces', serif;
-    font-style: italic;
-    font-size: 1rem;
-    color: var(--ink-soft);
-    text-align: center;
-    margin: 0 0 40px;
+    font-family: 'Fraunces', serif; font-style: italic; font-size: 1rem;
+    color: var(--ink-soft); text-align: center; margin: 0 0 40px;
   }
 
-  /* ============================================================ */
-  /* Clerk component mount point                                  */
-  /* ============================================================ */
-  #clerk-sign-in {
-    /* Clerk renders its own component here. The appearance object
-       below customises it to match the Routesmith design system. */
+  /* ── Loading ─────────────────────────────────────────────────── */
+  .loading {
+    text-align: center; padding: 48px 0; font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-muted);
   }
 
-  /* ============================================================ */
-  /* Signed-in state — shown after successful auth                */
-  /* ============================================================ */
-  .signed-in-panel {
-    display: none; /* toggled by JS */
-    background: rgba(255, 252, 240, 0.7);
-    border: 1px solid var(--rule);
-    border-top: 3px solid var(--brass);
-    padding: 32px 36px;
-    text-align: center;
-  }
+  /* ── Signed-in panel ─────────────────────────────────────────── */
+  .signed-in-panel { display: none; }
 
   .signed-in-greeting {
-    font-family: 'Fraunces', serif;
-    font-variation-settings: "opsz" 60;
-    font-weight: 600;
-    font-size: 1.5rem;
-    color: var(--ink);
-    margin: 0 0 8px;
+    font-family: 'Fraunces', serif; font-variation-settings: "opsz" 60; font-weight: 600;
+    font-size: 1.5rem; color: var(--ink); margin: 0 0 4px;
   }
+  .signed-in-sub { font-size: 0.92rem; color: var(--ink-soft); margin: 0 0 32px; }
 
-  .signed-in-sub {
-    font-size: 0.96rem;
-    color: var(--ink-soft);
-    margin: 0 0 28px;
-  }
-
-  .module-links {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-    margin-bottom: 24px;
-  }
-
+  /* ── Module links ────────────────────────────────────────────── */
+  .module-links { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 40px; }
   .module-link {
-    display: block;
-    text-decoration: none;
-    border: 1px solid var(--rule);
-    border-radius: 2px;
-    padding: 16px 12px;
-    text-align: center;
+    display: block; text-decoration: none; border: 1px solid var(--rule);
+    border-radius: 2px; padding: 16px 12px; text-align: center;
     transition: border-color 0.15s, background 0.15s;
   }
+  .module-link:hover { border-color: var(--brass); background: rgba(168,120,50,0.05); }
+  .module-link.active:hover { border-color: var(--forge); background: rgba(45,90,42,0.05); }
+  .module-link.disabled { opacity: 0.5; pointer-events: none; }
+  .module-link-num { font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--brass-deep); margin-bottom: 4px; }
+  .module-link.active .module-link-num { color: var(--forge); }
+  .module-link-name { font-family: 'Fraunces', serif; font-weight: 600; font-size: 0.95rem; color: var(--ink); }
+  .module-link-status { font-family: 'JetBrains Mono', monospace; font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-muted); margin-top: 4px; }
+  .module-link.active .module-link-status { color: var(--forge); }
 
-  .module-link:hover {
-    border-color: var(--brass);
-    background: rgba(168, 120, 50, 0.05);
+  /* ── GPX data panel ──────────────────────────────────────────── */
+  .gpx-panel {
+    border: 1px solid var(--rule); border-top: 3px solid var(--brass);
+    background: rgba(255,252,240,0.6); margin-bottom: 32px;
+  }
+  .gpx-panel-header { padding: 20px 24px 16px; border-bottom: 1px solid var(--rule-soft); }
+  .gpx-panel-kicker {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; text-transform: uppercase;
+    letter-spacing: 0.14em; color: var(--brass-deep); margin-bottom: 8px;
   }
 
-  .module-link.active:hover {
-    border-color: var(--forge);
-    background: rgba(45, 90, 42, 0.05);
+  /* Summary row — combined view */
+  .gpx-summary { display: flex; align-items: baseline; gap: 0; flex-wrap: wrap; }
+  .gpx-summary-count {
+    font-family: 'Fraunces', serif; font-weight: 600; font-size: 1.8rem;
+    color: var(--ink); letter-spacing: -0.02em; margin-right: 10px;
+  }
+  .gpx-summary-label { font-size: 0.95rem; color: var(--ink-soft); margin-right: 16px; }
+  .gpx-summary-freshness {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.78rem;
+    color: var(--forge); letter-spacing: 0.04em;
+  }
+  .gpx-summary-freshness.stale { color: var(--brass-deep); }
+  .gpx-summary-freshness.empty { color: var(--ink-muted); }
+  .gpx-summary-none {
+    font-size: 0.95rem; color: var(--ink-muted); font-style: italic;
   }
 
-  .module-link-num {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.68rem;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--brass-deep);
-    margin-bottom: 4px;
+  /* Expandable detail */
+  .gpx-detail-toggle {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--ink-muted); background: none; border: none;
+    cursor: pointer; padding: 0; margin-top: 10px; display: block;
+    transition: color 0.15s;
+  }
+  .gpx-detail-toggle:hover { color: var(--brass-deep); }
+  .gpx-detail { display: none; padding: 14px 0 0; }
+  .gpx-detail.open { display: block; }
+  .gpx-file-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 0; border-bottom: 1px solid var(--rule-soft); gap: 12px;
+    flex-wrap: wrap;
+  }
+  .gpx-file-row:last-child { border-bottom: none; }
+  .gpx-file-scope {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--ink-muted); min-width: 90px;
+  }
+  .gpx-file-meta { font-size: 0.88rem; color: var(--ink-soft); flex: 1; }
+  .gpx-file-meta strong { color: var(--ink); font-weight: 600; }
+  .gpx-file-date { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--ink-muted); white-space: nowrap; }
+
+  /* Upload area */
+  .gpx-upload-area { padding: 20px 24px; }
+  .gpx-upload-label {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; text-transform: uppercase;
+    letter-spacing: 0.14em; color: var(--ink-muted); margin-bottom: 12px; display: block;
   }
 
-  .module-link.active .module-link-num {
-    color: var(--forge);
+  .drop-zone {
+    border: 2px dashed var(--rule); border-radius: 2px; padding: 28px 24px;
+    text-align: center; cursor: pointer; transition: border-color 0.15s, background 0.15s;
+    position: relative;
+  }
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--brass); background: rgba(168,120,50,0.04);
+  }
+  .drop-zone input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .drop-zone-icon { font-size: 1.6rem; margin-bottom: 8px; opacity: 0.5; }
+  .drop-zone-text {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--ink-muted);
+    text-transform: uppercase; letter-spacing: 0.1em;
+  }
+  .drop-zone-hint { font-size: 0.82rem; color: var(--ink-muted); margin-top: 6px; font-style: italic; }
+
+  /* Upload queue */
+  .upload-queue { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+  .upload-item {
+    border: 1px solid var(--rule); background: white; padding: 12px 16px;
+    border-radius: 2px; display: flex; align-items: center; gap: 12px;
+  }
+  .upload-item-name { font-size: 0.88rem; color: var(--ink); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .upload-item-scope {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--ink-muted); white-space: nowrap;
+  }
+  .upload-item-status {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; text-transform: uppercase;
+    letter-spacing: 0.08em; white-space: nowrap;
+  }
+  .upload-item-status.queued   { color: var(--ink-muted); }
+  .upload-item-status.uploading { color: var(--brass-deep); }
+  .upload-item-status.processing { color: var(--brass); }
+  .upload-item-status.complete  { color: var(--forge); }
+  .upload-item-status.error     { color: var(--stamp); }
+  .upload-item-result { font-size: 0.82rem; color: var(--ink-soft); margin-top: 4px; }
+
+  /* Progress bar */
+  .upload-progress {
+    height: 2px; background: var(--rule-soft); border-radius: 1px; margin-top: 6px; overflow: hidden;
+  }
+  .upload-progress-bar {
+    height: 100%; background: var(--brass); border-radius: 1px;
+    transition: width 0.3s; width: 0%;
+  }
+  .upload-progress-bar.indeterminate {
+    width: 40%; animation: slide 1.2s ease-in-out infinite;
+  }
+  @keyframes slide {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(300%); }
   }
 
-  .module-link-name {
-    font-family: 'Fraunces', serif;
-    font-weight: 600;
-    font-size: 0.95rem;
-    color: var(--ink);
+  .upload-btn {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.74rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.1em; color: var(--paper);
+    background: var(--brass-deep); border: none; padding: 10px 20px;
+    border-radius: 2px; cursor: pointer; margin-top: 14px;
+    transition: background 0.15s; display: none;
   }
+  .upload-btn:hover { background: var(--ink); }
+  .upload-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  .module-link-status {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.64rem;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--ink-muted);
-    margin-top: 4px;
-  }
-
-  .module-link.active .module-link-status {
-    color: var(--forge);
-  }
-
+  /* Sign-out */
   .signout-btn {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--ink-muted);
-    background: none;
-    border: 1px solid var(--rule);
-    padding: 8px 16px;
-    border-radius: 2px;
-    cursor: pointer;
-    transition: color 0.15s, border-color 0.15s;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; text-transform: uppercase;
+    letter-spacing: 0.12em; color: var(--ink-muted); background: none;
+    border: 1px solid var(--rule); padding: 8px 16px; border-radius: 2px;
+    cursor: pointer; transition: color 0.15s, border-color 0.15s; margin-top: 8px;
   }
+  .signout-btn:hover { color: var(--stamp); border-color: var(--stamp); }
 
-  .signout-btn:hover {
-    color: var(--stamp);
-    border-color: var(--stamp);
-  }
-
-  /* ============================================================ */
-  /* Loading state                                                */
-  /* ============================================================ */
-  .loading {
-    text-align: center;
-    padding: 48px 0;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.78rem;
-    text-transform: uppercase;
-    letter-spacing: 0.14em;
-    color: var(--ink-muted);
-  }
-
-  /* ============================================================ */
-  /* Footer                                                       */
-  /* ============================================================ */
+  /* Footer */
   footer {
-    text-align: center;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.74rem;
-    text-transform: uppercase;
-    letter-spacing: 0.14em;
-    color: var(--ink-muted);
-    padding-bottom: 24px;
-    margin-top: 48px;
+    text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 0.74rem;
+    text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-muted);
+    padding-bottom: 24px; margin-top: 48px;
   }
-
   footer .domain { color: var(--brass-deep); }
   footer .sep { margin: 0 10px; color: var(--rule); }
 
-  /* ============================================================ */
-  /* Mobile                                                       */
-  /* ============================================================ */
   @media (max-width: 560px) {
     .site-header { padding: 16px 20px; flex-wrap: wrap; gap: 12px; }
     .site-nav { width: 100%; justify-content: flex-start; flex-wrap: wrap; gap: 8px; }
@@ -379,7 +300,6 @@
       <a href="/navigate/" class="nav-module disabled" aria-disabled="true">Navigate</a>
       <a href="/report/" class="nav-module disabled" aria-disabled="true">Report</a>
     </div>
-    <!-- Nav auth area: toggled by JS -->
     <div class="nav-user" id="nav-user">
       <span class="nav-user-name" id="nav-user-name"></span>
       <button class="nav-signout" id="nav-signout-btn">Sign out</button>
@@ -394,16 +314,13 @@
   <h1 class="page-title">Sign in to Routesmith</h1>
   <p class="page-subtitle">Built for cachers who take the long way.</p>
 
-  <!-- Loading state while Clerk initialises -->
   <div class="loading" id="loading-state">Loading…</div>
-
-  <!-- Clerk mounts the sign-in form here when the user is signed out -->
   <div id="clerk-sign-in" style="display:none;"></div>
 
-  <!-- Shown after successful sign-in -->
   <div class="signed-in-panel" id="signed-in-panel">
     <div class="signed-in-greeting" id="signed-in-greeting">Welcome back.</div>
     <p class="signed-in-sub" id="signed-in-sub"></p>
+
     <div class="module-links">
       <a href="/plan/" class="module-link disabled" aria-disabled="true">
         <div class="module-link-num">01</div>
@@ -421,6 +338,32 @@
         <div class="module-link-status">Open →</div>
       </a>
     </div>
+
+    <!-- Lifetime GPX data panel -->
+    <div class="gpx-panel">
+      <div class="gpx-panel-header">
+        <div class="gpx-panel-kicker">Lifetime find data</div>
+        <div id="gpx-summary-area">
+          <div class="gpx-summary-none">Loading your data…</div>
+        </div>
+        <button class="gpx-detail-toggle" id="gpx-detail-toggle" style="display:none;">
+          ▸ Show file details
+        </button>
+        <div class="gpx-detail" id="gpx-detail"></div>
+      </div>
+      <div class="gpx-upload-area">
+        <span class="gpx-upload-label">Upload My Finds GPX</span>
+        <div class="drop-zone" id="drop-zone">
+          <input type="file" id="gpx-file-input" accept=".gpx,.zip" multiple>
+          <div class="drop-zone-icon">📂</div>
+          <div class="drop-zone-text">Drop files here or click to browse</div>
+          <div class="drop-zone-hint">Accepts .gpx and .zip · PGC or gc.com format · multiple files OK</div>
+        </div>
+        <div class="upload-queue" id="upload-queue"></div>
+        <button class="upload-btn" id="upload-btn">Upload selected files</button>
+      </div>
+    </div>
+
     <button class="signout-btn" id="signout-btn">Sign out</button>
   </div>
 
@@ -433,139 +376,399 @@
 </footer>
 
 <script>
-  window.addEventListener('load', async () => {
-    await window.Clerk.load({
-      appearance: {
-        variables: {
-          // Match Routesmith palette
-          colorPrimary: '#7a5621',
-          colorBackground: '#fdfaf0',
-          colorInputBackground: '#ffffff',
-          colorInputText: '#1f1810',
-          colorText: '#1f1810',
-          colorTextSecondary: '#4a3f2e',
-          colorNeutral: '#c9bda0',
-          colorDanger: '#a83328',
-          borderRadius: '2px',
-          fontFamily: "'Source Serif 4', Charter, Georgia, serif",
-          fontFamilyButtons: "'JetBrains Mono', monospace",
-          fontSize: '16px',
-        },
-        elements: {
-          card: {
-            background: 'rgba(255, 252, 240, 0.7)',
-            border: '1px solid #c9bda0',
-            borderTop: '3px solid #a87832',
-            boxShadow: '0 1px 0 rgba(31,24,16,0.04), 0 8px 24px -16px rgba(31,24,16,0.15)',
-            borderRadius: '0',
-          },
-          headerTitle: {
-            fontFamily: "'Fraunces', serif",
-            fontWeight: '600',
-            fontSize: '1.4rem',
-            color: '#1f1810',
-          },
-          headerSubtitle: {
-            fontFamily: "'Source Serif 4', serif",
-            color: '#4a3f2e',
-          },
-          formButtonPrimary: {
-            background: '#7a5621',
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: '0.78rem',
-            textTransform: 'uppercase',
-            letterSpacing: '0.1em',
-            borderRadius: '2px',
-          },
-          footerActionLink: {
-            color: '#7a5621',
-          },
-        },
-      },
+const BASE = 'https://routesmith-report.gtl6645.workers.dev';
+const getToken = () => window.Clerk.session.getToken({ template: 'routesmith' });
+
+// ── Date formatting ───────────────────────────────────────────────
+function fmtDate(isoStr) {
+  if (!isoStr) return null;
+  const d = new Date(isoStr + 'T00:00:00Z');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${months[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`;
+}
+
+function fmtUploadedAt(epochSecs) {
+  if (!epochSecs) return null;
+  const d = new Date(epochSecs * 1000);
+  const now = new Date();
+  const diffDays = Math.floor((now - d) / 86400000);
+  if (diffDays === 0) return 'today';
+  if (diffDays === 1) return 'yesterday';
+  if (diffDays < 7) return `${diffDays} days ago`;
+  return fmtDate(d.toISOString().slice(0, 10));
+}
+
+function freshnessClass(dataThrough) {
+  if (!dataThrough) return 'empty';
+  const days = Math.floor((Date.now() - new Date(dataThrough + 'T00:00:00Z')) / 86400000);
+  if (days <= 3) return '';       // fresh — forge green (default)
+  if (days <= 14) return 'stale'; // warn — brass
+  return 'stale';
+}
+
+// ── GPX summary panel ─────────────────────────────────────────────
+async function loadGpxSummary() {
+  const token = await getToken();
+  let profile;
+  try {
+    const resp = await fetch(`${BASE}/api/account/me`, {
+      headers: { 'Authorization': 'Bearer ' + token }
     });
+    profile = await resp.json();
+  } catch { return; }
 
-    const loadingEl       = document.getElementById('loading-state');
-    const signInEl        = document.getElementById('clerk-sign-in');
-    const signedInPanel   = document.getElementById('signed-in-panel');
-    const greetingEl      = document.getElementById('signed-in-greeting');
-    const subEl           = document.getElementById('signed-in-sub');
-    const signoutBtn      = document.getElementById('signout-btn');
-    const navUser         = document.getElementById('nav-user');
-    const navUserName     = document.getElementById('nav-user-name');
-    const navSigninLink   = document.getElementById('nav-signin-link');
-    const navSignoutBtn   = document.getElementById('nav-signout-btn');
+  const finder = profile.finder;
+  const summaryEl  = document.getElementById('gpx-summary-area');
+  const toggleBtn  = document.getElementById('gpx-detail-toggle');
+  const detailEl   = document.getElementById('gpx-detail');
 
-    function showSignedIn(user) {
-      const name = user.firstName || user.fullName || user.primaryEmailAddress?.emailAddress || 'Cacher';
-      loadingEl.style.display = 'none';
-      signInEl.style.display = 'none';
-      signedInPanel.style.display = 'block';
-      greetingEl.textContent = `Welcome back, ${name}.`;
-      subEl.textContent = user.primaryEmailAddress?.emailAddress ?? '';
+  if (!finder || (!finder.lifetimeFindCount && !finder.lifetimeUploadedAt)) {
+    summaryEl.innerHTML = '<div class="gpx-summary-none">No lifetime data uploaded yet.</div>';
+    return;
+  }
 
-      // Nav
-      navSigninLink.style.display = 'none';
-      navUser.style.display = 'flex';
-      navUserName.textContent = name;
-    }
+  // Fetch active files for detail view
+  const token2 = await getToken();
+  let files = [];
+  try {
+    const resp = await fetch(`${BASE}/api/account/gpx-files`, {
+      headers: { 'Authorization': 'Bearer ' + token2 }
+    });
+    const data = await resp.json();
+    files = data.files ?? [];
+  } catch {}
 
-    function showSignedOut() {
-      loadingEl.style.display = 'none';
-      signedInPanel.style.display = 'none';
-      signInEl.style.display = 'block';
-      navUser.style.display = 'none';
-      navSigninLink.style.display = 'inline-block';
+  // Combined summary
+  const effectiveCount = Math.max(...files.map(f => f.find_count || 0).concat([finder.lifetimeFindCount || 0]));
+  const latestThrough  = files.reduce((best, f) => {
+    if (!f.data_through) return best;
+    return (!best || f.data_through > best) ? f.data_through : best;
+  }, finder.lifetimeDataThrough);
 
-      // Mount Clerk sign-in component
-      window.Clerk.mountSignIn(signInEl, {
-        routing: 'hash',
-        afterSignInUrl: '/account/',
-        afterSignUpUrl: '/account/',
+  const cls = freshnessClass(latestThrough);
+  const freshnessLabel = latestThrough
+    ? `Current through ${fmtDate(latestThrough)}`
+    : 'Data date unknown';
+
+  summaryEl.innerHTML = `
+    <div class="gpx-summary">
+      <span class="gpx-summary-count">${effectiveCount.toLocaleString()}</span>
+      <span class="gpx-summary-label">lifetime finds</span>
+      <span class="gpx-summary-freshness ${cls}">${freshnessLabel}</span>
+    </div>`;
+
+  // Detail rows
+  if (files.length > 0) {
+    toggleBtn.style.display = 'block';
+    detailEl.innerHTML = files.map(f => `
+      <div class="gpx-file-row">
+        <span class="gpx-file-scope">${f.scope}</span>
+        <span class="gpx-file-meta">
+          <strong>${(f.find_count || 0).toLocaleString()} finds</strong>
+          ${f.data_through ? '· through ' + fmtDate(f.data_through) : ''}
+          · ${f.format?.toUpperCase() ?? 'unknown'}
+        </span>
+        <span class="gpx-file-date">uploaded ${fmtUploadedAt(f.uploaded_at)}</span>
+      </div>`).join('');
+
+    toggleBtn.addEventListener('click', () => {
+      const open = detailEl.classList.toggle('open');
+      toggleBtn.textContent = open ? '▾ Hide file details' : '▸ Show file details';
+    });
+  }
+}
+
+// ── File selection ────────────────────────────────────────────────
+let selectedFiles = []; // { file, scope, status, jobId, itemEl }
+
+function detectScope(filename) {
+  return filename.toLowerCase().includes('tiny') ? 'incremental' : 'full';
+}
+
+function addFilesToQueue(fileList) {
+  const queueEl  = document.getElementById('upload-queue');
+  const uploadBtn = document.getElementById('upload-btn');
+
+  for (const file of fileList) {
+    // Avoid duplicates
+    if (selectedFiles.find(f => f.file.name === file.name && f.file.size === file.size)) continue;
+
+    const scope = detectScope(file.name);
+    const itemEl = document.createElement('div');
+    itemEl.className = 'upload-item';
+    itemEl.innerHTML = `
+      <span class="upload-item-name" title="${file.name}">${file.name}</span>
+      <span class="upload-item-scope">${scope}</span>
+      <span class="upload-item-status queued">Queued</span>
+      <div class="upload-progress" style="display:none;">
+        <div class="upload-progress-bar"></div>
+      </div>`;
+    queueEl.appendChild(itemEl);
+
+    selectedFiles.push({ file, scope, status: 'queued', jobId: null, itemEl });
+  }
+
+  if (selectedFiles.length > 0) {
+    uploadBtn.style.display = 'block';
+  }
+}
+
+// Drop zone
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('gpx-file-input');
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  addFilesToQueue(e.dataTransfer.files);
+});
+fileInput.addEventListener('change', () => {
+  addFilesToQueue(fileInput.files);
+  fileInput.value = ''; // reset so same file can be re-selected
+});
+
+// ── Upload pipeline ───────────────────────────────────────────────
+function setItemStatus(entry, status, text) {
+  entry.status = status;
+  const statusEl = entry.itemEl.querySelector('.upload-item-status');
+  statusEl.className = `upload-item-status ${status}`;
+  statusEl.textContent = text;
+}
+
+function setItemProgress(entry, indeterminate, pct) {
+  const bar = entry.itemEl.querySelector('.upload-progress');
+  const fill = entry.itemEl.querySelector('.upload-progress-bar');
+  bar.style.display = 'block';
+  if (indeterminate) {
+    fill.classList.add('indeterminate');
+  } else {
+    fill.classList.remove('indeterminate');
+    fill.style.width = pct + '%';
+  }
+}
+
+function addItemResult(entry, text) {
+  let result = entry.itemEl.querySelector('.upload-item-result');
+  if (!result) {
+    result = document.createElement('div');
+    result.className = 'upload-item-result';
+    entry.itemEl.appendChild(result);
+  }
+  result.textContent = text;
+}
+
+async function uploadFile(entry) {
+  const { file, scope } = entry;
+  const token = await getToken();
+
+  // Step 1: Presign
+  setItemStatus(entry, 'uploading', 'Uploading…');
+  setItemProgress(entry, false, 10);
+
+  let presign;
+  try {
+    const resp = await fetch(`${BASE}/api/upload/presign`, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename: file.name, file_size_bytes: file.size, scope, file_role: 'lifetime' })
+    });
+    presign = await resp.json();
+    if (presign.error) throw new Error(presign.error);
+  } catch (e) {
+    setItemStatus(entry, 'error', 'Failed');
+    addItemResult(entry, e.message);
+    return;
+  }
+
+  setItemProgress(entry, false, 40);
+
+  // Step 2: Upload bytes
+  try {
+    const tok2 = await getToken();
+    const resp = await fetch(`${BASE}${presign.upload_url}`, {
+      method: 'PUT',
+      headers: { 'Authorization': 'Bearer ' + tok2, 'Content-Type': 'application/octet-stream' },
+      body: file
+    });
+    const result = await resp.json();
+    if (result.error) throw new Error(result.error);
+  } catch (e) {
+    setItemStatus(entry, 'error', 'Upload failed');
+    addItemResult(entry, e.message);
+    return;
+  }
+
+  setItemProgress(entry, false, 70);
+
+  // Step 3: Confirm (enqueues parse job)
+  let jobId;
+  try {
+    const tok3 = await getToken();
+    const resp = await fetch(`${BASE}/api/upload/confirm/${presign.gpx_file_id}`, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + tok3, 'Content-Type': 'application/json' },
+      body: JSON.stringify({})
+    });
+    const result = await resp.json();
+    if (result.error) throw new Error(result.error);
+    jobId = result.job_id;
+    entry.jobId = jobId;
+  } catch (e) {
+    setItemStatus(entry, 'error', 'Confirm failed');
+    addItemResult(entry, e.message);
+    return;
+  }
+
+  // Step 4: Poll for job completion
+  setItemStatus(entry, 'processing', 'Parsing…');
+  setItemProgress(entry, true, 0);
+
+  for (let i = 0; i < 60; i++) {
+    await new Promise(r => setTimeout(r, 2000));
+    try {
+      const tok4 = await getToken();
+      const resp = await fetch(`${BASE}/api/upload/status/${jobId}`, {
+        headers: { 'Authorization': 'Bearer ' + tok4 }
       });
-    }
+      const status = await resp.json();
 
-    async function handleSignOut() {
-      await window.Clerk.signOut();
-      showSignedOut();
-    }
-
-    signoutBtn.addEventListener('click', handleSignOut);
-    navSignoutBtn.addEventListener('click', handleSignOut);
-
-    // Call sync endpoint after sign-in to upsert user in D1
-    async function syncUser() {
-      try {
-        const token = await window.Clerk.session.getToken({ template: 'routesmith' });
-        await fetch('https://routesmith-report.gtl6645.workers.dev/api/account/sync', {
-          method: 'POST',
-          headers: {
-            'Authorization': 'Bearer ' + token,
-            'Content-Type': 'application/json',
-          },
-        });
-      } catch (e) {
-        console.warn('Account sync failed:', e);
+      if (status.status === 'complete') {
+        setItemStatus(entry, 'complete', 'Complete');
+        setItemProgress(entry, false, 100);
+        const r = status.result;
+        addItemResult(entry, `${r.find_count.toLocaleString()} finds · through ${fmtDate(r.data_through)} · ${r.format.toUpperCase()}`);
+        return;
       }
-    }
 
-    // Check current auth state
-    const user = window.Clerk.user;
-    if (user) {
-      showSignedIn(user);
-      // Sync on page load in case display name / email changed in Clerk
-      syncUser();
-    } else {
-      showSignedOut();
-    }
-
-    // Listen for auth state changes (fires after sign-in completes)
-    window.Clerk.addListener(async ({ user }) => {
-      if (user) {
-        showSignedIn(user);
-        await syncUser();
+      if (status.status === 'failed') {
+        setItemStatus(entry, 'error', 'Parse failed');
+        addItemResult(entry, status.error ?? 'Unknown error');
+        return;
       }
-    });
+    } catch { /* token refresh etc — keep polling */ }
+  }
+
+  setItemStatus(entry, 'error', 'Timed out');
+  addItemResult(entry, 'Parsing took too long. Check back shortly.');
+}
+
+document.getElementById('upload-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('upload-btn');
+  btn.disabled = true;
+  btn.textContent = 'Uploading…';
+
+  const queued = selectedFiles.filter(f => f.status === 'queued');
+  // Upload sequentially to avoid hammering the API
+  for (const entry of queued) {
+    await uploadFile(entry);
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Upload selected files';
+
+  // Refresh the summary panel
+  await loadGpxSummary();
+  selectedFiles = selectedFiles.filter(f => f.status !== 'complete');
+  if (selectedFiles.length === 0) btn.style.display = 'none';
+});
+
+// ── Auth ──────────────────────────────────────────────────────────
+window.addEventListener('load', async () => {
+  await window.Clerk.load({
+    appearance: {
+      variables: {
+        colorPrimary: '#7a5621', colorBackground: '#fdfaf0',
+        colorInputBackground: '#ffffff', colorInputText: '#1f1810',
+        colorText: '#1f1810', colorTextSecondary: '#4a3f2e',
+        colorNeutral: '#c9bda0', colorDanger: '#a83328',
+        borderRadius: '2px',
+        fontFamily: "'Source Serif 4', Charter, Georgia, serif",
+        fontFamilyButtons: "'JetBrains Mono', monospace",
+        fontSize: '16px',
+      },
+      elements: {
+        card: {
+          background: 'rgba(255,252,240,0.7)', border: '1px solid #c9bda0',
+          borderTop: '3px solid #a87832', borderRadius: '0',
+          boxShadow: '0 1px 0 rgba(31,24,16,0.04), 0 8px 24px -16px rgba(31,24,16,0.15)',
+        },
+        headerTitle: { fontFamily: "'Fraunces', serif", fontWeight: '600', fontSize: '1.4rem', color: '#1f1810' },
+        formButtonPrimary: {
+          background: '#7a5621', fontFamily: "'JetBrains Mono', monospace",
+          fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.1em', borderRadius: '2px',
+        },
+        footerActionLink: { color: '#7a5621' },
+      },
+    },
   });
+
+  const loadingEl     = document.getElementById('loading-state');
+  const signInEl      = document.getElementById('clerk-sign-in');
+  const signedInPanel = document.getElementById('signed-in-panel');
+  const greetingEl    = document.getElementById('signed-in-greeting');
+  const subEl         = document.getElementById('signed-in-sub');
+  const navUser       = document.getElementById('nav-user');
+  const navUserName   = document.getElementById('nav-user-name');
+  const navSigninLink = document.getElementById('nav-signin-link');
+  const navSignoutBtn = document.getElementById('nav-signout-btn');
+  const signoutBtn    = document.getElementById('signout-btn');
+
+  async function showSignedIn(user) {
+    const name = user.firstName || user.fullName || user.primaryEmailAddress?.emailAddress || 'Cacher';
+    loadingEl.style.display    = 'none';
+    signInEl.style.display     = 'none';
+    signedInPanel.style.display = 'block';
+    greetingEl.textContent = `Welcome back, ${name}.`;
+    subEl.textContent = user.primaryEmailAddress?.emailAddress ?? '';
+    navSigninLink.style.display = 'none';
+    navUser.style.display = 'flex';
+    navUserName.textContent = name;
+    await loadGpxSummary();
+  }
+
+  function showSignedOut() {
+    loadingEl.style.display     = 'none';
+    signedInPanel.style.display = 'none';
+    signInEl.style.display      = 'block';
+    navUser.style.display       = 'none';
+    navSigninLink.style.display = 'inline-block';
+    window.Clerk.mountSignIn(signInEl, {
+      routing: 'hash', afterSignInUrl: '/account/', afterSignUpUrl: '/account/',
+    });
+  }
+
+  async function syncUser() {
+    try {
+      const token = await getToken();
+      await fetch(`${BASE}/api/account/sync`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      });
+    } catch (e) { console.warn('Sync failed:', e); }
+  }
+
+  async function handleSignOut() {
+    await window.Clerk.signOut();
+    showSignedOut();
+  }
+
+  signoutBtn.addEventListener('click', handleSignOut);
+  navSignoutBtn.addEventListener('click', handleSignOut);
+
+  const user = window.Clerk.user;
+  if (user) {
+    showSignedIn(user);
+    syncUser();
+  } else {
+    showSignedOut();
+  }
+
+  window.Clerk.addListener(async ({ user }) => {
+    if (user) { showSignedIn(user); await syncUser(); }
+  });
+});
 </script>
 
 </body>
