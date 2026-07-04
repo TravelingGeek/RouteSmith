@@ -54,7 +54,7 @@ export async function handleGpxParseJob(
     let format = 'unknown';
 
     for (const text of gpxTexts) {
-      const meta = await extractGpxMetadata(text);
+      const meta = extractGpxMetadata(text);
       totalFinds += meta.findCount;
       if (meta.format !== 'unknown') format = meta.format;
       if (meta.dataThrough && (!latestDate || meta.dataThrough > latestDate)) {
@@ -221,73 +221,81 @@ async function markJobFailed(
 }
 
 // ============================================================================
-// GPX metadata extractor (Workers-compatible, no DOMParser)
+// GPX metadata extractor — regex-based, memory-efficient
+// Processes GPX text without building a full parse tree.
+// Extracts only find counts and dates from log entries.
 // ============================================================================
 
-async function extractGpxMetadata(gpxText: string): Promise<{
+function extractGpxMetadata(gpxText: string): {
   findCount: number;
   dataThrough: string | null;
   format: string;
-}> {
-  const { XMLParser } = await import('fast-xml-parser');
-
-  const parser = new XMLParser({
-    ignoreAttributes: false,
-    attributeNamePrefix: '@_',
-    isArray: (name: string) => name === 'wpt' || name === 'log',
-    parseAttributeValue: true,
-    processEntities: {
-      enabled: true,
-      maxEntityCount: 100000,
-    } as unknown as boolean,
-    htmlEntities: false,
-  });
-
-  const doc = parser.parse(gpxText);
-
-  const raw = JSON.stringify(doc);
+} {
+  // Format detection — check first 2000 chars only
+  const header = gpxText.slice(0, 2000);
   let format = 'unknown';
-  if (raw.includes('gsak.net')) format = 'pgc';
-  else if (raw.includes('geocaching.com') || raw.includes('Groundspeak')) format = 'gccom';
+  if (header.includes('gsak.net')) format = 'pgc';
+  else if (header.includes('geocaching.com') || header.includes('Groundspeak')) format = 'gccom';
 
-  const root = doc.gpx ?? doc['gpx:gpx'] ?? Object.values(doc)[0];
-  const wpts: unknown[] = root?.wpt ?? [];
+  // Extract all <groundspeak:log> blocks efficiently
+  // We scan for "Found it", "Attended", or "Webcam Photo Taken" log types
+  // and extract the associated date. One pass through the string.
+  const FOUND_TYPES = new Set(['Found it', 'Attended', 'Webcam Photo Taken']);
 
-  if (!Array.isArray(wpts) || wpts.length === 0) {
-    return { findCount: 0, dataThrough: null, format };
+  // Regex to match a log block — non-greedy, captures type and date
+  // Works on both groundspeak:log and gs:log namespace prefixes
+  const logBlockRe = /<(?:groundspeak|gs):log[^>]*>([\s\S]*?)<\/(?:groundspeak|gs):log>/g;
+  const typeRe     = /<(?:groundspeak|gs):type[^>]*>([^<]+)<\/(?:groundspeak|gs):type>/;
+  const dateRe     = /<(?:groundspeak|gs):date[^>]*>([^<]+)<\/(?:groundspeak|gs):date>/;
+
+  let findCount = 0;
+  let latestDate: string | null = null;
+
+  // Track which <wpt> we're in so we only count one find per cache
+  // Strategy: reset "counted this wpt" flag whenever we see </wpt>
+  // We scan log blocks and use a Set of already-counted positions
+  const wptBoundaryRe = /<\/wpt>/g;
+  const wptPositions: number[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = wptBoundaryRe.exec(gpxText)) !== null) {
+    wptPositions.push(m.index);
   }
 
-  let latest: Date | null = null;
-  let findCount = 0;
+  let wptIdx = 0; // index into wptPositions
+  let lastWptEnd = -1;
 
-  for (const wpt of wpts) {
-    if (typeof wpt !== 'object' || wpt === null) continue;
-    const w = wpt as Record<string, unknown>;
-    const cacheNode = findNode(w, 'cache');
-    if (!cacheNode) continue;
-    const logsNode = findNode(cacheNode as Record<string, unknown>, 'logs');
-    if (!logsNode) continue;
-    const logs = findArray(logsNode as Record<string, unknown>, 'log');
+  while ((m = logBlockRe.exec(gpxText)) !== null) {
+    const logBlock = m[1];
+    const logPos   = m.index;
 
-    for (const log of logs) {
-      const logObj = log as Record<string, unknown>;
-      const logType = findText(logObj, 'type') ?? '';
-      if (!['Found it', 'Attended', 'Webcam Photo Taken'].includes(logType)) continue;
-      findCount++;
-      const dateStr = findText(logObj, 'date');
-      if (dateStr) {
-        const d = new Date(dateStr.trim());
-        if (!isNaN(d.getTime()) && (!latest || d > latest)) latest = d;
-      }
-      break;
+    // Advance wpt boundary pointer
+    while (wptIdx < wptPositions.length && wptPositions[wptIdx] < logPos) {
+      lastWptEnd = wptPositions[wptIdx];
+      wptIdx++;
+    }
+
+    const typeMatch = typeRe.exec(logBlock);
+    if (!typeMatch) continue;
+    const logType = typeMatch[1].trim();
+    if (!FOUND_TYPES.has(logType)) continue;
+
+    // Only count first matching log per wpt (logs are in reverse-chron order
+    // in PGC exports; first match = most recent = the find log)
+    findCount++;
+
+    const dateMatch = dateRe.exec(logBlock);
+    if (dateMatch) {
+      const dateStr = dateMatch[1].trim().slice(0, 10); // YYYY-MM-DD
+      if (!latestDate || dateStr > latestDate) latestDate = dateStr;
+    }
+
+    // Skip remaining logs in this wpt by jumping past the next </wpt>
+    if (wptIdx < wptPositions.length) {
+      logBlockRe.lastIndex = wptPositions[wptIdx] + 6; // past </wpt>
     }
   }
 
-  return {
-    findCount,
-    dataThrough: latest ? latest.toISOString().slice(0, 10) : null,
-    format,
-  };
+  return { findCount, dataThrough: latestDate, format };
 }
 
 async function decompressToTexts(buffer: ArrayBuffer, r2Key: string): Promise<string[]> {
@@ -300,31 +308,4 @@ async function decompressToTexts(buffer: ArrayBuffer, r2Key: string): Promise<st
     return gpxEntries.map(([, data]) => decoder.decode(data));
   }
   return [new TextDecoder('utf-8').decode(buffer)];
-}
-
-function findNode(obj: Record<string, unknown>, localName: string): unknown {
-  for (const key of Object.keys(obj)) {
-    const stripped = key.includes(':') ? key.split(':').pop()! : key;
-    if (stripped === localName) return obj[key];
-  }
-  return null;
-}
-
-function findText(obj: Record<string, unknown>, localName: string): string | null {
-  const val = findNode(obj, localName);
-  if (val === null || val === undefined) return null;
-  if (typeof val === 'string') return val;
-  if (typeof val === 'number') return String(val);
-  if (typeof val === 'object') {
-    const o = val as Record<string, unknown>;
-    if ('#text' in o) return String(o['#text']);
-  }
-  return null;
-}
-
-function findArray(obj: Record<string, unknown>, localName: string): unknown[] {
-  const val = findNode(obj, localName);
-  if (!val) return [];
-  if (Array.isArray(val)) return val;
-  return [val];
 }
