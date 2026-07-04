@@ -264,7 +264,7 @@ export interface Queue<T> {
   send(message: T): Promise<void>;
 }
 
-export type JobType = 'gpx_parse';
+export type JobType = 'gpx_parse' | 'report_run';
 export type JobModule = 'report' | 'plan' | 'navigate';
 
 export interface JobMessage {
@@ -273,6 +273,27 @@ export interface JobMessage {
   module: JobModule;
   user_id: string;
   payload: Record<string, unknown>;
+}
+
+export interface ReportRunPayload {
+  trip_name: string;
+  start_date: string;
+  end_date: string;
+  distance_miles?: number;
+  user_notes?: string;
+  enabled_rules?: string[];
+  owner: {
+    display_name: string;
+    gc_username: string;
+    gpx_file_ids: string[];
+  };
+  companions?: Array<{
+    display_name: string;
+    gc_username: string;
+    gpx_file_ids: string[];
+    mode: 'lifetime' | 'diff';
+  }>;
+  result_r2_key: string;
 }
 
 // Extend Env with queue binding

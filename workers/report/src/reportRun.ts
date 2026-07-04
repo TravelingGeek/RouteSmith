@@ -1,47 +1,21 @@
 /**
- * reportRun.ts — Run the REPORT pipeline against GPX files already in R2.
+ * reportRun.ts — Enqueue a report pipeline job for async processing.
  *
- * Route:
- *   POST /api/report/run-from-r2
+ * POST /api/report/run-from-r2
+ *   Validates the request, creates a job row in D1, enqueues to the
+ *   routesmith-jobs queue, and returns 202 with a job_id.
  *
- * Request body:
- * {
- *   trip: {
- *     trip_name: string,
- *     start_date: string,   // YYYY-MM-DD
- *     end_date: string,
- *     distance_miles?: number,
- *     user_notes?: string,
- *     enabled_rules?: string[],
- *   },
- *   owner: {
- *     display_name: string,
- *     gc_username: string,
- *     gpx_file_ids: string[],  // active gpx_files rows in R2
- *   },
- *   companions?: Array<{
- *     display_name: string,
- *     gc_username: string,
- *     gpx_file_ids: string[],
- *     mode: 'lifetime' | 'diff',
- *   }>,
- * }
- *
- * Returns the full PipelineResult as JSON.
+ * GET /api/report/result/:job_id
+ *   Returns the pipeline result JSON from R2 once the job completes.
+ *   Returns 202 if still processing, 500 if failed.
  */
 
 import type { AuthUser } from './auth.js';
 import type { Env } from './types.js';
-import type { TripInput } from './types.js';
-import { parseGpxTexts, parseGpxTextAsync } from './gpxParser.js';
-import { runPipelineFromWaypoints, type ParsedGpxSources } from './pipeline.js';
-import type { Waypoint } from './types.js';
-import { fetchReferenceListsFromR2 } from './referenceLists.js';
-
-import { countyKey } from './types.js';
+import type { JobMessage, ReportRunPayload } from './types.js';
 
 // ============================================================================
-// Request types
+// Request type
 // ============================================================================
 
 interface RunFromR2Request {
@@ -67,7 +41,7 @@ interface RunFromR2Request {
 }
 
 // ============================================================================
-// Handler
+// POST /api/report/run-from-r2
 // ============================================================================
 
 export async function handleReportRunFromR2(
@@ -86,212 +60,114 @@ export async function handleReportRunFromR2(
     return jsonError('trip.start_date, trip.end_date, and owner.gpx_file_ids are required');
   }
 
-  // ── Fetch and parse GPX files — text discarded immediately after parse ────
-  // This minimizes peak memory: we never hold raw text + parsed waypoints
-  // simultaneously for all finders.
+  // Validate all GPX file IDs are accessible to this user
+  for (const gpxFileId of body.owner.gpx_file_ids) {
+    const row = await env.DB
+      .prepare(`SELECT gf.gpx_file_id FROM gpx_files gf JOIN finders f ON f.finder_id = gf.owner_finder_id WHERE gf.gpx_file_id = ? AND f.owner_user_id = ? AND gf.is_active = 1 AND gf.deleted_at IS NULL`)
+      .bind(gpxFileId, user.userId)
+      .first<{ gpx_file_id: string }>();
+    if (!row) return jsonError(`GPX file not found or not accessible: ${gpxFileId}`, 404);
+  }
 
-  const ownerParsed = await fetchAndParseGpx(body.owner.gpx_file_ids, body.owner.gc_username, user.userId, env);
-  if (ownerParsed.error || !ownerParsed.waypoints) return jsonError(ownerParsed.error ?? 'fetch failed', 404);
-
-  // ── Parse companion GPX files ─────────────────────────────────────────────
-
-  const companionSources: ParsedGpxSources['companions'] = [];
   for (const comp of body.companions ?? []) {
-    if (comp.mode === 'lifetime') {
-      const parsed = await fetchAndParseGpx(comp.gpx_file_ids, comp.gc_username, user.userId, env);
-      if (parsed.error || !parsed.waypoints) return jsonError(`Companion ${comp.display_name}: ${parsed.error ?? 'fetch failed'}`, 404);
-      companionSources.push({ playerId: comp.gc_username, lifetime: parsed.waypoints });
-    } else {
-      // diff mode: first file_id = before, second = after
-      const beforeParsed = await fetchAndParseGpx([comp.gpx_file_ids[0]], comp.gc_username, user.userId, env);
-      if (beforeParsed.error || !beforeParsed.waypoints) return jsonError(`Companion ${comp.display_name} before: ${beforeParsed.error ?? 'fetch failed'}`, 404);
-      const afterParsed = await fetchAndParseGpx([comp.gpx_file_ids[1]], comp.gc_username, user.userId, env);
-      if (afterParsed.error || !afterParsed.waypoints) return jsonError(`Companion ${comp.display_name} after: ${afterParsed.error ?? 'fetch failed'}`, 404);
-      companionSources.push({ playerId: comp.gc_username, before: beforeParsed.waypoints, after: afterParsed.waypoints });
+    for (const gpxFileId of comp.gpx_file_ids) {
+      const row = await env.DB
+        .prepare(`SELECT gf.gpx_file_id FROM gpx_files gf JOIN finders f ON f.finder_id = gf.owner_finder_id WHERE gf.gpx_file_id = ? AND f.owner_user_id = ? AND gf.is_active = 1 AND gf.deleted_at IS NULL`)
+        .bind(gpxFileId, user.userId)
+        .first<{ gpx_file_id: string }>();
+      if (!row) return jsonError(`Companion GPX file not found or not accessible: ${gpxFileId}`, 404);
     }
   }
 
-  // ── Build TripInput ───────────────────────────────────────────────────────
+  const ts = Math.floor(Date.now() / 1000);
+  const jobId = crypto.randomUUID();
+  const resultR2Key = `report-results/${user.userId}/${jobId}.json`;
 
-  const tripInput: TripInput = {
-    version: 1,
-    tripName: body.trip.trip_name,
-    startDate: body.trip.start_date,
-    endDate: body.trip.end_date,
-    owner: {
-      playerId: user.userId,
-      displayName: body.owner.display_name,
-      gcUsername: body.owner.gc_username,
-    },
-    companions: (body.companions ?? []).map(c => ({
-      playerId: c.gc_username,
-      displayName: c.display_name,
-      gcUsername: c.gc_username,
-    })),
-    enabledRules: body.trip.enabled_rules,
-    distance: body.trip.distance_miles ? { miles: body.trip.distance_miles } : undefined,
-    userNotes: body.trip.user_notes,
+  const jobPayload: ReportRunPayload = {
+    trip_name: body.trip.trip_name,
+    start_date: body.trip.start_date,
+    end_date: body.trip.end_date,
+    distance_miles: body.trip.distance_miles,
+    user_notes: body.trip.user_notes,
+    enabled_rules: body.trip.enabled_rules,
+    owner: body.owner,
+    companions: body.companions,
+    result_r2_key: resultR2Key,
   };
 
-  // ── Load reference lists ──────────────────────────────────────────────────
+  // Create job row
+  await env.DB.prepare(`
+    INSERT INTO jobs (job_id, module, job_type, status, user_id, payload_json, created_at, updated_at)
+    VALUES (?, 'report', 'report_run', 'pending', ?, ?, ?, ?)
+  `).bind(jobId, user.userId, JSON.stringify(jobPayload), ts, ts).run();
 
-  const refLists = await fetchReferenceListsFromR2(env.REPORT_BUCKET);
-
-  // ── Run pipeline with pre-parsed waypoints ────────────────────────────────
-
-  const parsedSources: ParsedGpxSources = {
-    owner: { lifetime: ownerParsed.waypoints },
-    companions: companionSources,
+  // Enqueue
+  const message: JobMessage = {
+    job_id: jobId,
+    job_type: 'report_run',
+    module: 'report',
+    user_id: user.userId,
+    payload: jobPayload as unknown as Record<string, unknown>,
   };
 
-  let result;
   try {
-    result = await runPipelineFromWaypoints(tripInput, parsedSources, refLists);
+    await env.JOBS_QUEUE.send(message);
   } catch (e) {
-    return jsonError(`Pipeline error: ${(e as Error).message}`, 500);
+    await env.DB.prepare(`UPDATE jobs SET status = 'failed', error = ?, updated_at = ?, completed_at = ? WHERE job_id = ?`)
+      .bind(`Queue send failed: ${(e as Error).message}`, ts, ts, jobId).run();
+    return jsonError(`Failed to queue report job: ${(e as Error).message}`, 500);
   }
 
-  // ── Serialize and return ──────────────────────────────────────────────────
-
-  return new Response(
-    JSON.stringify({
-      tripName: result.tripInput.tripName,
-      startDate: result.tripInput.startDate,
-      endDate: result.tripInput.endDate,
-      fieldAvailability: result.fieldAvailability,
-      warnings: result.warnings,
-      diagnostics: result.diagnostics,
-      ownerStats: {
-        playerId: result.ownerStats.playerId,
-        displayName: result.ownerStats.displayName,
-        aggregate: result.ownerStats.aggregate,
-        byDay: result.ownerStats.byDay.map(ds => ({
-          dayDate: ds.dayDate.toISOString().slice(0, 10),
-          finds: ds.finds,
-          favoritePoints: ds.favoritePoints,
-          newCounties: ds.newCounties,
-          byCacheType: ds.byCacheType,
-          bestFind: ds.bestFind ? {
-            gcCode: ds.bestFind.gcCode,
-            name: ds.bestFind.name,
-            favoritePoints: ds.bestFind.favoritePoints,
-          } : null,
-        })),
-      },
-      ruleResults: result.ruleResults.map(rr => ({
-        rule: { id: rr.rule.id, displayName: rr.rule.displayName, severity: rr.rule.severity },
-        matches: rr.matches.map(m => ({
-          gcCode: m.waypoint.gcCode,
-          name: m.waypoint.name,
-          note: m.note,
-        })),
-      })),
-      countiesData: {
-        firstTime: [...result.countiesData.firstTime],
-        previouslyFound: [...result.countiesData.previouslyFound],
-        stateCoverage: result.countiesData.stateCoverage,
-      },
-      jasmerGridState: Object.fromEntries(result.jasmerGridState),
-    }, null, 2),
-    { headers: { 'Content-Type': 'application/json' } },
-  );
+  return new Response(JSON.stringify({
+    job_id: jobId,
+    status: 'processing',
+    message: 'Report pipeline queued. Poll /api/report/status/:job_id for progress.',
+  }), { status: 202, headers: { 'Content-Type': 'application/json' } });
 }
 
 // ============================================================================
-// R2 fetch helper
+// GET /api/report/status/:job_id
 // ============================================================================
 
-/**
- * Fetch GPX files from R2 and parse them to Waypoint arrays immediately,
- * discarding the raw text after each parse to minimize peak memory usage.
- * Returns a deduplicated Waypoint array (last-write-wins by GC code).
- */
-async function fetchAndParseGpx(
-  gpxFileIds: string[],
-  gcUsername: string | null,
-  userId: string,
+export async function handleReportStatus(
+  jobId: string,
+  user: AuthUser,
   env: Env,
-): Promise<{ waypoints: Waypoint[]; error?: undefined } | { waypoints?: undefined; error: string }> {
-  const seen = new Map<string, Waypoint>();
+): Promise<Response> {
+  const job = await env.DB
+    .prepare(`SELECT job_id, status, result_json, error, updated_at FROM jobs WHERE job_id = ? AND user_id = ?`)
+    .bind(jobId, user.userId)
+    .first<{ job_id: string; status: string; result_json: string | null; error: string | null; updated_at: number }>();
 
-  for (const gpxFileId of gpxFileIds) {
-    const row = await env.DB
-      .prepare(`
-        SELECT gf.r2_key, gf.scope
-        FROM gpx_files gf
-        JOIN finders f ON f.finder_id = gf.owner_finder_id
-        WHERE gf.gpx_file_id = ?
-          AND f.owner_user_id = ?
-          AND gf.is_active = 1
-          AND gf.deleted_at IS NULL
-      `)
-      .bind(gpxFileId, userId)
-      .first<{ r2_key: string; scope: string }>();
+  if (!job) return jsonError('Job not found', 404);
 
-    if (!row) return { error: `GPX file not found or not accessible: ${gpxFileId}` };
-
-    const obj = await env.REPORT_BUCKET.get(row.r2_key);
-    if (!obj) return { error: `R2 object missing for file ${gpxFileId}` };
-
-    const buffer = await obj.arrayBuffer();
-    let gpxTexts: string[];
-
-    if (row.r2_key.toLowerCase().endsWith('.zip')) {
-      const { unzipSync } = await import('fflate');
-      const files = unzipSync(new Uint8Array(buffer));
-      const gpxEntries = Object.entries(files)
-        .filter(([n]) => n.toLowerCase().endsWith('.gpx') && !n.toLowerCase().includes('wpts'));
-      if (!gpxEntries.length) return { error: `ZIP ${gpxFileId} contains no .gpx files` };
-      const decoder = new TextDecoder('utf-8');
-      gpxTexts = gpxEntries.map(([, data]) => decoder.decode(data));
-    } else {
-      gpxTexts = [new TextDecoder('utf-8').decode(buffer)];
-    }
-
-    // Parse immediately and discard text to free memory
-    for (const text of gpxTexts) {
-      const waypoints = await parseGpxTextAsync(text, gcUsername);
-      for (const w of waypoints) seen.set(w.gcCode, w);
-    }
-    // gpxTexts goes out of scope here — eligible for GC
+  if (job.status === 'pending' || job.status === 'processing') {
+    return new Response(JSON.stringify({ job_id: jobId, status: job.status }), {
+      status: 202, headers: { 'Content-Type': 'application/json' },
+    });
   }
 
-  return { waypoints: Array.from(seen.values()) };
+  if (job.status === 'failed') {
+    return jsonError(`Report pipeline failed: ${job.error ?? 'Unknown error'}`, 500);
+  }
+
+  // Complete — fetch result from R2
+  const jobResult = job.result_json ? JSON.parse(job.result_json) as { result_r2_key: string } : null;
+  if (!jobResult?.result_r2_key) return jsonError('Result not found', 404);
+
+  const obj = await env.REPORT_BUCKET.get(jobResult.result_r2_key);
+  if (!obj) return jsonError('Result file not found in storage', 404);
+
+  const resultJson = await obj.text();
+  return new Response(resultJson, { headers: { 'Content-Type': 'application/json' } });
 }
 
-// Keep for backward compatibility
-async function fetchGpxTexts(
-  gpxFileIds: string[],
-  userId: string,
-  env: Env,
-): Promise<{ texts: string[]; error?: undefined } | { texts?: undefined; error: string }> {
-  const texts: string[] = [];
-  for (const gpxFileId of gpxFileIds) {
-    const row = await env.DB
-      .prepare(`SELECT gf.r2_key FROM gpx_files gf JOIN finders f ON f.finder_id = gf.owner_finder_id WHERE gf.gpx_file_id = ? AND f.owner_user_id = ? AND gf.is_active = 1 AND gf.deleted_at IS NULL`)
-      .bind(gpxFileId, userId)
-      .first<{ r2_key: string }>();
-    if (!row) return { error: `GPX file not found or not accessible: ${gpxFileId}` };
-    const obj = await env.REPORT_BUCKET.get(row.r2_key);
-    if (!obj) return { error: `R2 object missing for file ${gpxFileId}` };
-    const buffer = await obj.arrayBuffer();
-    if (row.r2_key.toLowerCase().endsWith('.zip')) {
-      const { unzipSync } = await import('fflate');
-      const files = unzipSync(new Uint8Array(buffer));
-      const gpxEntries = Object.entries(files).filter(([n]) => n.toLowerCase().endsWith('.gpx') && !n.toLowerCase().includes('wpts'));
-      if (!gpxEntries.length) return { error: `ZIP ${gpxFileId} contains no .gpx files` };
-      const decoder = new TextDecoder('utf-8');
-      for (const [, data] of gpxEntries) texts.push(decoder.decode(data));
-    } else {
-      texts.push(new TextDecoder('utf-8').decode(buffer));
-    }
-  }
-  return { texts };
-}
+// ============================================================================
+// Helper
+// ============================================================================
 
 function jsonError(message: string, status = 400): Response {
   return new Response(JSON.stringify({ error: message }), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
+    status, headers: { 'Content-Type': 'application/json' },
   });
 }

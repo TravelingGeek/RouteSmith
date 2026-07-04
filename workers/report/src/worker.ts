@@ -18,7 +18,7 @@ import { renderReport } from './renderer.js';
 import { requireAuth, unauthorizedResponse, AuthError } from './auth.js';
 import { handleAccountSync, handleAccountMe, handleGpxFiles } from './account.js';
 import { handlePresign, handleUploadData, handleConfirm, handleJobStatus } from './upload.js';
-import { handleReportRunFromR2 } from './reportRun.js';
+import { handleReportRunFromR2, handleReportStatus } from './reportRun.js';
 import type { TripInput } from './types.js';
 
 // ============================================================================
@@ -90,6 +90,11 @@ export default {
     // Report run routes
     if (url.pathname === '/api/report/run-from-r2' && request.method === 'POST') {
       return addCors(await handleReportRunFromR2(request, user, env), request);
+    }
+
+    const reportStatusMatch = url.pathname.match(/^\/api\/report\/status\/([\w-]+)$/);
+    if (reportStatusMatch && request.method === 'GET') {
+      return addCors(await handleReportStatus(reportStatusMatch[1], user, env), request);
     }
 
     // Upload routes
