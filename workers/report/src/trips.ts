@@ -252,3 +252,208 @@ export async function handleDeleteTrip(
     return jsonError(`Database error: ${(e as Error).message}`, 500);
   }
 }
+
+// ============================================================================
+// GET /api/trips/:id/companions — List companions on a trip
+// ============================================================================
+
+export async function handleListCompanions(
+  tripId: string,
+  user: AuthUser,
+  env: Env,
+): Promise<Response> {
+  const trip = await env.DB
+    .prepare(`SELECT trip_id FROM trips WHERE trip_id = ? AND user_id = ?`)
+    .bind(tripId, user.userId).first();
+  if (!trip) return jsonError('Trip not found', 404);
+
+  try {
+    const { results } = await env.DB
+      .prepare(`
+        SELECT
+          tf.finder_id, tf.role, tf.gpx_mode, tf.find_count,
+          tf.display_name, tf.gc_username,
+          f.color, f.is_favorite,
+          f.lifetime_find_count, f.lifetime_uploaded_at, f.lifetime_data_through
+        FROM trip_finders tf
+        JOIN finders f ON f.finder_id = tf.finder_id
+        WHERE tf.trip_id = ?
+        ORDER BY tf.role DESC, f.is_favorite DESC, tf.display_name ASC
+      `)
+      .bind(tripId)
+      .all();
+    return jsonResponse({ companions: results });
+  } catch (e) {
+    return jsonError(`Database error: ${(e as Error).message}`, 500);
+  }
+}
+
+// ============================================================================
+// POST /api/trips/:id/companions — Add a companion to a trip
+// ============================================================================
+
+interface AddCompanionBody {
+  finder_id?: string;       // existing finder — pick from list
+  display_name?: string;    // new finder — create on the fly
+  gc_username?: string;
+  color?: string;
+  gpx_mode?: 'lifetime' | 'diff';
+}
+
+export async function handleAddCompanion(
+  tripId: string,
+  request: Request,
+  user: AuthUser,
+  env: Env,
+): Promise<Response> {
+  const trip = await env.DB
+    .prepare(`SELECT trip_id FROM trips WHERE trip_id = ? AND user_id = ?`)
+    .bind(tripId, user.userId).first();
+  if (!trip) return jsonError('Trip not found', 404);
+
+  let body: AddCompanionBody;
+  try { body = await request.json(); }
+  catch { return jsonError('Invalid JSON body'); }
+
+  const ts = now();
+  let finderId: string;
+  let displayName: string;
+  let gcUsername: string;
+
+  if (body.finder_id) {
+    // Existing finder — verify ownership
+    const finder = await env.DB
+      .prepare(`SELECT finder_id, display_name, gc_username FROM finders WHERE finder_id = ? AND owner_user_id = ?`)
+      .bind(body.finder_id, user.userId)
+      .first<{ finder_id: string; display_name: string; gc_username: string }>();
+    if (!finder) return jsonError('Finder not found', 404);
+    finderId    = finder.finder_id;
+    displayName = finder.display_name;
+    gcUsername  = finder.gc_username;
+  } else if (body.display_name) {
+    // New finder — create it
+    if (!body.gc_username?.trim()) return jsonError('gc_username is required for new companions');
+    finderId    = `finder_${body.gc_username.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${uuid().slice(0,8)}`;
+    displayName = body.display_name.trim();
+    gcUsername  = body.gc_username.trim();
+
+    await env.DB.prepare(`
+      INSERT INTO finders (finder_id, owner_user_id, gc_username, display_name, color, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      finderId, user.userId, gcUsername, displayName,
+      body.color ?? '#6b7a8c', ts, ts,
+    ).run();
+  } else {
+    return jsonError('Either finder_id or display_name+gc_username is required');
+  }
+
+  // Check not already on trip
+  const existing = await env.DB
+    .prepare(`SELECT finder_id FROM trip_finders WHERE trip_id = ? AND finder_id = ?`)
+    .bind(tripId, finderId).first();
+  if (existing) return jsonError('This finder is already on the trip');
+
+  try {
+    await env.DB.prepare(`
+      INSERT INTO trip_finders (trip_id, finder_id, role, gpx_mode, display_name, gc_username)
+      VALUES (?, ?, 'companion', ?, ?, ?)
+    `).bind(tripId, finderId, body.gpx_mode ?? 'lifetime', displayName, gcUsername).run();
+
+    return jsonResponse({ finder_id: finderId, display_name: displayName, gc_username: gcUsername }, 201);
+  } catch (e) {
+    return jsonError(`Database error: ${(e as Error).message}`, 500);
+  }
+}
+
+// ============================================================================
+// DELETE /api/trips/:id/companions/:finder_id — Remove a companion
+// ============================================================================
+
+export async function handleRemoveCompanion(
+  tripId: string,
+  finderId: string,
+  user: AuthUser,
+  env: Env,
+): Promise<Response> {
+  const trip = await env.DB
+    .prepare(`SELECT trip_id FROM trips WHERE trip_id = ? AND user_id = ?`)
+    .bind(tripId, user.userId).first();
+  if (!trip) return jsonError('Trip not found', 404);
+
+  // Cannot remove the owner
+  const tf = await env.DB
+    .prepare(`SELECT role FROM trip_finders WHERE trip_id = ? AND finder_id = ?`)
+    .bind(tripId, finderId).first<{ role: string }>();
+  if (!tf) return jsonError('Companion not found on this trip', 404);
+  if (tf.role === 'owner') return jsonError('Cannot remove the trip owner', 400);
+
+  try {
+    await env.DB.prepare(`DELETE FROM trip_finders WHERE trip_id = ? AND finder_id = ?`)
+      .bind(tripId, finderId).run();
+    return jsonResponse({ deleted: true });
+  } catch (e) {
+    return jsonError(`Database error: ${(e as Error).message}`, 500);
+  }
+}
+
+// ============================================================================
+// GET /api/finders — List all finders owned by the user (for companion picker)
+// ============================================================================
+
+export async function handleListFinders(user: AuthUser, env: Env): Promise<Response> {
+  try {
+    const { results } = await env.DB
+      .prepare(`
+        SELECT finder_id, display_name, gc_username, color, is_favorite,
+               lifetime_find_count, lifetime_uploaded_at, lifetime_data_through
+        FROM finders
+        WHERE owner_user_id = ?
+        ORDER BY is_favorite DESC, display_name ASC
+      `)
+      .bind(user.userId)
+      .all();
+    return jsonResponse({ finders: results });
+  } catch (e) {
+    return jsonError(`Database error: ${(e as Error).message}`, 500);
+  }
+}
+
+// ============================================================================
+// PATCH /api/finders/:id — Update finder (e.g. toggle is_favorite)
+// ============================================================================
+
+export async function handleUpdateFinder(
+  finderId: string,
+  request: Request,
+  user: AuthUser,
+  env: Env,
+): Promise<Response> {
+  const finder = await env.DB
+    .prepare(`SELECT finder_id FROM finders WHERE finder_id = ? AND owner_user_id = ?`)
+    .bind(finderId, user.userId).first();
+  if (!finder) return jsonError('Finder not found', 404);
+
+  let body: { is_favorite?: number; display_name?: string; color?: string };
+  try { body = await request.json(); }
+  catch { return jsonError('Invalid JSON body'); }
+
+  const fields: string[] = [];
+  const values: unknown[] = [];
+  if (body.is_favorite !== undefined) { fields.push('is_favorite = ?'); values.push(body.is_favorite ? 1 : 0); }
+  if (body.display_name !== undefined) { fields.push('display_name = ?'); values.push(body.display_name); }
+  if (body.color !== undefined) { fields.push('color = ?'); values.push(body.color); }
+  if (!fields.length) return jsonError('No fields to update');
+
+  const ts = now();
+  fields.push('updated_at = ?');
+  values.push(ts, finderId, user.userId);
+
+  try {
+    await env.DB.prepare(`UPDATE finders SET ${fields.join(', ')} WHERE finder_id = ? AND owner_user_id = ?`)
+      .bind(...values).run();
+    return jsonResponse({ finder_id: finderId, updated_at: ts });
+  } catch (e) {
+    return jsonError(`Database error: ${(e as Error).message}`, 500);
+  }
+}

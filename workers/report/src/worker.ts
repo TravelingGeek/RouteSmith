@@ -19,7 +19,7 @@ import { requireAuth, unauthorizedResponse, AuthError } from './auth.js';
 import { handleAccountSync, handleAccountMe, handleGpxFiles } from './account.js';
 import { handlePresign, handleUploadData, handleConfirm, handleJobStatus } from './upload.js';
 import { handleReportRunFromR2, handleReportStatus } from './reportRun.js';
-import { handleListTrips, handleCreateTrip, handleGetTrip, handleUpdateTrip, handleDeleteTrip } from './trips.js';
+import { handleListTrips, handleCreateTrip, handleGetTrip, handleUpdateTrip, handleDeleteTrip, handleListCompanions, handleAddCompanion, handleRemoveCompanion, handleListFinders, handleUpdateFinder } from './trips.js';
 import type { TripInput } from './types.js';
 
 // ============================================================================
@@ -101,6 +101,26 @@ export default {
       if (request.method === 'GET')    return addCors(await handleGetTrip(tripId, user, env), request);
       if (request.method === 'PATCH')  return addCors(await handleUpdateTrip(tripId, request, user, env), request);
       if (request.method === 'DELETE') return addCors(await handleDeleteTrip(tripId, user, env), request);
+    }
+
+    // Finder routes
+    if (url.pathname === '/api/finders' && request.method === 'GET') {
+      return addCors(await handleListFinders(user, env), request);
+    }
+    const finderMatch = url.pathname.match(/^\/api\/finders\/([\w-]+)$/);
+    if (finderMatch && request.method === 'PATCH') {
+      return addCors(await handleUpdateFinder(finderMatch[1], request, user, env), request);
+    }
+
+    // Companion routes
+    const companionBase = url.pathname.match(/^\/api\/trips\/([\w-]+)\/companions$/);
+    if (companionBase) {
+      if (request.method === 'GET')  return addCors(await handleListCompanions(companionBase[1], user, env), request);
+      if (request.method === 'POST') return addCors(await handleAddCompanion(companionBase[1], request, user, env), request);
+    }
+    const companionItem = url.pathname.match(/^\/api\/trips\/([\w-]+)\/companions\/([\w-]+)$/);
+    if (companionItem && request.method === 'DELETE') {
+      return addCors(await handleRemoveCompanion(companionItem[1], companionItem[2], user, env), request);
     }
 
     // Report run routes

@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Routesmith — Trip</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<script
+  async
+  crossorigin="anonymous"
+  data-clerk-publishable-key="pk_test_cmVhZHktcmVkYmlyZC01Ni5jbGVyay5hY2NvdW50cy5kZXYk"
+  src="https://ready-redbird-56.clerk.accounts.dev/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"
+  type="text/javascript"
+></script>
+
+<style>
+  :root {
+    --paper: #fbf5e6;
+    --paper-deep: #f5edd6;
+    --ink: #1f1810;
+    --ink-soft: #4a3f2e;
+    --ink-muted: #7a6f5a;
+    --brass: #a87832;
+    --brass-deep: #7a5621;
+    --forge: #2d5a2a;
+    --stamp: #a83328;
+    --rule: #c9bda0;
+    --rule-soft: #ddd2b5;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-font-smoothing: antialiased; }
+
+  body {
+    margin: 0; min-height: 100vh;
+    background: var(--paper);
+    background-image:
+      linear-gradient(rgba(168,120,50,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(168,120,50,0.05) 1px, transparent 1px),
+      radial-gradient(ellipse at top, rgba(168,120,50,0.08) 0%, transparent 60%);
+    background-size: 28px 28px, 28px 28px, 100% 100%;
+    color: var(--ink);
+    font-family: 'Source Serif 4', Charter, Georgia, serif;
+    line-height: 1.6; font-size: 17px;
+  }
+
+  /* ── Nav ── */
+  .site-header {
+    max-width: 920px; margin: 0 auto; padding: 20px 40px;
+    display: flex; justify-content: space-between; align-items: center; gap: 24px;
+  }
+  .site-brand-mark {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.14em; color: var(--brass-deep); text-decoration: none;
+  }
+  .site-nav { display: flex; align-items: center; gap: 0; flex: 1; justify-content: flex-end; }
+  .nav-modules {
+    display: flex; align-items: center; border: 1px solid var(--rule);
+    border-radius: 2px; overflow: hidden; margin-right: 16px;
+  }
+  .nav-module {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-muted);
+    text-decoration: none; padding: 6px 14px; border-right: 1px solid var(--rule);
+    transition: color 0.15s, background 0.15s; white-space: nowrap;
+  }
+  .nav-module:last-child { border-right: none; }
+  .nav-module:hover { color: var(--brass-deep); background: rgba(168,120,50,0.06); }
+  .nav-module.disabled { opacity: 0.45; cursor: not-allowed; pointer-events: none; }
+  .nav-module.active { color: var(--forge); font-weight: 600; }
+  .nav-user {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.12em; color: var(--brass-deep);
+    display: none; align-items: center; gap: 12px;
+  }
+  .nav-user-name { color: var(--ink-soft); }
+  .nav-signout {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.72rem;
+    text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-muted);
+    background: none; border: 1px solid var(--rule); padding: 6px 12px;
+    border-radius: 2px; cursor: pointer; transition: color 0.15s, border-color 0.15s;
+  }
+  .nav-signout:hover { color: var(--stamp); border-color: var(--stamp); }
+  .nav-signin-link {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.12em; color: var(--paper);
+    background: var(--brass-deep); text-decoration: none; padding: 7px 16px;
+    border-radius: 2px; transition: background 0.15s;
+  }
+  .nav-signin-link:hover { background: var(--ink); }
+
+  /* ── Page ── */
+  .page { max-width: 820px; margin: 0 auto; padding: 40px 40px 80px; }
+
+  .breadcrumb {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.72rem;
+    text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-muted);
+    margin-bottom: 20px;
+  }
+  .breadcrumb a { color: var(--brass-deep); text-decoration: none; }
+  .breadcrumb a:hover { text-decoration: underline; }
+  .breadcrumb .sep { margin: 0 8px; }
+
+  /* ── Trip header ── */
+  .trip-header {
+    border: 1px solid var(--rule); border-top: 3px solid var(--forge);
+    background: rgba(255,252,240,0.6); padding: 28px 32px; margin-bottom: 24px;
+  }
+  .trip-header-top {
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;
+    margin-bottom: 16px; flex-wrap: wrap;
+  }
+  .trip-name {
+    font-family: 'Fraunces', serif; font-weight: 600; font-size: 1.8rem;
+    color: var(--ink); margin: 0 0 4px; letter-spacing: -0.02em;
+  }
+  .trip-description { font-size: 0.96rem; color: var(--ink-soft); font-style: italic; margin: 0; }
+  .trip-header-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+  .trip-meta-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 16px; padding-top: 16px; border-top: 1px solid var(--rule-soft);
+  }
+  .trip-meta-item {}
+  .trip-meta-label {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.68rem;
+    text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-muted);
+    margin-bottom: 2px;
+  }
+  .trip-meta-value { font-size: 0.96rem; color: var(--ink); }
+
+  /* ── Section ── */
+  .section { margin-bottom: 28px; }
+  .section-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-bottom: 10px; border-bottom: 1px solid var(--rule-soft); margin-bottom: 16px;
+  }
+  .section-title {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.74rem;
+    text-transform: uppercase; letter-spacing: 0.14em; color: var(--brass-deep);
+  }
+
+  /* ── Companion cards ── */
+  .companion-list { display: flex; flex-direction: column; gap: 10px; }
+  .companion-card {
+    border: 1px solid var(--rule); background: rgba(255,252,240,0.5);
+    padding: 14px 18px; display: flex; align-items: center; gap: 14px;
+  }
+  .companion-color {
+    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+  }
+  .companion-info { flex: 1; min-width: 0; }
+  .companion-name {
+    font-family: 'Fraunces', serif; font-weight: 600; font-size: 1rem; color: var(--ink);
+  }
+  .companion-meta {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.7rem;
+    color: var(--ink-muted); letter-spacing: 0.04em;
+  }
+  .companion-data {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.7rem;
+    text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap;
+  }
+  .companion-data.fresh { color: var(--forge); }
+  .companion-data.stale { color: var(--brass-deep); }
+  .companion-data.none  { color: var(--ink-muted); }
+  .companion-role {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.66rem;
+    text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-muted);
+    border: 1px solid var(--rule); padding: 2px 8px; border-radius: 2px;
+    white-space: nowrap;
+  }
+  .companion-role.owner { color: var(--forge); border-color: var(--forge); }
+
+  /* ── Buttons ── */
+  .btn-primary {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.1em; color: var(--paper);
+    background: var(--forge); border: none; padding: 10px 20px;
+    border-radius: 2px; cursor: pointer; transition: background 0.15s; white-space: nowrap;
+  }
+  .btn-primary:hover { background: var(--ink); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-secondary {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.74rem;
+    text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-muted);
+    background: none; border: 1px solid var(--rule); padding: 7px 14px;
+    border-radius: 2px; cursor: pointer; transition: color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+  }
+  .btn-secondary:hover { color: var(--ink); border-color: var(--ink-soft); }
+
+  .btn-icon {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.72rem;
+    color: var(--ink-muted); background: none; border: none;
+    cursor: pointer; padding: 4px 8px; transition: color 0.15s;
+  }
+  .btn-icon:hover { color: var(--stamp); }
+
+  /* ── Status badge ── */
+  .status-badge {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.68rem;
+    text-transform: uppercase; letter-spacing: 0.12em; padding: 3px 10px;
+    border-radius: 2px;
+  }
+  .status-badge.draft    { color: var(--ink-muted); border: 1px solid var(--rule); }
+  .status-badge.active   { color: var(--forge); border: 1px solid var(--forge); background: rgba(45,90,42,0.06); }
+  .status-badge.complete { color: var(--brass-deep); border: 1px solid var(--brass); background: rgba(168,120,50,0.06); }
+
+  /* ── Modal ── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(31,24,16,0.5); z-index: 100;
+    align-items: center; justify-content: center; padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--paper); border: 1px solid var(--rule);
+    border-top: 3px solid var(--forge); width: 100%; max-width: 540px;
+    max-height: 90vh; overflow-y: auto; padding: 32px 36px;
+  }
+  .modal-title {
+    font-family: 'Fraunces', serif; font-weight: 600; font-size: 1.4rem;
+    color: var(--ink); margin: 0 0 24px;
+  }
+  .form-group { margin-bottom: 18px; }
+  .form-label {
+    display: block; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem;
+    text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-muted); margin-bottom: 6px;
+  }
+  .form-input {
+    width: 100%; font-family: 'Source Serif 4', serif; font-size: 1rem;
+    color: var(--ink); background: white; border: 1px solid var(--rule);
+    padding: 8px 12px; border-radius: 2px; outline: none; transition: border-color 0.15s;
+  }
+  .form-input:focus { border-color: var(--brass); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .form-section-title {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.7rem;
+    text-transform: uppercase; letter-spacing: 0.14em; color: var(--brass-deep);
+    margin: 20px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--rule-soft);
+  }
+  .form-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; }
+  .form-hint { font-size: 0.8rem; color: var(--ink-muted); margin-top: 4px; font-style: italic; }
+
+  /* Finder picker list */
+  .finder-picker { display: flex; flex-direction: column; gap: 8px; max-height: 240px; overflow-y: auto; }
+  .finder-option {
+    display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+    border: 1px solid var(--rule); cursor: pointer; transition: border-color 0.15s, background 0.15s;
+    border-radius: 2px;
+  }
+  .finder-option:hover { border-color: var(--forge); background: rgba(45,90,42,0.04); }
+  .finder-option.selected { border-color: var(--forge); background: rgba(45,90,42,0.08); }
+  .finder-option-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .finder-option-info { flex: 1; }
+  .finder-option-name { font-family: 'Fraunces', serif; font-weight: 600; font-size: 0.96rem; color: var(--ink); }
+  .finder-option-meta { font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; color: var(--ink-muted); }
+  .finder-option-star { color: var(--brass); font-size: 0.9rem; }
+
+  .divider {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.68rem;
+    text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-muted);
+    text-align: center; padding: 10px 0; position: relative;
+  }
+  .divider::before {
+    content: ''; position: absolute; top: 50%; left: 0; right: 0;
+    height: 1px; background: var(--rule-soft);
+  }
+  .divider span { background: var(--paper); padding: 0 12px; position: relative; }
+
+  /* ── Loading / footer ── */
+  .loading {
+    text-align: center; padding: 80px 0;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.78rem;
+    text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-muted);
+  }
+  footer {
+    text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 0.74rem;
+    text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-muted);
+    padding-bottom: 24px; margin-top: 48px;
+  }
+  footer .domain { color: var(--brass-deep); }
+  footer .sep { margin: 0 10px; color: var(--rule); }
+
+  @media (max-width: 560px) {
+    .site-header { padding: 16px 20px; flex-wrap: wrap; gap: 12px; }
+    .site-nav { width: 100%; justify-content: flex-start; flex-wrap: wrap; gap: 8px; }
+    .nav-modules { margin-right: 0; }
+    .page { padding: 28px 20px 60px; }
+    .trip-header { padding: 20px; }
+    .form-row, .form-row-3 { grid-template-columns: 1fr; }
+    .modal { padding: 24px 18px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <a href="/" class="site-brand-mark">routesmithing.com</a>
+  <nav class="site-nav">
+    <div class="nav-modules">
+      <a href="/plan/" class="nav-module disabled" aria-disabled="true">Plan</a>
+      <a href="/navigate/" class="nav-module disabled" aria-disabled="true">Navigate</a>
+      <a href="/report/" class="nav-module active">Report</a>
+    </div>
+    <div class="nav-user" id="nav-user">
+      <span class="nav-user-name" id="nav-user-name"></span>
+      <button class="nav-signout" id="nav-signout-btn">Sign out</button>
+    </div>
+    <a href="/account/" class="nav-signin-link" id="nav-signin-link">Sign in</a>
+  </nav>
+</header>
+
+<div class="page">
+  <div id="loading-state" class="loading">Loading…</div>
+  <div id="main-content" style="display:none;">
+
+    <div class="breadcrumb">
+      <a href="/report/">Your Trips</a>
+      <span class="sep">›</span>
+      <span id="breadcrumb-name">Trip</span>
+    </div>
+
+    <!-- Trip header -->
+    <div class="trip-header">
+      <div class="trip-header-top">
+        <div>
+          <div class="trip-name" id="trip-name-display">—</div>
+          <div class="trip-description" id="trip-desc-display"></div>
+        </div>
+        <div class="trip-header-actions">
+          <span class="status-badge draft" id="trip-status-badge">draft</span>
+          <button class="btn-secondary" id="edit-trip-btn">Edit</button>
+        </div>
+      </div>
+      <div class="trip-meta-grid" id="trip-meta-grid"></div>
+    </div>
+
+    <!-- Companions -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Finders on this trip</div>
+        <button class="btn-secondary" id="add-companion-btn">+ Add Finder</button>
+      </div>
+      <div class="companion-list" id="companion-list"></div>
+    </div>
+
+    <!-- Run Report -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Report</div>
+      </div>
+      <button class="btn-primary" id="run-report-btn" disabled>Run Report — Coming Soon</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- Edit Trip Modal -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <div class="modal-title">Edit Trip</div>
+    <div class="form-group">
+      <label class="form-label">Trip name</label>
+      <input class="form-input" type="text" id="edit-name">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Description</label>
+      <input class="form-input" type="text" id="edit-description">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Start date</label>
+        <input class="form-input" type="date" id="edit-start">
+      </div>
+      <div class="form-group">
+        <label class="form-label">End date</label>
+        <input class="form-input" type="date" id="edit-end">
+      </div>
+    </div>
+    <div class="form-section-title">Driving</div>
+    <div class="form-row-3">
+      <div class="form-group">
+        <label class="form-label">Miles</label>
+        <input class="form-input" type="number" id="edit-miles" min="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Hours</label>
+        <input class="form-input" type="number" id="edit-hours" min="0" step="0.5">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Gas ($)</label>
+        <input class="form-input" type="number" id="edit-gas" min="0" step="0.01">
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-secondary" id="edit-cancel">Cancel</button>
+      <button class="btn-primary" id="edit-save">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Companion Modal -->
+<div class="modal-overlay" id="companion-modal">
+  <div class="modal">
+    <div class="modal-title">Add Finder</div>
+
+    <!-- Existing finder picker -->
+    <div class="form-section-title" id="picker-section-title">Choose an existing finder</div>
+    <div class="finder-picker" id="finder-picker"></div>
+
+    <div class="divider"><span>or add new</span></div>
+
+    <div class="form-group">
+      <label class="form-label">Display name</label>
+      <input class="form-input" type="text" id="new-finder-name" placeholder="e.g. TAZ427">
+    </div>
+    <div class="form-group">
+      <label class="form-label">gc.com username</label>
+      <input class="form-input" type="text" id="new-finder-username" placeholder="e.g. TAZ427">
+      <div class="form-hint">Encourage them to use their geocaching username</div>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn-secondary" id="companion-cancel">Cancel</button>
+      <button class="btn-primary" id="companion-save">Add Finder</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <span class="domain">routesmithing.com</span>
+  <span class="sep">·</span>
+  <span>Forged 2026</span>
+  <span class="sep">·</span>
+  <span>Build 2026.07.04.003</span>
+</footer>
+
+<script>
+const BASE = 'https://routesmith-report.gtl6645.workers.dev';
+const getToken = () => window.Clerk.session.getToken({ template: 'routesmith' });
+
+// Get trip ID from URL
+const params = new URLSearchParams(location.search);
+const TRIP_ID = params.get('id');
+
+// ── Helpers ───────────────────────────────────────────────────────
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso + 'T00:00:00Z');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+}
+
+function fmtDateRange(s, e) {
+  if (!s) return '—';
+  const sd = fmtDate(s), ed = fmtDate(e);
+  return sd === ed ? sd : `${sd} – ${ed}`;
+}
+
+function fmtUploadedAt(epoch) {
+  if (!epoch) return null;
+  const days = Math.floor((Date.now() - epoch * 1000) / 86400000);
+  if (days === 0) return 'today';
+  if (days === 1) return 'yesterday';
+  if (days < 7)  return `${days}d ago`;
+  return fmtDate(new Date(epoch * 1000).toISOString().slice(0, 10));
+}
+
+function freshnessClass(dataThrough) {
+  if (!dataThrough) return 'none';
+  const days = Math.floor((Date.now() - new Date(dataThrough + 'T00:00:00Z')) / 86400000);
+  return days <= 7 ? 'fresh' : 'stale';
+}
+
+// ── Trip state ────────────────────────────────────────────────────
+let trip = null;
+let allFinders = [];
+
+// ── API calls ─────────────────────────────────────────────────────
+async function fetchTrip() {
+  const token = await getToken();
+  const resp = await fetch(`${BASE}/api/trips/${TRIP_ID}`, {
+    headers: { 'Authorization': 'Bearer ' + token }
+  });
+  return resp.json();
+}
+
+async function fetchFinders() {
+  const token = await getToken();
+  const resp = await fetch(`${BASE}/api/finders`, {
+    headers: { 'Authorization': 'Bearer ' + token }
+  });
+  const data = await resp.json();
+  return data.finders ?? [];
+}
+
+async function fetchCompanions() {
+  const token = await getToken();
+  const resp = await fetch(`${BASE}/api/trips/${TRIP_ID}/companions`, {
+    headers: { 'Authorization': 'Bearer ' + token }
+  });
+  const data = await resp.json();
+  return data.companions ?? [];
+}
+
+// ── Render ────────────────────────────────────────────────────────
+function renderTripHeader(t) {
+  document.title = `Routesmith — ${t.name}`;
+  document.getElementById('breadcrumb-name').textContent = t.name;
+  document.getElementById('trip-name-display').textContent = t.name;
+  const descEl = document.getElementById('trip-desc-display');
+  descEl.textContent = t.description ?? '';
+  descEl.style.display = t.description ? 'block' : 'none';
+
+  const badge = document.getElementById('trip-status-badge');
+  badge.textContent = t.status;
+  badge.className = `status-badge ${t.status}`;
+
+  const meta = [];
+  if (t.date_start) meta.push({ label: 'Dates', value: fmtDateRange(t.date_start, t.date_end) });
+  if (t.distance_miles) meta.push({ label: 'Miles', value: t.distance_miles.toLocaleString() });
+  if (t.distance_hours) meta.push({ label: 'Drive time', value: t.distance_hours + 'h' });
+  if (t.gas_cost) meta.push({ label: 'Gas', value: '$' + Number(t.gas_cost).toFixed(2) });
+
+  const grid = document.getElementById('trip-meta-grid');
+  grid.innerHTML = meta.map(m => `
+    <div class="trip-meta-item">
+      <div class="trip-meta-label">${esc(m.label)}</div>
+      <div class="trip-meta-value">${esc(m.value)}</div>
+    </div>`).join('');
+  grid.style.display = meta.length ? 'grid' : 'none';
+}
+
+function renderCompanions(companions) {
+  const list = document.getElementById('companion-list');
+  list.innerHTML = companions.map(c => {
+    const isOwner = c.role === 'owner';
+    const dataThrough = c.lifetime_data_through;
+    const cls = freshnessClass(dataThrough);
+    const dataLabel = dataThrough
+      ? `${(c.lifetime_find_count ?? 0).toLocaleString()} finds · through ${fmtDate(dataThrough)}`
+      : 'No data uploaded';
+
+    return `
+    <div class="companion-card">
+      <div class="companion-color" style="background:${esc(c.color ?? '#888')}"></div>
+      <div class="companion-info">
+        <div class="companion-name">${esc(c.display_name ?? c.gc_username)}</div>
+        <div class="companion-meta">${esc(c.gc_username ?? '')}</div>
+      </div>
+      <div class="companion-data ${cls}">${esc(dataLabel)}</div>
+      <span class="companion-role ${isOwner ? 'owner' : ''}">${isOwner ? 'Owner' : 'Companion'}</span>
+      ${!isOwner ? `<button class="btn-icon" onclick="removeCompanion('${esc(c.finder_id)}')" title="Remove">✕</button>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function renderFinderPicker(companions) {
+  const tripFinderIds = new Set(companions.map(c => c.finder_id));
+  const available = allFinders.filter(f => !tripFinderIds.has(f.finder_id));
+  const picker = document.getElementById('finder-picker');
+
+  if (!available.length) {
+    picker.innerHTML = '<div style="font-size:0.88rem;color:var(--ink-muted);padding:8px 0;">All known finders are already on this trip.</div>';
+    return;
+  }
+
+  picker.innerHTML = available.map(f => {
+    const star = f.is_favorite ? '★ ' : '';
+    const data = f.lifetime_data_through
+      ? `${(f.lifetime_find_count ?? 0).toLocaleString()} finds · through ${fmtDate(f.lifetime_data_through)}`
+      : 'No data';
+    return `
+    <div class="finder-option" data-finder-id="${esc(f.finder_id)}" onclick="selectFinder('${esc(f.finder_id)}')">
+      <div class="finder-option-dot" style="background:${esc(f.color ?? '#888')}"></div>
+      <div class="finder-option-info">
+        <div class="finder-option-name">${star}${esc(f.display_name)}</div>
+        <div class="finder-option-meta">${esc(f.gc_username)} · ${esc(data)}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+let selectedFinderId = null;
+function selectFinder(id) {
+  selectedFinderId = selectedFinderId === id ? null : id;
+  document.querySelectorAll('.finder-option').forEach(el => {
+    el.classList.toggle('selected', el.dataset.finderId === selectedFinderId);
+  });
+}
+
+// ── Actions ───────────────────────────────────────────────────────
+async function removeCompanion(finderId) {
+  if (!confirm('Remove this finder from the trip?')) return;
+  const token = await getToken();
+  await fetch(`${BASE}/api/trips/${TRIP_ID}/companions/${finderId}`, {
+    method: 'DELETE',
+    headers: { 'Authorization': 'Bearer ' + token }
+  });
+  await refresh();
+}
+
+async function refresh() {
+  const [t, companions] = await Promise.all([fetchTrip(), fetchCompanions()]);
+  trip = t;
+  renderTripHeader(t);
+  renderCompanions(companions);
+}
+
+// ── Edit modal ────────────────────────────────────────────────────
+document.getElementById('edit-trip-btn').addEventListener('click', () => {
+  document.getElementById('edit-name').value        = trip.name ?? '';
+  document.getElementById('edit-description').value = trip.description ?? '';
+  document.getElementById('edit-start').value       = trip.date_start ?? '';
+  document.getElementById('edit-end').value         = trip.date_end ?? '';
+  document.getElementById('edit-miles').value       = trip.distance_miles ?? '';
+  document.getElementById('edit-hours').value       = trip.distance_hours ?? '';
+  document.getElementById('edit-gas').value         = trip.gas_cost ?? '';
+  document.getElementById('edit-modal').classList.add('open');
+});
+
+// Auto-fill end date from start date
+document.getElementById('edit-start').addEventListener('change', () => {
+  const start = document.getElementById('edit-start').value;
+  const end   = document.getElementById('edit-end').value;
+  if (start && !end) {
+    const d = new Date(start + 'T00:00:00Z');
+    d.setUTCDate(d.getUTCDate() + 1);
+    document.getElementById('edit-end').value = d.toISOString().slice(0, 10);
+  }
+});
+
+document.getElementById('edit-cancel').addEventListener('click', () => {
+  document.getElementById('edit-modal').classList.remove('open');
+});
+document.getElementById('edit-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('edit-modal')) document.getElementById('edit-modal').classList.remove('open');
+});
+
+document.getElementById('edit-save').addEventListener('click', async () => {
+  const btn = document.getElementById('edit-save');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  const token = await getToken();
+  await fetch(`${BASE}/api/trips/${TRIP_ID}`, {
+    method: 'PATCH',
+    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name:           document.getElementById('edit-name').value.trim(),
+      description:    document.getElementById('edit-description').value.trim() || null,
+      date_start:     document.getElementById('edit-start').value || null,
+      date_end:       document.getElementById('edit-end').value || null,
+      distance_miles: parseFloat(document.getElementById('edit-miles').value) || null,
+      distance_hours: parseFloat(document.getElementById('edit-hours').value) || null,
+      gas_cost:       parseFloat(document.getElementById('edit-gas').value) || null,
+    }),
+  });
+  document.getElementById('edit-modal').classList.remove('open');
+  btn.disabled = false; btn.textContent = 'Save Changes';
+  await refresh();
+});
+
+// ── Add Companion modal ───────────────────────────────────────────
+document.getElementById('add-companion-btn').addEventListener('click', async () => {
+  selectedFinderId = null;
+  document.getElementById('new-finder-name').value     = '';
+  document.getElementById('new-finder-username').value = '';
+  const companions = await fetchCompanions();
+  renderFinderPicker(companions);
+  document.getElementById('companion-modal').classList.add('open');
+});
+
+document.getElementById('companion-cancel').addEventListener('click', () => {
+  document.getElementById('companion-modal').classList.remove('open');
+});
+document.getElementById('companion-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('companion-modal')) document.getElementById('companion-modal').classList.remove('open');
+});
+
+document.getElementById('companion-save').addEventListener('click', async () => {
+  const btn = document.getElementById('companion-save');
+  btn.disabled = true; btn.textContent = 'Adding…';
+  const token = await getToken();
+
+  const newName = document.getElementById('new-finder-name').value.trim();
+  const newUser = document.getElementById('new-finder-username').value.trim();
+
+  let payload;
+  if (selectedFinderId) {
+    payload = { finder_id: selectedFinderId };
+  } else if (newName && newUser) {
+    payload = { display_name: newName, gc_username: newUser };
+  } else {
+    alert('Select an existing finder or fill in name and username.');
+    btn.disabled = false; btn.textContent = 'Add Finder';
+    return;
+  }
+
+  const resp = await fetch(`${BASE}/api/trips/${TRIP_ID}/companions`, {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const result = await resp.json();
+  if (result.error) { alert(result.error); btn.disabled = false; btn.textContent = 'Add Finder'; return; }
+
+  document.getElementById('companion-modal').classList.remove('open');
+  btn.disabled = false; btn.textContent = 'Add Finder';
+  await refresh();
+});
+
+// ── Auth + init ───────────────────────────────────────────────────
+window.addEventListener('load', async () => {
+  await window.Clerk.load();
+
+  const loadingEl   = document.getElementById('loading-state');
+  const mainContent = document.getElementById('main-content');
+  const navUser     = document.getElementById('nav-user');
+  const navUserName = document.getElementById('nav-user-name');
+  const navSigninLink = document.getElementById('nav-signin-link');
+  const navSignoutBtn = document.getElementById('nav-signout-btn');
+
+  navSignoutBtn.addEventListener('click', async () => {
+    await window.Clerk.signOut();
+    location.href = '/account/';
+  });
+
+  const user = window.Clerk.user;
+  if (!user) { location.href = '/account/'; return; }
+
+  const name = user.firstName || user.fullName || user.primaryEmailAddress?.emailAddress || 'Cacher';
+  navSigninLink.style.display = 'none';
+  navUser.style.display = 'flex';
+  navUserName.textContent = name;
+
+  if (!TRIP_ID) { location.href = '/report/'; return; }
+
+  try {
+    const [t, companions, finders] = await Promise.all([fetchTrip(), fetchCompanions(), fetchFinders()]);
+    trip = t;
+    allFinders = finders;
+    if (t.error) { location.href = '/report/'; return; }
+    renderTripHeader(t);
+    renderCompanions(companions);
+    loadingEl.style.display = 'none';
+    mainContent.style.display = 'block';
+  } catch (e) {
+    loadingEl.textContent = 'Error loading trip.';
+  }
+});
+</script>
+
+</body>
+</html>

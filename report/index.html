@@ -371,6 +371,9 @@
       </div>
     </div>
 
+    <div id="trip-end-group" class="form-group" style="display:none;">
+      <label class="form-label" for="trip-end-hidden">End date</label>
+    </div>
     <div class="form-actions">
       <button class="btn-secondary" id="modal-cancel">Cancel</button>
       <button class="btn-primary" id="modal-save">Create Trip</button>
@@ -383,7 +386,7 @@
   <span class="sep">·</span>
   <span>Forged 2026</span>
   <span class="sep">·</span>
-  <span>Build 2026.07.04.003</span>
+  <span>Build 2026.07.04.004</span>
 </footer>
 
 <script>
@@ -443,8 +446,7 @@ function renderTrips(trips) {
         <span class="trip-status ${trip.status}">${trip.status}</span>
       </div>`;
     card.addEventListener('click', () => {
-      // TODO: navigate to trip dashboard
-      alert(`Trip dashboard for "${trip.name}" — coming soon.`);
+      location.href = `/report/trip.html?id=${trip.trip_id}`;
     });
     listEl.appendChild(card);
   }
@@ -475,6 +477,17 @@ function openModal() {
 function closeModal() { modal.classList.remove('open'); }
 
 document.getElementById('new-trip-btn').addEventListener('click', openModal);
+
+// Auto-fill end date when start date is set
+document.getElementById('trip-start').addEventListener('change', () => {
+  const start = document.getElementById('trip-start').value;
+  const end   = document.getElementById('trip-end').value;
+  if (start && !end) {
+    const d = new Date(start + 'T00:00:00Z');
+    d.setUTCDate(d.getUTCDate() + 1);
+    document.getElementById('trip-end').value = d.toISOString().slice(0, 10);
+  }
+});
 modalCancel.addEventListener('click', closeModal);
 modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
 
