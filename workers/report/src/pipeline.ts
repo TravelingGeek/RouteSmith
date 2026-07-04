@@ -346,3 +346,117 @@ function buildCountiesData(
     stateCoverage,
   };
 }
+
+// ============================================================================
+// Pre-parsed pipeline entry point
+// ============================================================================
+
+export interface ParsedGpxSources {
+  owner: {
+    lifetime: import('./types.js').Waypoint[];
+  };
+  companions: Array<{
+    playerId: string;
+    lifetime?: import('./types.js').Waypoint[];
+    before?: import('./types.js').Waypoint[];
+    after?: import('./types.js').Waypoint[];
+  }>;
+}
+
+/**
+ * Run the pipeline with pre-parsed waypoints instead of raw GPX text.
+ * Used by reportRun.ts to avoid holding both raw text and parsed waypoints
+ * in memory simultaneously.
+ */
+export async function runPipelineFromWaypoints(
+  tripInput: TripInput,
+  parsed: ParsedGpxSources,
+  refLists: ReferenceLists,
+): Promise<PipelineResult> {
+  const warnings: string[] = [...refLists.warnings];
+  const diagnostics: string[] = [];
+
+  const tripStart = new Date(tripInput.startDate + 'T00:00:00Z');
+  const tripEnd   = new Date(tripInput.endDate   + 'T00:00:00Z');
+
+  const ownerLifetime = parsed.owner.lifetime;
+
+  const fieldAvailability = checkGpxCompleteness(ownerLifetime);
+  warnings.push(...fieldAvailability.warnings);
+
+  const ownerTripFinds = filterToTripWindow(ownerLifetime, tripStart, tripEnd);
+
+  if (ownerTripFinds.length === 0 && ownerLifetime.length > 0) {
+    diagnostics.push(diagnoseEmptyTripWindow(ownerLifetime, tripStart, tripEnd, tripInput.owner.gcUsername));
+  }
+
+  const { priorCounties, priorStates, priorCountries, priorTypes } =
+    computePriorData(ownerLifetime, tripStart);
+
+  const ownerAggregate = computeAggregateStats(ownerTripFinds, priorCounties, priorStates, priorCountries, priorTypes);
+  const ownerDailyStats = computeDailyStats(ownerTripFinds, priorCounties, tripStart, tripEnd);
+  const milestones    = computeMilestones(ownerLifetime, tripStart, tripEnd);
+  const jasmerFills   = computeJasmerFills(ownerLifetime, tripStart, tripEnd);
+  const dtFills       = computeDtFills(ownerLifetime, tripStart, tripEnd);
+  const stateComps    = computeStateCompletions(ownerTripFinds, priorCounties);
+  const jasmerGrid    = computeJasmerGridState(ownerLifetime, tripStart, tripEnd);
+
+  const ctx: RuleContext = { priorCounties, priorStates, priorCountries, priorTypes };
+  for (const [gc, milestone] of milestones) (ctx as Record<string, number>)[`milestone_for_${gc}`] = milestone;
+  for (const [gc, cell] of jasmerFills)    (ctx as Record<string, string>)[`jasmer_fill_${gc}`] = cell;
+  for (const [gc, cell] of dtFills)        (ctx as Record<string, [number,number]>)[`dt_fill_${gc}`] = cell;
+  for (const [gc, info] of stateComps)     (ctx as Record<string, {state:string;total:number}>)[`state_completion_${gc}`] = info;
+  for (const [state, abbrev] of Object.entries(STATE_ABBREVIATIONS)) (ctx as Record<string, string>)[`stateAbbrev_${state}`] = abbrev;
+  injectReferenceContext(ctx as Record<string, unknown>, refLists);
+
+  const ownerStats: PlayerStats = {
+    playerId: tripInput.owner.playerId,
+    displayName: tripInput.owner.displayName,
+    role: 'owner',
+    aggregate: ownerAggregate,
+    byDay: ownerDailyStats,
+  };
+
+  const rules = buildDefaultRules();
+  const { results: ruleResults, warnings: ruleWarnings } = evaluateAllRules(ownerTripFinds, rules, ctx, tripInput.enabledRules);
+  warnings.push(...ruleWarnings);
+
+  // Companion stats from pre-parsed waypoints
+  const companionStats: PlayerStats[] = [];
+  for (const compInput of tripInput.companions ?? []) {
+    const compSource = parsed.companions.find(c => c.playerId === compInput.playerId);
+    if (!compSource) continue;
+
+    let tripFinds: Waypoint[];
+    let priorFinds: Waypoint[];
+
+    if (compSource.lifetime) {
+      const s = tripStart.toISOString().slice(0, 10);
+      const e = tripEnd.toISOString().slice(0, 10);
+      tripFinds  = compSource.lifetime.filter(w => { if (!w.findDate) return false; const d = w.findDate.toISOString().slice(0,10); return d >= s && d <= e; });
+      priorFinds = compSource.lifetime.filter(w => { if (!w.findDate) return false; return w.findDate.toISOString().slice(0,10) < s; });
+    } else if (compSource.before !== undefined && compSource.after !== undefined) {
+      const beforeCodes = new Set(compSource.before.map(w => w.gcCode));
+      tripFinds  = compSource.after.filter(w => !beforeCodes.has(w.gcCode));
+      priorFinds = compSource.before;
+    } else {
+      continue;
+    }
+
+    const compPriorCounties  = new Set(priorFinds.filter(w => w.county && w.state).map(w => countyKey(w.county!, w.state!)));
+    const compPriorStates    = new Set(priorFinds.filter(w => w.state).map(w => w.state!));
+    const compPriorCountries = new Set(priorFinds.filter(w => w.country).map(w => w.country!));
+    const compPriorTypes     = new Set(priorFinds.filter(w => w.cacheType).map(w => w.cacheType!));
+
+    const aggregate = computeAggregateStats(tripFinds, compPriorCounties, compPriorStates, compPriorCountries, compPriorTypes);
+    const byDay = compSource.lifetime && tripFinds.length > 0
+      ? computeDailyStats(tripFinds, compPriorCounties, tripStart, tripEnd)
+      : [];
+
+    companionStats.push({ playerId: compInput.playerId, displayName: compInput.displayName, role: 'companion', aggregate, byDay });
+  }
+
+  const countiesData = buildCountiesData(ownerTripFinds, priorCounties);
+
+  return { tripInput, ownerStats, allPlayerStats: [ownerStats, ...companionStats], ruleResults, countiesData, jasmerGridState: jasmerGrid, fieldAvailability: { hasCounty: fieldAvailability.hasCounty, hasFp: fieldAvailability.hasFp }, warnings, diagnostics };
+}
