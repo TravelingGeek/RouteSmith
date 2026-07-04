@@ -107,10 +107,11 @@ export async function handleCreateTrip(
         ts, ts,
       ),
 
-      // Add owner as the first trip finder
+      // Add owner as the first trip finder — fetch their gc_username and display_name
       ...(finder ? [env.DB.prepare(`
-        INSERT INTO trip_finders (trip_id, finder_id, role, gpx_mode, uploaded_at)
-        VALUES (?, ?, 'owner', 'lifetime', NULL)
+        INSERT INTO trip_finders (trip_id, finder_id, role, gpx_mode, display_name, gc_username, uploaded_at)
+        SELECT ?, finder_id, 'owner', 'lifetime', display_name, gc_username, NULL
+        FROM finders WHERE finder_id = ?
       `).bind(tripId, finder.finder_id)] : []),
     ]);
 
