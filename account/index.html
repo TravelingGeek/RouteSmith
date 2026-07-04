@@ -660,10 +660,8 @@ document.getElementById('upload-btn').addEventListener('click', async () => {
   btn.textContent = 'Uploading…';
 
   const queued = selectedFiles.filter(f => f.status === 'queued');
-  // Upload sequentially to avoid hammering the API
-  for (const entry of queued) {
-    await uploadFile(entry);
-  }
+  // Upload all files in parallel — queue handles parse concurrency
+  await Promise.all(queued.map(entry => uploadFile(entry)));
 
   btn.disabled = false;
   btn.textContent = 'Upload selected files';
