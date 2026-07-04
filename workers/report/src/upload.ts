@@ -107,7 +107,7 @@ export async function handlePresign(
 
   if (!filename) return jsonError('filename is required');
   if (!file_size_bytes || file_size_bytes <= 0) return jsonError('file_size_bytes is required');
-  if (file_size_bytes > 50 * 1024 * 1024) return jsonError('File too large (max 50MB)');
+  if (file_size_bytes > 150 * 1024 * 1024) return jsonError('File too large (max 150MB)');
 
   const validRoles  = ['lifetime', 'before', 'after'];
   const validScopes = ['full', 'incremental'];
@@ -255,7 +255,12 @@ export async function handleConfirm(
 ): Promise<Response> {
   interface ConfirmRequest {
     trip_id?: string;
-    gc_username?: string; // optional: update finder's gc_username on confirm
+    gc_username?: string;
+    // Browser-extracted metadata (replaces queue-based parsing)
+    find_count?: number;
+    data_through?: string | null;
+    format?: string;
+    detected_username?: string | null;
   }
 
   let body: ConfirmRequest = {};
@@ -294,79 +299,104 @@ export async function handleConfirm(
   }
 
   const ts = now();
-  const jobId = uuid();
 
-  // Write trip authorization if trip_id supplied
-  const authStatements: D1PreparedStatement[] = [];
+  // Use browser-supplied metadata — no queue job needed.
+  // The browser extracted find_count, data_through, format, and detected_username
+  // during file selection using the same regex logic as the former queue job.
+  const findCount    = body.find_count ?? null;
+  const dataThrough  = body.data_through ?? null;
+  const detectedFormat = body.format ?? 'unknown';
+  const gcUsername   = body.gc_username ?? body.detected_username ?? null;
+
+  // Find any currently active file for this finder+role+scope to supersede
+  const previousActive = await env.DB
+    .prepare(`
+      SELECT gpx_file_id FROM gpx_files
+      WHERE owner_finder_id = ? AND file_role = ? AND scope = ?
+        AND is_active = 1 AND deleted_at IS NULL
+    `)
+    .bind(fileRow.owner_finder_id, fileRow.file_role, fileRow.scope)
+    .first<{ gpx_file_id: string }>();
+
+  const statements: D1PreparedStatement[] = [];
+
+  // Activate new file with browser-supplied metadata
+  statements.push(env.DB.prepare(`
+    UPDATE gpx_files
+    SET is_active = 1, find_count = ?, data_through = ?, format = ?, parsed_at = ?
+    WHERE gpx_file_id = ?
+  `).bind(findCount, dataThrough, detectedFormat, ts, gpxFileId));
+
+  // Deactivate previous file
+  if (previousActive) {
+    statements.push(env.DB.prepare(`
+      UPDATE gpx_files SET is_active = 0, deleted_at = ?, deleted_by_user_id = ?
+      WHERE gpx_file_id = ?
+    `).bind(ts, user.userId, previousActive.gpx_file_id));
+
+    statements.push(env.DB.prepare(`
+      INSERT INTO gpx_file_events (event_id, gpx_file_id, event_type, executed_by_user_id, related_gpx_file_id, note, occurred_at)
+      VALUES (?, ?, 'replaced', ?, ?, ?, ?)
+    `).bind(uuid(), previousActive.gpx_file_id, user.userId, gpxFileId,
+        `Superseded by ${fileRow.r2_key}`, ts));
+  }
+
+  // Audit events
+  statements.push(env.DB.prepare(`
+    INSERT INTO gpx_file_events (event_id, gpx_file_id, event_type, executed_by_user_id, note, occurred_at)
+    VALUES (?, ?, 'uploaded', ?, ?, ?)
+  `).bind(uuid(), gpxFileId, user.userId,
+      `${findCount ?? '?'} finds, format: ${detectedFormat}`, ts));
+
+  statements.push(env.DB.prepare(`
+    INSERT INTO gpx_file_events (event_id, gpx_file_id, event_type, executed_by_user_id, note, occurred_at)
+    VALUES (?, ?, 'parsed', ?, ?, ?)
+  `).bind(uuid(), gpxFileId, user.userId,
+      `${findCount ?? '?'} finds · data through ${dataThrough ?? 'unknown'} (browser-extracted)`, ts));
+
+  // Update finder freshness (lifetime role only)
+  if (fileRow.file_role === 'lifetime') {
+    if (gcUsername) {
+      statements.push(env.DB.prepare(`
+        UPDATE finders SET lifetime_uploaded_at = ?, lifetime_find_count = ?,
+          lifetime_data_through = ?, gc_username = ?, updated_at = ?
+        WHERE finder_id = ?
+      `).bind(ts, findCount, dataThrough, gcUsername, ts, fileRow.owner_finder_id));
+    } else {
+      statements.push(env.DB.prepare(`
+        UPDATE finders SET lifetime_uploaded_at = ?, lifetime_find_count = ?,
+          lifetime_data_through = ?, updated_at = ?
+        WHERE finder_id = ?
+      `).bind(ts, findCount, dataThrough, ts, fileRow.owner_finder_id));
+    }
+  }
+
+  // Trip authorization
   if (body.trip_id) {
-    authStatements.push(
-      env.DB.prepare(`
-        INSERT OR IGNORE INTO gpx_file_trip_auth (
-          gpx_file_id, trip_id, authorized_by_user_id, authorized_at
-        ) VALUES (?, ?, ?, ?)
-      `).bind(gpxFileId, body.trip_id, user.userId, ts)
-    );
-    authStatements.push(
-      env.DB.prepare(`
-        INSERT INTO gpx_file_events (
-          event_id, gpx_file_id, event_type, executed_by_user_id,
-          related_trip_id, note, occurred_at
-        ) VALUES (?, ?, 'auth_granted', ?, ?, ?, ?)
-      `).bind(uuid(), gpxFileId, user.userId, body.trip_id, `Authorized for trip ${body.trip_id}`, ts)
-    );
-    await env.DB.batch(authStatements);
+    statements.push(env.DB.prepare(`
+      INSERT OR IGNORE INTO gpx_file_trip_auth (gpx_file_id, trip_id, authorized_by_user_id, authorized_at)
+      VALUES (?, ?, ?, ?)
+    `).bind(gpxFileId, body.trip_id, user.userId, ts));
+
+    statements.push(env.DB.prepare(`
+      INSERT INTO gpx_file_events (event_id, gpx_file_id, event_type, executed_by_user_id, related_trip_id, note, occurred_at)
+      VALUES (?, ?, 'auth_granted', ?, ?, ?, ?)
+    `).bind(uuid(), gpxFileId, user.userId, body.trip_id, `Authorized for trip ${body.trip_id}`, ts));
   }
-
-  // Update gc_username if supplied
-  if (body.gc_username) {
-    await env.DB.prepare(`
-      UPDATE finders SET gc_username = ?, updated_at = ?
-      WHERE finder_id = ?
-    `).bind(body.gc_username, ts, fileRow.owner_finder_id).run();
-  }
-
-  // Create job row
-  const jobPayload = {
-    gpx_file_id: gpxFileId,
-    finder_id: fileRow.owner_finder_id,
-    r2_key: fileRow.r2_key,
-    file_role: fileRow.file_role,
-    scope: fileRow.scope,
-  };
-
-  await env.DB.prepare(`
-    INSERT INTO jobs (
-      job_id, module, job_type, status, user_id,
-      payload_json, created_at, updated_at
-    ) VALUES (?, 'report', 'gpx_parse', 'pending', ?, ?, ?, ?)
-  `).bind(jobId, user.userId, JSON.stringify(jobPayload), ts, ts).run();
-
-  // Enqueue the parse job
-  const jobMessage: JobMessage = {
-    job_id: jobId,
-    job_type: 'gpx_parse',
-    module: 'report',
-    user_id: user.userId,
-    payload: jobPayload,
-  };
 
   try {
-    await env.JOBS_QUEUE.send(jobMessage);
+    await env.DB.batch(statements);
   } catch (e) {
-    // If queue send fails, mark job as failed so user can retry
-    await env.DB.prepare(`
-      UPDATE jobs SET status = 'failed', error = ?, updated_at = ?, completed_at = ?
-      WHERE job_id = ?
-    `).bind(`Queue send failed: ${(e as Error).message}`, ts, ts, jobId).run();
-    return jsonError(`Failed to queue parse job: ${(e as Error).message}`, 500);
+    return jsonError(`Database error during confirm: ${(e as Error).message}`, 500);
   }
 
   return jsonResponse({
     gpx_file_id: gpxFileId,
-    job_id: jobId,
-    status: 'processing',
-    message: 'File uploaded. Parse job queued — poll /api/upload/status/:job_id for results.',
-  }, 202);
+    find_count: findCount,
+    data_through: dataThrough,
+    format: detectedFormat,
+    superseded_file_id: previousActive?.gpx_file_id ?? null,
+  });
 }
 
 

@@ -100,7 +100,7 @@ export async function runPipeline(
   // ── Owner GPX ────────────────────────────────────────────────────────────
 
   const ownerInput = tripInput.owner;
-  const ownerLifetime = parseGpxTexts(
+  const ownerLifetime = await parseGpxTexts(
     gpxSources.owner.lifetime,
     ownerInput.gcUsername,
   );
@@ -202,7 +202,7 @@ export async function runPipeline(
     const compSource = gpxSources.companions.find(c => c.playerId === compInput.playerId);
     if (!compSource) continue;
 
-    const compStats = buildCompanionStats(
+    const compStats = await buildCompanionStats(
       compInput,
       compSource,
       tripStart,
@@ -237,12 +237,12 @@ export async function runPipeline(
 // Companion stats builder
 // ============================================================================
 
-function buildCompanionStats(
+async function buildCompanionStats(
   input: PlayerInput,
   source: GpxSources['companions'][number],
   tripStart: Date,
   tripEnd: Date,
-): PlayerStats | null {
+): Promise<PlayerStats | null> {
   let tripFinds: Waypoint[];
   let priorFinds: Waypoint[];
   let mode: 'lifetime' | 'diff' | 'none' = 'none';
@@ -250,7 +250,7 @@ function buildCompanionStats(
   if (source.lifetime && source.lifetime.length > 0) {
     // Preferred: lifetime My Finds GPX
     mode = 'lifetime';
-    const all = parseGpxTexts(source.lifetime, input.gcUsername);
+    const all = await parseGpxTexts(source.lifetime, input.gcUsername);
     const s = tripStart.toISOString().slice(0, 10);
     const e = tripEnd.toISOString().slice(0, 10);
     tripFinds = [];
@@ -264,8 +264,8 @@ function buildCompanionStats(
   } else if (source.before || source.after) {
     // Fallback: before/after snapshot diff
     mode = 'diff';
-    const before = source.before ? parseGpxTexts(source.before, input.gcUsername) : [];
-    const after  = source.after  ? parseGpxTexts(source.after,  input.gcUsername) : [];
+    const before = source.before ? await parseGpxTexts(source.before, input.gcUsername) : [];
+    const after  = source.after  ? await parseGpxTexts(source.after,  input.gcUsername) : [];
     const beforeCodes = new Set(before.map(w => w.gcCode));
     tripFinds = after.filter(w => !beforeCodes.has(w.gcCode));
     priorFinds = before;

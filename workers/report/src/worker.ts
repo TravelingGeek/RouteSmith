@@ -18,6 +18,7 @@ import { renderReport } from './renderer.js';
 import { requireAuth, unauthorizedResponse, AuthError } from './auth.js';
 import { handleAccountSync, handleAccountMe, handleGpxFiles } from './account.js';
 import { handlePresign, handleUploadData, handleConfirm, handleJobStatus } from './upload.js';
+import { handleReportRunFromR2 } from './reportRun.js';
 import type { TripInput } from './types.js';
 
 // ============================================================================
@@ -84,6 +85,11 @@ export default {
     } catch (e) {
       if (e instanceof AuthError) return addCors(unauthorizedResponse(e.message), request);
       return addCors(unauthorizedResponse('Authentication failed'), request);
+    }
+
+    // Report run routes
+    if (url.pathname === '/api/report/run-from-r2' && request.method === 'POST') {
+      return addCors(await handleReportRunFromR2(request, user, env), request);
     }
 
     // Upload routes

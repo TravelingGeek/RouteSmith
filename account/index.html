@@ -506,13 +506,39 @@ function addFilesToQueue(fileList) {
     itemEl.innerHTML = `
       <span class="upload-item-name" title="${file.name}">${file.name}</span>
       <span class="upload-item-scope">${scope}</span>
-      <span class="upload-item-status queued">Queued</span>
+      <span class="upload-item-status queued">Analyzing…</span>
       <div class="upload-progress" style="display:none;">
         <div class="upload-progress-bar"></div>
       </div>`;
     queueEl.appendChild(itemEl);
 
-    selectedFiles.push({ file, scope, status: 'queued', jobId: null, itemEl });
+    const entry = { file, scope, status: 'queued', jobId: null, itemEl, metadata: null };
+    selectedFiles.push(entry);
+
+    // Extract metadata in background while user reviews file list
+    extractGpxMetadataBrowser(file).then(meta => {
+      entry.metadata = meta;
+      const statusEl = itemEl.querySelector('.upload-item-status');
+      if (meta) {
+        statusEl.className = 'upload-item-status queued';
+        statusEl.textContent = 'Queued';
+        let hint = '';
+        if (meta.findCount) hint += meta.findCount.toLocaleString() + ' finds';
+        if (meta.dataThrough) hint += ' · through ' + fmtDate(meta.dataThrough);
+        if (hint) {
+          let result = itemEl.querySelector('.upload-item-result');
+          if (!result) { result = document.createElement('div'); result.className = 'upload-item-result'; itemEl.appendChild(result); }
+          result.textContent = hint;
+        }
+      } else {
+        statusEl.className = 'upload-item-status queued';
+        statusEl.textContent = 'Queued';
+      }
+    }).catch(() => {
+      const statusEl = itemEl.querySelector('.upload-item-status');
+      statusEl.className = 'upload-item-status queued';
+      statusEl.textContent = 'Queued';
+    });
   }
 
   if (selectedFiles.length > 0) {
@@ -628,37 +654,16 @@ async function uploadFile(entry) {
     return;
   }
 
-  // Step 4: Poll for job completion
-  setItemStatus(entry, 'processing', 'Parsing…');
-  setItemProgress(entry, true, 0);
-
-  for (let i = 0; i < 60; i++) {
-    await new Promise(r => setTimeout(r, 2000));
-    try {
-      const tok4 = await getToken();
-      const resp = await fetch(`${BASE}/api/upload/status/${jobId}`, {
-        headers: { 'Authorization': 'Bearer ' + tok4 }
-      });
-      const status = await resp.json();
-
-      if (status.status === 'complete') {
-        setItemStatus(entry, 'complete', 'Complete');
-        setItemProgress(entry, false, 100);
-        const r = status.result;
-        addItemResult(entry, `${r.find_count.toLocaleString()} finds · through ${fmtDate(r.data_through)} · ${r.format.toUpperCase()}`);
-        return;
-      }
-
-      if (status.status === 'failed') {
-        setItemStatus(entry, 'error', 'Parse failed');
-        addItemResult(entry, status.error ?? 'Unknown error');
-        return;
-      }
-    } catch { /* token refresh etc — keep polling */ }
+  // Step 4: Mark complete using browser-extracted metadata
+  // No polling needed — metadata was extracted during file selection.
+  setItemStatus(entry, 'complete', 'Complete');
+  setItemProgress(entry, false, 100);
+  const meta = entry.metadata;
+  if (meta?.findCount) {
+    addItemResult(entry, `${meta.findCount.toLocaleString()} finds · through ${fmtDate(meta.dataThrough)} · ${(meta.format || 'unknown').toUpperCase()}`);
+  } else {
+    addItemResult(entry, 'Uploaded successfully');
   }
-
-  setItemStatus(entry, 'error', 'Timed out');
-  addItemResult(entry, 'Parsing took too long. Check back shortly.');
 }
 
 document.getElementById('upload-btn').addEventListener('click', async () => {

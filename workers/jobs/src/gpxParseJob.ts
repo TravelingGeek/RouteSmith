@@ -71,9 +71,10 @@ export async function handleGpxParseJob(
         }
       }
 
-      // Option A: count drop warning (catches wrong file even if gc_username not set)
+      // Option A: count drop check — only applies to full scope files.
+      // Incremental files are expected to have far fewer finds than the full file.
       const existingCount = finder?.lifetime_find_count ?? 0;
-      if (existingCount > 100 && findCount < existingCount * 0.5) {
+      if (payload.scope === 'full' && existingCount > 100 && findCount < existingCount * 0.5) {
         const msg = `Find count dropped dramatically: file has ${findCount} finds but existing lifetime data has ${existingCount}. This may be the wrong file. Upload rejected.`;
         await markJobFailed(env, jobId, gpx_file_id, userId, msg, ts);
         throw new Error(`${msg} — marked failed, not retrying`);
@@ -240,14 +241,20 @@ function extractGpxMetadata(gpxText: string): {
     }
   }
 
-  // Extract the most common finder username from log entries
+  // Extract the most common finder username from log entries only.
+  // Scan log blocks to avoid picking up 'Project-GC' from the file header.
   let detectedUsername: string | null = null;
-  const finderRe = /<groundspeak:finder[^>]*>([^<]+)<\/groundspeak:finder>/g;
   const finderCounts = new Map<string, number>();
-  let fm: RegExpExecArray | null;
-  while ((fm = finderRe.exec(gpxText)) !== null) {
-    const name = fm[1].trim();
-    finderCounts.set(name, (finderCounts.get(name) ?? 0) + 1);
+  const logBlockScan = gpxText.split('</groundspeak:log>');
+  for (const block of logBlockScan) {
+    const finderOpen  = block.indexOf('<groundspeak:finder');
+    const finderClose = block.indexOf('</groundspeak:finder>');
+    if (finderOpen === -1 || finderClose === -1) continue;
+    // Extract text content — skip past the closing > of the opening tag
+    const tagClose = block.indexOf('>', finderOpen);
+    if (tagClose === -1 || tagClose >= finderClose) continue;
+    const name = block.slice(tagClose + 1, finderClose).trim();
+    if (name) finderCounts.set(name, (finderCounts.get(name) ?? 0) + 1);
   }
   if (finderCounts.size > 0) {
     detectedUsername = [...finderCounts.entries()]

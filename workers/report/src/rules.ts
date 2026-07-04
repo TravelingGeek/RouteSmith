@@ -476,9 +476,32 @@ export function evaluateAllRules(
   for (const rule of activeRules) {
     if (!rule.defaultEnabled) continue;
     const matches: RuleMatch[] = [];
+
+    // For county/state/country/type "new" rules, deduplicate by the new value
+    // so the rule fires once per unique new territory, not once per find.
+    const seenNewValues = new Set<string>();
+
     for (const wpt of tripFinds) {
       const match = evaluateRule(rule, wpt, ctx);
-      if (match) matches.push(match);
+      if (!match) continue;
+
+      // Deduplicate new_county, new_state, new_country, new_cache_type
+      if (rule.id === 'new_county' && wpt.county && wpt.state) {
+        const key = `${wpt.county}|${wpt.state}`;
+        if (seenNewValues.has(key)) continue;
+        seenNewValues.add(key);
+      } else if (rule.id === 'new_state' && wpt.state) {
+        if (seenNewValues.has(wpt.state)) continue;
+        seenNewValues.add(wpt.state);
+      } else if (rule.id === 'new_country' && wpt.country) {
+        if (seenNewValues.has(wpt.country)) continue;
+        seenNewValues.add(wpt.country);
+      } else if (rule.id === 'new_cache_type' && wpt.cacheType) {
+        if (seenNewValues.has(wpt.cacheType)) continue;
+        seenNewValues.add(wpt.cacheType);
+      }
+
+      matches.push(match);
     }
     if (matches.length > 0) {
       results.push({ rule, matches });

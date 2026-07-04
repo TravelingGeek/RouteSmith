@@ -246,11 +246,25 @@ function parseDocument(doc: Document, finderName: string | null): Waypoint[] {
 // ============================================================================
 
 /**
- * Parse a GPX XML string. For use with DOMParser (browser / Workers).
- *
- * @param xmlText    Raw GPX text.
- * @param finderName Optional username for find-date extraction.
- * @param parser     DOMParser instance (injected for testability).
+ * Parse a GPX XML string.
+ * Uses DOMParser when available (browser), falls back to fast-xml-parser
+ * (Cloudflare Workers runtime where DOMParser is unavailable).
+ */
+/**
+ * Parse a GPX XML string using fast-xml-parser.
+ * Works in both browser and Cloudflare Workers (no DOMParser dependency).
+ * Used by parseGpxTexts for all Worker-side pipeline runs.
+ */
+export async function parseGpxTextAsync(
+  xmlText: string,
+  finderName: string | null = null,
+): Promise<Waypoint[]> {
+  return parseGpxTextFxp(xmlText, finderName);
+}
+
+/**
+ * Parse a GPX XML string using DOMParser (browser only).
+ * Use parseGpxTextAsync for Worker-compatible parsing.
  */
 export function parseGpxText(
   xmlText: string,
@@ -265,16 +279,16 @@ export function parseGpxText(
 
 /**
  * Parse multiple GPX texts and return a deduplicated list.
- * Later items in the array override earlier ones (last-write-wins by GC code),
- * so pass base file first, incremental second — same semantics as Python.
+ * Worker-compatible (async, uses fast-xml-parser fallback).
+ * Later items override earlier ones (last-write-wins by GC code).
  */
-export function parseGpxTexts(
+export async function parseGpxTexts(
   texts: string[],
   finderName: string | null = null,
-): Waypoint[] {
+): Promise<Waypoint[]> {
   const seen = new Map<string, Waypoint>();
   for (const text of texts) {
-    for (const wpt of parseGpxText(text, finderName)) {
+    for (const wpt of await parseGpxTextAsync(text, finderName)) {
       seen.set(wpt.gcCode, wpt);
     }
   }
@@ -489,4 +503,157 @@ function findArray(obj: Record<string, unknown>, localName: string): unknown[] {
   if (!val) return [];
   if (Array.isArray(val)) return val;
   return [val];
+}
+
+// ============================================================================
+// fast-xml-parser based full waypoint parser (Workers runtime fallback)
+// ============================================================================
+
+// Extract plain text from a fast-xml-parser node (handles string, number,
+// and object with #text property from attribute-bearing elements).
+function extractText(val: unknown): string | null {
+  if (val === null || val === undefined) return null;
+  if (typeof val === 'string') return val.trim() || null;
+  if (typeof val === 'number') return String(val);
+  if (typeof val === 'object') {
+    const o = val as Record<string, unknown>;
+    if ('#text' in o) return String(o['#text']).trim() || null;
+  }
+  return null;
+}
+
+async function parseGpxTextFxp(
+  xmlText: string,
+  finderName: string | null,
+): Promise<Waypoint[]> {
+  const { XMLParser } = await import('fast-xml-parser');
+
+  const parser = new XMLParser({
+    ignoreAttributes: false,
+    attributeNamePrefix: '@_',
+    isArray: (name: string) => ['wpt', 'log', 'attribute'].includes(name),
+    parseAttributeValue: true,
+    processEntities: {
+      enabled: true,
+      maxEntityCount: 100000,
+    } as unknown as boolean,
+    htmlEntities: false,
+    removeNSPrefix: true, // strips groundspeak:, gsak: etc — simplifies traversal
+  });
+
+  const doc = parser.parse(xmlText);
+  const root = doc.gpx ?? Object.values(doc)[0] as Record<string, unknown>;
+  const wpts: unknown[] = Array.isArray(root?.wpt) ? root.wpt as unknown[] : [];
+
+  const FOUND_TYPES = new Set(['Found it', 'Attended', 'Webcam Photo Taken']);
+  const results: Waypoint[] = [];
+
+  for (const w of wpts) {
+    const wptObj = w as Record<string, unknown>;
+    const name = (wptObj['name'] as string | undefined)?.trim() ?? '';
+    if (!name.startsWith('GC')) continue;
+
+    const lat = parseFloat(String(wptObj['@_lat'] ?? ''));
+    const lon = parseFloat(String(wptObj['@_lon'] ?? ''));
+    if (isNaN(lat) || isNaN(lon)) continue;
+
+    const timeStr = wptObj['time'] as string | undefined;
+    const placementTime = parseIsoDatetime(timeStr);
+
+    const sym = (wptObj['sym'] as string | undefined) ?? null;
+
+    // Groundspeak cache element (namespace stripped by removeNSPrefix)
+    const cache = wptObj['cache'] as Record<string, unknown> | undefined;
+    let cacheType: string | null = null;
+    let container: string | null = null;
+    let difficulty: number | null = null;
+    let terrain: number | null = null;
+    let country: string | null = null;
+    let state: string | null = null;
+    let cacheOwner: string | null = null;
+    let cacheName = name;
+    let archived = false;
+    let findDate: Date | null = null;
+    let finderLogText: string | null = null;
+    const attributes = new Set<number>();
+
+    if (cache) {
+      archived = cache['@_archived'] === 'True' || cache['@_archived'] === true;
+      cacheName = extractText(cache['name']) ?? name;
+      cacheType = extractText(cache['type']);
+      container = extractText(cache['container']);
+      difficulty = parseFloat_(extractText(cache['difficulty']));
+      terrain    = parseFloat_(extractText(cache['terrain']));
+      country    = extractText(cache['country']);
+      state      = extractText(cache['state']);
+      cacheOwner = extractText(cache['owner']);
+
+      // Attributes
+      const attrsContainer = cache['attributes'] as Record<string, unknown> | undefined;
+      if (attrsContainer) {
+        const attrList = Array.isArray(attrsContainer['attribute'])
+          ? attrsContainer['attribute'] as Record<string, unknown>[]
+          : [];
+        for (const attr of attrList) {
+          const id = parseInt_(String(attr['@_id'] ?? ''));
+          if (id) attributes.add(id);
+        }
+      }
+
+      // Logs
+      if (finderName) {
+        const logsContainer = cache['logs'] as Record<string, unknown> | undefined;
+        const logs = Array.isArray(logsContainer?.['log'])
+          ? logsContainer!['log'] as Record<string, unknown>[]
+          : [];
+        for (const log of logs) {
+          const finderName_ = extractText(log['finder']) ?? '';
+          const logType = extractText(log['type']) ?? '';
+          const logDate = extractText(log['date']) ?? '';
+          const logTextStr = extractText(log['text']);
+
+          if (finderName_.toLowerCase() === finderName.toLowerCase() && FOUND_TYPES.has(logType)) {
+            findDate = parseIsoDatetime(logDate);
+            finderLogText = logTextStr;
+            break;
+          }
+        }
+      }
+    }
+
+    // GSAK extension (namespace stripped)
+    let county: string | null = null;
+    let favoritePoints = 0;
+    const ext = wptObj['wptExtension'] as Record<string, unknown> | undefined;
+    if (ext) {
+      const countyText = ext['County'] as string | undefined;
+      if (countyText) county = stripCountySuffix(countyText);
+      const fp = ext['FavPoints'] as string | number | undefined;
+      if (fp !== undefined) favoritePoints = parseInt_(String(fp));
+    }
+
+    results.push({
+      gcCode: name,
+      name: cacheName,
+      cacheType,
+      lat,
+      lon,
+      container,
+      difficulty,
+      terrain,
+      country,
+      state,
+      county,
+      placementTime,
+      findDate,
+      favoritePoints,
+      cacheOwner,
+      attributes,
+      finderLogText,
+      sym,
+      archived,
+    });
+  }
+
+  return results;
 }
