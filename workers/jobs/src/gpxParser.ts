@@ -13,6 +13,8 @@
  */
 
 import type { Waypoint } from './types.js';
+import { XMLParser } from 'fast-xml-parser';
+import { unzipSync as _unzipSync } from 'fflate';
 import { STATE_ABBREVIATIONS } from './types.js';
 
 // ============================================================================
@@ -313,7 +315,7 @@ export async function parseGpxZip(
   finderName: string | null = null,
 ): Promise<Waypoint[]> {
   // Dynamic import keeps fflate tree-shakeable when ZIP support isn't needed.
-  const { unzipSync } = await import('fflate');
+  const unzipSync = _unzipSync;
 
   const uint8 = new Uint8Array(zipBuffer);
   let files: Record<string, Uint8Array>;
@@ -409,7 +411,7 @@ export async function extractGpxMetadata(gpxText: string): Promise<{
   dataThrough: string | null;
   format: string;
 }> {
-  const { XMLParser } = await import('fast-xml-parser');
+  // XMLParser already imported statically
 
   const parser = new XMLParser({
     ignoreAttributes: false,
@@ -526,7 +528,7 @@ async function parseGpxTextFxp(
   xmlText: string,
   finderName: string | null,
 ): Promise<Waypoint[]> {
-  const { XMLParser } = await import('fast-xml-parser');
+  // XMLParser already imported statically
 
   const parser = new XMLParser({
     ignoreAttributes: false,

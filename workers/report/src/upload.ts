@@ -261,6 +261,12 @@ export async function handleConfirm(
     data_through?: string | null;
     format?: string;
     detected_username?: string | null;
+    counties?: Array<{
+      county: string;
+      state: string;
+      country: string;
+      firstFound: string;  // ISO date YYYY-MM-DD
+    }>;
   }
 
   let body: ConfirmRequest = {};
@@ -388,6 +394,38 @@ export async function handleConfirm(
     await env.DB.batch(statements);
   } catch (e) {
     return jsonError(`Database error during confirm: ${(e as Error).message}`, 500);
+  }
+
+  // Write county lifetime data if provided and this is a lifetime file
+  const counties = body.counties ?? [];
+  if (counties.length > 0 && fileRow.file_role === 'lifetime') {
+    try {
+      // Batch upsert — D1 batch limit is 100 statements
+      const BATCH_SIZE = 100;
+      const ts2 = now();
+      for (let i = 0; i < counties.length; i += BATCH_SIZE) {
+        const batch = counties.slice(i, i + BATCH_SIZE);
+        const countyStatements = batch.map(c =>
+          env.DB.prepare(`
+            INSERT INTO finder_county_lifetime (finder_id, county_key, state, county, country, first_found)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT (finder_id, county_key) DO UPDATE SET
+              first_found = CASE WHEN excluded.first_found < first_found THEN excluded.first_found ELSE first_found END
+          `).bind(
+            fileRow.owner_finder_id,
+            `${c.county}|${c.state}`,
+            c.state,
+            c.county,
+            c.country ?? 'United States',
+            Math.floor(new Date(c.firstFound + 'T00:00:00Z').getTime() / 1000),
+          )
+        );
+        await env.DB.batch(countyStatements);
+      }
+    } catch (e) {
+      // Non-fatal — log but don't fail the confirm
+      console.error(`County upsert failed: ${(e as Error).message}`);
+    }
   }
 
   return jsonResponse({

@@ -1,17 +1,12 @@
 /**
  * reportRunJob.ts — Report pipeline job handler for the routesmith-jobs Worker.
- *
- * Runs the full REPORT pipeline in the jobs Worker where there are no
- * CPU or memory constraints (queue consumers get up to 15 minutes).
- *
- * Flow:
- *   1. Fetch all GPX files from R2, parsing each immediately to Waypoints
- *   2. Run the pipeline with pre-parsed waypoints
- *   3. Store the result JSON in R2 at payload.result_r2_key
- *   4. Update the jobs table with status=complete
  */
 
-import type { Env, ReportRunPayload, ReportRunResult, D1PreparedStatement } from './types.js';
+import type { Env, ReportRunPayload, ReportRunResult } from './types.js';
+import { parseGpxTextAsync } from './gpxParser.js';
+import { runPipelineFromWaypoints } from './pipeline.js';
+import { fetchReferenceListsFromR2 } from './referenceLists.js';
+import { unzipSync } from 'fflate';
 
 export async function handleReportRunJob(
   jobId: string,
@@ -25,13 +20,6 @@ export async function handleReportRunJob(
   await env.DB.prepare(
     `UPDATE jobs SET status = 'processing', attempt_count = ?, updated_at = ? WHERE job_id = ?`
   ).bind(attemptNumber, ts, jobId).run();
-
-  // ── Import pipeline modules ─────────────────────────────────────────────
-  // Dynamic imports keep the Worker bundle smaller and allow tree-shaking.
-  const { parseGpxTextAsync } = await import('./gpxParser.js');
-  const { runPipelineFromWaypoints } = await import('./pipeline.js');
-  const { fetchReferenceListsFromR2 } = await import('./referenceLists.js');
-  const { unzipSync } = await import('fflate');
 
   // ── Helper: fetch one GPX file and parse to Waypoints ──────────────────
   async function fetchAndParse(
