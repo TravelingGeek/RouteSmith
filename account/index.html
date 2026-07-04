@@ -485,6 +485,131 @@ async function loadGpxSummary() {
   }
 }
 
+// ── Browser-side GPX metadata extraction ─────────────────────────
+async function extractGpxMetadataBrowser(file) {
+  const FOUND_TYPES = new Set(['Found it', 'Attended', 'Webcam Photo Taken']);
+  const t0 = performance.now();
+  console.log(`[gpx-meta] Starting extraction for ${file.name} (${(file.size/1024/1024).toFixed(1)}MB)`);
+
+  async function processGpxText(text) {
+    const tp0 = performance.now();
+    console.log(`[gpx-meta] Processing GPX text (${(text.length/1024/1024).toFixed(1)}MB chars)`);
+
+    const header = text.slice(0, 10000);
+    let format = 'unknown';
+    if (header.includes('gsak.net') || header.includes('Project-GC') || header.includes('project-gc.com')) {
+      format = 'pgc';
+    } else if (header.includes('geocaching.com') || header.includes('Groundspeak')) {
+      format = 'gccom';
+    }
+
+    let findCount = 0;
+    let latestDate = null;
+    let detectedUsername = null;
+    const finderCounts = new Map();
+
+    if (format === 'pgc') {
+      const wptChunks = text.split('</wpt>');
+      for (const chunk of wptChunks) {
+        const logsStart = chunk.indexOf('<groundspeak:logs>');
+        if (logsStart === -1) continue;
+        const logsSection = chunk.slice(logsStart);
+        const logChunks = logsSection.split('</groundspeak:log>');
+        let counted = false;
+        for (const log of logChunks) {
+          if (counted) break;
+          const typeOpen  = log.indexOf('<groundspeak:type>');
+          const typeClose = log.indexOf('</groundspeak:type>');
+          if (typeOpen === -1 || typeClose === -1) continue;
+          const logType = log.slice(typeOpen + 18, typeClose).trim();
+          if (!FOUND_TYPES.has(logType)) continue;
+          findCount++;
+          counted = true;
+          const dateOpen  = log.indexOf('<groundspeak:date>');
+          const dateClose = log.indexOf('</groundspeak:date>');
+          if (dateOpen !== -1 && dateClose !== -1) {
+            const dateStr = log.slice(dateOpen + 18, dateClose).trim().slice(0, 10);
+            if (dateStr && (!latestDate || dateStr > latestDate)) latestDate = dateStr;
+          }
+          const finderTagStart = log.indexOf('<groundspeak:finder');
+          const finderTagEnd   = log.indexOf('</groundspeak:finder>');
+          if (finderTagStart !== -1 && finderTagEnd !== -1) {
+            const tagClose = log.indexOf('>', finderTagStart);
+            if (tagClose !== -1 && tagClose < finderTagEnd) {
+              const fname = log.slice(tagClose + 1, finderTagEnd).trim();
+              if (fname) finderCounts.set(fname, (finderCounts.get(fname) ?? 0) + 1);
+            }
+          }
+        }
+      }
+    } else {
+      const wptChunks = text.split('</wpt>');
+      for (const chunk of wptChunks) {
+        const symOpen  = chunk.indexOf('<sym>');
+        const symClose = chunk.indexOf('</sym>');
+        if (symOpen === -1 || symClose === -1) continue;
+        const sym = chunk.slice(symOpen + 5, symClose).trim();
+        if (!sym.includes('Found')) continue;
+        findCount++;
+        const timeOpen  = chunk.indexOf('<time>');
+        const timeClose = chunk.indexOf('</time>');
+        if (timeOpen !== -1 && timeClose !== -1) {
+          const dateStr = chunk.slice(timeOpen + 6, timeClose).trim().slice(0, 10);
+          if (dateStr && (!latestDate || dateStr > latestDate)) latestDate = dateStr;
+        }
+      }
+    }
+
+    if (finderCounts.size > 0) {
+      detectedUsername = [...finderCounts.entries()].sort((a,b) => b[1]-a[1])[0][0];
+    }
+    console.log(`[gpx-meta] Text parse done in ${(performance.now()-tp0).toFixed(0)}ms — ${findCount} finds, format=${format}, username=${detectedUsername}`);
+    return { findCount, dataThrough: latestDate, format, detectedUsername };
+  }
+
+  const tb0 = performance.now();
+  const buffer = await file.arrayBuffer();
+  console.log(`[gpx-meta] ArrayBuffer read in ${(performance.now()-tb0).toFixed(0)}ms`);
+
+  if (file.name.toLowerCase().endsWith('.zip')) {
+    if (!window._fflate) {
+      const tl0 = performance.now();
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/fflate/0.8.2/fflate.min.js';
+        s.onload = resolve; s.onerror = reject;
+        document.head.appendChild(s);
+      });
+      window._fflate = fflate;
+      console.log(`[gpx-meta] fflate loaded in ${(performance.now()-tl0).toFixed(0)}ms`);
+    }
+    const tz0 = performance.now();
+    const files = window._fflate.unzipSync(new Uint8Array(buffer));
+    console.log(`[gpx-meta] ZIP decompressed in ${(performance.now()-tz0).toFixed(0)}ms`);
+    const gpxEntries = Object.entries(files).filter(([n]) =>
+      n.toLowerCase().endsWith('.gpx') && !n.toLowerCase().includes('wpts')
+    );
+    if (!gpxEntries.length) return null;
+    const decoder = new TextDecoder('utf-8');
+    let totalFinds = 0, latestDate = null, format = 'unknown', detectedUsername = null;
+    for (const [, data] of gpxEntries) {
+      const text = decoder.decode(data);
+      const meta = await processGpxText(text);
+      totalFinds += meta.findCount;
+      if (meta.format !== 'unknown') format = meta.format;
+      if (meta.dataThrough && (!latestDate || meta.dataThrough > latestDate)) latestDate = meta.dataThrough;
+      if (meta.detectedUsername && !detectedUsername) detectedUsername = meta.detectedUsername;
+    }
+    console.log(`[gpx-meta] Total ZIP extraction time: ${(performance.now()-t0).toFixed(0)}ms`);
+    return { findCount: totalFinds, dataThrough: latestDate, format, detectedUsername };
+  } else {
+    const text = new TextDecoder('utf-8').decode(buffer);
+    const result = await processGpxText(text);
+    console.log(`[gpx-meta] Total GPX extraction time: ${(performance.now()-t0).toFixed(0)}ms`);
+    return result;
+  }
+}
+
 // ── File selection ────────────────────────────────────────────────
 let selectedFiles = []; // { file, scope, status, jobId, itemEl }
 
