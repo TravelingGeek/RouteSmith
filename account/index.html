@@ -8,6 +8,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fflate/0.8.2/fflate.min.js" crossorigin="anonymous"></script>
+
 <script
   async
   crossorigin="anonymous"
@@ -612,20 +614,8 @@ async function extractGpxMetadataBrowser(file) {
   console.log(`[gpx-meta] ArrayBuffer read in ${(performance.now()-tb0).toFixed(0)}ms`);
 
   if (file.name.toLowerCase().endsWith('.zip')) {
-    if (!window._fflate) {
-      const tl0 = performance.now();
-      await new Promise((resolve, reject) => {
-        const s = document.createElement('script');
-        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/fflate/0.8.2/fflate.min.js';
-        s.onload = resolve; s.onerror = reject;
-        document.head.appendChild(s);
-      });
-      window._fflate = fflate;
-      console.log(`[gpx-meta] fflate loaded in ${(performance.now()-tl0).toFixed(0)}ms`);
-    }
-    const tz0 = performance.now();
-    const files = window._fflate.unzipSync(new Uint8Array(buffer));
-    console.log(`[gpx-meta] ZIP decompressed in ${(performance.now()-tz0).toFixed(0)}ms`);
+    if (!window.fflate) throw new Error('fflate not loaded');
+    const files = window.fflate.unzipSync(new Uint8Array(buffer));
     const gpxEntries = Object.entries(files).filter(([n]) =>
       n.toLowerCase().endsWith('.gpx') && !n.toLowerCase().includes('wpts')
     );
@@ -688,7 +678,9 @@ function addFilesToQueue(fileList) {
     selectedFiles.push(entry);
 
     // Extract metadata in background while user reviews file list
-    extractGpxMetadataBrowser(file).then(meta => {
+    const metaPromise = extractGpxMetadataBrowser(file);
+    entry.metaPromise = metaPromise;
+    metaPromise.then(meta => {
       entry.metadata = meta;
       const statusEl = itemEl.querySelector('.upload-item-status');
       if (meta) {
@@ -807,7 +799,11 @@ async function uploadFile(entry) {
 
   setItemProgress(entry, false, 70);
 
-  // Step 3: Confirm (enqueues parse job)
+  // Step 3: Confirm — wait for metadata if still extracting
+  setItemStatus(entry, 'uploading', 'Finalizing…');
+  if (entry.metaPromise && !entry.metadata) {
+    try { entry.metadata = await entry.metaPromise; } catch { /* use null */ }
+  }
   let jobId;
   try {
     const tok3 = await getToken();
@@ -838,7 +834,9 @@ async function uploadFile(entry) {
   setItemProgress(entry, false, 100);
   const meta = entry.metadata;
   if (meta?.findCount) {
-    addItemResult(entry, `${meta.findCount.toLocaleString()} finds · through ${fmtDate(meta.dataThrough)} · ${(meta.format || 'unknown').toUpperCase()}`);
+    let msg = `${meta.findCount.toLocaleString()} finds · through ${fmtDate(meta.dataThrough)} · ${(meta.format || 'unknown').toUpperCase()}`;
+    if (meta.counties?.length) msg += ` · ${meta.counties.length.toLocaleString()} counties`;
+    addItemResult(entry, msg);
   } else {
     addItemResult(entry, 'Uploaded successfully');
   }
