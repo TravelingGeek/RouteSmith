@@ -19,6 +19,7 @@ import { requireAuth, unauthorizedResponse, AuthError } from './auth.js';
 import { handleAccountSync, handleAccountMe, handleGpxFiles } from './account.js';
 import { handlePresign, handleUploadData, handleConfirm, handleJobStatus } from './upload.js';
 import { handleReportRunFromR2, handleReportStatus } from './reportRun.js';
+import { handleListTrips, handleCreateTrip, handleGetTrip, handleUpdateTrip, handleDeleteTrip } from './trips.js';
 import type { TripInput } from './types.js';
 
 // ============================================================================
@@ -48,7 +49,7 @@ function corsHeaders(request: Request): Record<string, string> {
   const allowed = ALLOWED_ORIGINS.has(origin) ? origin : 'https://routesmithing.com';
   return {
     'Access-Control-Allow-Origin': allowed,
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Authorization, Content-Type',
     'Access-Control-Max-Age': '86400',
   };
@@ -85,6 +86,21 @@ export default {
     } catch (e) {
       if (e instanceof AuthError) return addCors(unauthorizedResponse(e.message), request);
       return addCors(unauthorizedResponse('Authentication failed'), request);
+    }
+
+    // Trip routes
+    if (url.pathname === '/api/trips' && request.method === 'GET') {
+      return addCors(await handleListTrips(user, env), request);
+    }
+    if (url.pathname === '/api/trips' && request.method === 'POST') {
+      return addCors(await handleCreateTrip(request, user, env), request);
+    }
+    const tripMatch = url.pathname.match(/^\/api\/trips\/([\w-]+)$/);
+    if (tripMatch) {
+      const tripId = tripMatch[1];
+      if (request.method === 'GET')    return addCors(await handleGetTrip(tripId, user, env), request);
+      if (request.method === 'PATCH')  return addCors(await handleUpdateTrip(tripId, request, user, env), request);
+      if (request.method === 'DELETE') return addCors(await handleDeleteTrip(tripId, user, env), request);
     }
 
     // Report run routes

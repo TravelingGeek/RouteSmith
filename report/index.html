@@ -80,7 +80,7 @@
   }
   .nav-user-name { color: var(--ink-soft); }
   .nav-signout {
-    font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 500;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.72rem;
     text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-muted);
     background: none; border: 1px solid var(--rule); padding: 6px 12px;
     border-radius: 2px; cursor: pointer; transition: color 0.15s, border-color 0.15s;
@@ -95,7 +95,7 @@
   .nav-signin-link:hover { background: var(--ink); }
 
   /* ── Page ────────────────────────────────────────────────────── */
-  .page { max-width: 820px; margin: 0 auto; padding: 64px 40px 80px; }
+  .page { max-width: 820px; margin: 0 auto; padding: 48px 40px 80px; }
 
   /* ── Auth gate ───────────────────────────────────────────────── */
   .auth-gate {
@@ -108,8 +108,8 @@
     letter-spacing: 0.18em; color: var(--brass-deep); margin-bottom: 14px;
   }
   .auth-gate-title {
-    font-family: 'Fraunces', serif; font-variation-settings: "opsz" 60; font-weight: 600;
-    font-size: 1.8rem; color: var(--ink); margin: 0 0 12px; letter-spacing: -0.01em;
+    font-family: 'Fraunces', serif; font-weight: 600; font-size: 1.8rem;
+    color: var(--ink); margin: 0 0 12px;
   }
   .auth-gate-sub { font-size: 0.96rem; color: var(--ink-soft); margin: 0 0 28px; }
   .auth-gate-btn {
@@ -121,50 +121,138 @@
   .auth-gate-btn:hover { background: var(--ink); }
 
   /* ── Module header ───────────────────────────────────────────── */
-  .module-header { margin-bottom: 48px; }
+  .module-header {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 32px; flex-wrap: wrap; gap: 16px;
+  }
+  .module-header-left {}
   .module-kicker {
     font-family: 'JetBrains Mono', monospace; font-size: 0.74rem; text-transform: uppercase;
-    letter-spacing: 0.18em; color: var(--forge); margin-bottom: 10px;
+    letter-spacing: 0.18em; color: var(--forge); margin-bottom: 6px;
   }
   .module-title {
-    font-family: 'Fraunces', serif; font-variation-settings: "opsz" 60; font-weight: 600;
-    font-size: 2.4rem; color: var(--ink); margin: 0 0 10px; letter-spacing: -0.02em;
+    font-family: 'Fraunces', serif; font-weight: 600; font-size: 2rem;
+    color: var(--ink); margin: 0; letter-spacing: -0.02em;
   }
-  .module-subtitle { font-size: 1rem; color: var(--ink-soft); margin: 0; font-style: italic; }
 
-  /* ── Coming soon panel ───────────────────────────────────────── */
-  .coming-soon {
-    border: 1px solid var(--rule); border-top: 3px solid var(--forge);
-    background: rgba(255,252,240,0.6); padding: 48px 40px; margin-bottom: 40px;
+  /* ── Buttons ─────────────────────────────────────────────────── */
+  .btn-primary {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.1em; color: var(--paper);
+    background: var(--forge); border: none; padding: 10px 20px;
+    border-radius: 2px; cursor: pointer; transition: background 0.15s; white-space: nowrap;
   }
-  .coming-soon-title {
-    font-family: 'Fraunces', serif; font-weight: 600; font-size: 1.3rem;
-    color: var(--ink); margin: 0 0 16px;
-  }
-  .coming-soon p { font-size: 0.96rem; color: var(--ink-soft); margin: 0 0 12px; line-height: 1.65; }
-  .coming-soon p:last-child { margin-bottom: 0; }
+  .btn-primary:hover { background: var(--ink); }
 
-  .feature-list { margin: 24px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
-  .feature-list li {
-    font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--ink-soft);
-    padding: 10px 14px; border: 1px solid var(--rule-soft); border-radius: 2px;
-    display: flex; align-items: baseline; gap: 10px;
+  .btn-secondary {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.74rem; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-muted);
+    background: none; border: 1px solid var(--rule); padding: 8px 16px;
+    border-radius: 2px; cursor: pointer; transition: color 0.15s, border-color 0.15s;
   }
-  .feature-list li .feat-status {
-    font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em;
-    color: var(--forge); white-space: nowrap;
-  }
-  .feature-list li .feat-status.soon { color: var(--brass-deep); }
-  .feature-list li .feat-label { color: var(--ink); }
+  .btn-secondary:hover { color: var(--ink); border-color: var(--ink-soft); }
 
-  /* ── Account link ────────────────────────────────────────────── */
-  .account-nudge {
-    text-align: center; padding: 28px;
+  .btn-danger {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.72rem;
+    text-transform: uppercase; letter-spacing: 0.1em; color: var(--stamp);
+    background: none; border: 1px solid transparent; padding: 4px 8px;
+    border-radius: 2px; cursor: pointer; transition: border-color 0.15s;
+  }
+  .btn-danger:hover { border-color: var(--stamp); }
+
+  /* ── Trip list ───────────────────────────────────────────────── */
+  .trip-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 40px; }
+
+  .trip-card {
+    border: 1px solid var(--rule); background: rgba(255,252,240,0.6);
+    padding: 20px 24px; cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    display: flex; justify-content: space-between; align-items: center; gap: 16px;
+  }
+  .trip-card:hover { border-color: var(--forge); background: rgba(45,90,42,0.04); }
+
+  .trip-card-left {}
+  .trip-card-name {
+    font-family: 'Fraunces', serif; font-weight: 600; font-size: 1.15rem;
+    color: var(--ink); margin: 0 0 4px;
+  }
+  .trip-card-dates {
     font-family: 'JetBrains Mono', monospace; font-size: 0.74rem;
-    text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-muted);
-    border: 1px solid var(--rule-soft); border-radius: 2px;
+    color: var(--ink-muted); letter-spacing: 0.04em;
   }
-  .account-nudge a { color: var(--brass-deep); }
+  .trip-card-right { display: flex; align-items: center; gap: 12px; }
+  .trip-status {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.68rem;
+    text-transform: uppercase; letter-spacing: 0.12em; padding: 3px 10px;
+    border-radius: 2px; white-space: nowrap;
+  }
+  .trip-status.draft    { color: var(--ink-muted); border: 1px solid var(--rule); }
+  .trip-status.active   { color: var(--forge); border: 1px solid var(--forge); background: rgba(45,90,42,0.06); }
+  .trip-status.complete { color: var(--brass-deep); border: 1px solid var(--brass); background: rgba(168,120,50,0.06); }
+
+  .empty-state {
+    text-align: center; padding: 48px 24px;
+    border: 2px dashed var(--rule); border-radius: 2px;
+    margin-bottom: 32px;
+  }
+  .empty-state-title {
+    font-family: 'Fraunces', serif; font-weight: 600; font-size: 1.2rem;
+    color: var(--ink-soft); margin: 0 0 8px;
+  }
+  .empty-state-sub { font-size: 0.92rem; color: var(--ink-muted); margin: 0 0 20px; }
+
+  /* ── Modal overlay ───────────────────────────────────────────── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(31,24,16,0.5); z-index: 100;
+    align-items: center; justify-content: center; padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--paper); border: 1px solid var(--rule);
+    border-top: 3px solid var(--forge); width: 100%; max-width: 560px;
+    max-height: 90vh; overflow-y: auto; padding: 32px 36px;
+  }
+  .modal-title {
+    font-family: 'Fraunces', serif; font-weight: 600; font-size: 1.5rem;
+    color: var(--ink); margin: 0 0 24px; letter-spacing: -0.01em;
+  }
+
+  /* ── Form ────────────────────────────────────────────────────── */
+  .form-group { margin-bottom: 20px; }
+  .form-label {
+    display: block; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem;
+    text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-muted);
+    margin-bottom: 6px;
+  }
+  .form-input {
+    width: 100%; font-family: 'Source Serif 4', serif; font-size: 1rem;
+    color: var(--ink); background: white; border: 1px solid var(--rule);
+    padding: 8px 12px; border-radius: 2px; outline: none;
+    transition: border-color 0.15s;
+  }
+  .form-input:focus { border-color: var(--brass); }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+  .form-section-title {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.72rem;
+    text-transform: uppercase; letter-spacing: 0.14em; color: var(--brass-deep);
+    margin: 24px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--rule-soft);
+  }
+
+  .form-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 28px; }
+
+  .form-hint { font-size: 0.82rem; color: var(--ink-muted); margin-top: 4px; font-style: italic; }
+
+  /* ── Loading ─────────────────────────────────────────────────── */
+  .loading {
+    text-align: center; padding: 80px 0;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.78rem;
+    text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-muted);
+  }
 
   /* ── Footer ──────────────────────────────────────────────────── */
   footer {
@@ -179,8 +267,9 @@
     .site-header { padding: 16px 20px; flex-wrap: wrap; gap: 12px; }
     .site-nav { width: 100%; justify-content: flex-start; flex-wrap: wrap; gap: 8px; }
     .nav-modules { margin-right: 0; }
-    .page { padding: 40px 20px 60px; }
-    .coming-soon { padding: 32px 24px; }
+    .page { padding: 32px 20px 60px; }
+    .form-row, .form-row-3 { grid-template-columns: 1fr; }
+    .modal { padding: 24px 20px; }
   }
 </style>
 </head>
@@ -204,7 +293,7 @@
 
 <div class="page">
 
-  <!-- Auth gate — shown when signed out -->
+  <!-- Auth gate -->
   <div id="auth-gate" class="auth-gate" style="display:none;">
     <div class="auth-gate-kicker">03 · Report</div>
     <div class="auth-gate-title">Sign in to use Report</div>
@@ -212,99 +301,249 @@
     <a href="/account/" class="auth-gate-btn">Sign in →</a>
   </div>
 
-  <!-- Main content — shown when signed in -->
+  <!-- Loading -->
+  <div id="loading-state" class="loading">Loading…</div>
+
+  <!-- Main content -->
   <div id="main-content" style="display:none;">
 
     <div class="module-header">
-      <div class="module-kicker">03 · Report</div>
-      <h1 class="module-title">Trip Report</h1>
-      <p class="module-subtitle">Post-trip analytics, highlight rules, and shareable reports for serious cachers.</p>
+      <div class="module-header-left">
+        <div class="module-kicker">03 · Report</div>
+        <h1 class="module-title">Your Trips</h1>
+      </div>
+      <button class="btn-primary" id="new-trip-btn">+ New Trip</button>
     </div>
 
-    <div class="coming-soon">
-      <div class="coming-soon-title">Dashboard in progress</div>
-      <p>
-        The REPORT dashboard is being built. It will show your trip's county map,
-        day-by-day stats, highlight rules, and Jasmer grid — all live, all interactive.
-        When you're ready to generate a report you'll be able to share a link,
-        save a snapshot, or print to PDF.
-      </p>
-      <ul class="feature-list">
-        <li>
-          <span class="feat-status">Ready</span>
-          <span class="feat-label">GPX upload + parsing pipeline</span>
-        </li>
-        <li>
-          <span class="feat-status">Ready</span>
-          <span class="feat-label">Lifetime find data · county coverage · freshness tracking</span>
-        </li>
-        <li>
-          <span class="feat-status soon">Building</span>
-          <span class="feat-label">Trip creation and date-window selection</span>
-        </li>
-        <li>
-          <span class="feat-status soon">Building</span>
-          <span class="feat-label">Live county map (lifetime + trip layers)</span>
-        </li>
-        <li>
-          <span class="feat-status soon">Building</span>
-          <span class="feat-label">Day-by-day chart · highlight rules · Jasmer grid</span>
-        </li>
-        <li>
-          <span class="feat-status soon">Building</span>
-          <span class="feat-label">Shareable URL · static HTML snapshot · print to PDF</span>
-        </li>
-      </ul>
-    </div>
+    <!-- Trip list -->
+    <div class="trip-list" id="trip-list"></div>
 
-    <div class="account-nudge" id="account-nudge">
-      Signed in as <span id="nudge-name"></span> ·
-      <a href="/account/">Manage your account and GPX data →</a>
+    <div id="empty-state" class="empty-state" style="display:none;">
+      <div class="empty-state-title">No trips yet</div>
+      <p class="empty-state-sub">Create your first trip to get started.</p>
+      <button class="btn-primary" onclick="document.getElementById('new-trip-btn').click()">+ New Trip</button>
     </div>
 
   </div>
 
-  <div id="loading-state" style="text-align:center;padding:80px 0;font-family:'JetBrains Mono',monospace;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.14em;color:var(--ink-muted);">
-    Loading…
-  </div>
+</div>
 
+<!-- New Trip Modal -->
+<div class="modal-overlay" id="trip-modal">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">New Trip</div>
+
+    <div class="form-group">
+      <label class="form-label" for="trip-name">Trip name *</label>
+      <input class="form-input" type="text" id="trip-name" placeholder="e.g. Kansas Mega Weekend 2026">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="trip-description">Description</label>
+      <input class="form-input" type="text" id="trip-description" placeholder="Optional notes about the trip">
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" for="trip-start">Start date *</label>
+        <input class="form-input" type="date" id="trip-start">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="trip-end">End date *</label>
+        <input class="form-input" type="date" id="trip-end">
+      </div>
+    </div>
+
+    <div class="form-section-title">Driving (optional)</div>
+
+    <div class="form-row-3">
+      <div class="form-group">
+        <label class="form-label" for="trip-miles">Miles</label>
+        <input class="form-input" type="number" id="trip-miles" placeholder="0" min="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="trip-hours">Hours</label>
+        <input class="form-input" type="number" id="trip-hours" placeholder="0" min="0" step="0.5">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="trip-gas">Gas cost ($)</label>
+        <input class="form-input" type="number" id="trip-gas" placeholder="0.00" min="0" step="0.01">
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn-secondary" id="modal-cancel">Cancel</button>
+      <button class="btn-primary" id="modal-save">Create Trip</button>
+    </div>
+  </div>
 </div>
 
 <footer>
   <span class="domain">routesmithing.com</span>
   <span class="sep">·</span>
   <span>Forged 2026</span>
+  <span class="sep">·</span>
+  <span>Build 2026.07.04.003</span>
 </footer>
 
 <script>
+const BASE = 'https://routesmith-report.gtl6645.workers.dev';
+const getToken = () => window.Clerk.session.getToken({ template: 'routesmith' });
+
+// ── Date formatting ───────────────────────────────────────────────
+function fmtDateRange(start, end) {
+  const opts = { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' };
+  const s = new Date(start + 'T00:00:00Z').toLocaleDateString('en-US', opts);
+  const e = new Date(end   + 'T00:00:00Z').toLocaleDateString('en-US', opts);
+  return s === e ? s : `${s} – ${e}`;
+}
+
+// ── Trip API ──────────────────────────────────────────────────────
+async function loadTrips() {
+  const token = await getToken();
+  const resp = await fetch(`${BASE}/api/trips`, {
+    headers: { 'Authorization': 'Bearer ' + token }
+  });
+  if (!resp.ok) return [];
+  const data = await resp.json();
+  return data.trips ?? [];
+}
+
+async function createTrip(payload) {
+  const token = await getToken();
+  const resp = await fetch(`${BASE}/api/trips`, {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  return resp.json();
+}
+
+// ── Render trip list ──────────────────────────────────────────────
+function renderTrips(trips) {
+  const listEl   = document.getElementById('trip-list');
+  const emptyEl  = document.getElementById('empty-state');
+  listEl.innerHTML = '';
+
+  if (!trips.length) {
+    emptyEl.style.display = 'block';
+    return;
+  }
+  emptyEl.style.display = 'none';
+
+  for (const trip of trips) {
+    const card = document.createElement('div');
+    card.className = 'trip-card';
+    card.innerHTML = `
+      <div class="trip-card-left">
+        <div class="trip-card-name">${esc(trip.name)}</div>
+        <div class="trip-card-dates">${trip.date_start && trip.date_end ? fmtDateRange(trip.date_start, trip.date_end) : 'Dates not set'}</div>
+      </div>
+      <div class="trip-card-right">
+        <span class="trip-status ${trip.status}">${trip.status}</span>
+      </div>`;
+    card.addEventListener('click', () => {
+      // TODO: navigate to trip dashboard
+      alert(`Trip dashboard for "${trip.name}" — coming soon.`);
+    });
+    listEl.appendChild(card);
+  }
+}
+
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Modal ─────────────────────────────────────────────────────────
+const modal       = document.getElementById('trip-modal');
+const modalTitle  = document.getElementById('modal-title');
+const modalSave   = document.getElementById('modal-save');
+const modalCancel = document.getElementById('modal-cancel');
+
+function openModal() {
+  document.getElementById('trip-name').value        = '';
+  document.getElementById('trip-description').value = '';
+  document.getElementById('trip-start').value       = '';
+  document.getElementById('trip-end').value         = '';
+  document.getElementById('trip-miles').value       = '';
+  document.getElementById('trip-hours').value       = '';
+  document.getElementById('trip-gas').value         = '';
+  modal.classList.add('open');
+  document.getElementById('trip-name').focus();
+}
+
+function closeModal() { modal.classList.remove('open'); }
+
+document.getElementById('new-trip-btn').addEventListener('click', openModal);
+modalCancel.addEventListener('click', closeModal);
+modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+
+modalSave.addEventListener('click', async () => {
+  const name  = document.getElementById('trip-name').value.trim();
+  const start = document.getElementById('trip-start').value;
+  const end   = document.getElementById('trip-end').value;
+
+  if (!name) { document.getElementById('trip-name').focus(); return; }
+  if (!start || !end) { alert('Please set start and end dates.'); return; }
+  if (start > end) { alert('End date must be on or after start date.'); return; }
+
+  modalSave.disabled = true;
+  modalSave.textContent = 'Creating…';
+
+  const payload = {
+    name,
+    description: document.getElementById('trip-description').value.trim() || null,
+    date_start: start,
+    date_end: end,
+    distance_miles: parseFloat(document.getElementById('trip-miles').value) || null,
+    distance_hours: parseFloat(document.getElementById('trip-hours').value) || null,
+    gas_cost: parseFloat(document.getElementById('trip-gas').value) || null,
+  };
+
+  try {
+    const result = await createTrip(payload);
+    if (result.error) throw new Error(result.error);
+    closeModal();
+    const trips = await loadTrips();
+    renderTrips(trips);
+  } catch (e) {
+    alert('Failed to create trip: ' + e.message);
+  } finally {
+    modalSave.disabled = false;
+    modalSave.textContent = 'Create Trip';
+  }
+});
+
+// ── Auth ──────────────────────────────────────────────────────────
 window.addEventListener('load', async () => {
   await window.Clerk.load();
 
-  const loadingEl  = document.getElementById('loading-state');
-  const authGate   = document.getElementById('auth-gate');
+  const loadingEl   = document.getElementById('loading-state');
+  const authGate    = document.getElementById('auth-gate');
   const mainContent = document.getElementById('main-content');
-  const navUser    = document.getElementById('nav-user');
+  const navUser     = document.getElementById('nav-user');
   const navUserName = document.getElementById('nav-user-name');
-  const navSigninLink = document.getElementById('nav-signin-link');
-  const navSignoutBtn = document.getElementById('nav-signout-btn');
-  const nudgeName  = document.getElementById('nudge-name');
+  const navSigninLink  = document.getElementById('nav-signin-link');
+  const navSignoutBtn  = document.getElementById('nav-signout-btn');
 
-  function showSignedIn(user) {
+  async function showSignedIn(user) {
     const name = user.firstName || user.fullName || user.primaryEmailAddress?.emailAddress || 'Cacher';
-    loadingEl.style.display   = 'none';
-    authGate.style.display    = 'none';
-    mainContent.style.display = 'block';
+    loadingEl.style.display    = 'none';
+    authGate.style.display     = 'none';
+    mainContent.style.display  = 'block';
     navSigninLink.style.display = 'none';
     navUser.style.display = 'flex';
     navUserName.textContent = name;
-    nudgeName.textContent = name;
+
+    const trips = await loadTrips();
+    renderTrips(trips);
   }
 
   function showSignedOut() {
-    loadingEl.style.display   = 'none';
-    mainContent.style.display = 'none';
-    authGate.style.display    = 'block';
-    navUser.style.display     = 'none';
+    loadingEl.style.display    = 'none';
+    mainContent.style.display  = 'none';
+    authGate.style.display     = 'block';
+    navUser.style.display      = 'none';
     navSigninLink.style.display = 'inline-block';
   }
 
