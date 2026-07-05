@@ -261,6 +261,22 @@ export async function handleConfirm(
     data_through?: string | null;
     format?: string;
     detected_username?: string | null;
+    finds?: Array<{
+      gc_code: string;
+      cache_name: string | null;
+      cache_owner: string | null;
+      find_date: string;
+      county: string | null;
+      state: string | null;
+      country: string | null;
+      cache_type: string | null;
+      difficulty: number | null;
+      terrain: number | null;
+      fav_points: number;
+      lat: number | null;
+      lon: number | null;
+      placement_date: string | null;
+    }>;
     counties?: Array<{
       county: string;
       state: string;
@@ -425,6 +441,47 @@ export async function handleConfirm(
     } catch (e) {
       // Non-fatal — log but don't fail the confirm
       console.error(`County upsert failed: ${(e as Error).message}`);
+    }
+  }
+
+  // Write find-level data if provided and this is a lifetime file
+  const finds = body.finds ?? [];
+  if (finds.length > 0 && fileRow.file_role === 'lifetime') {
+    try {
+      const BATCH_SIZE = 50;
+      for (let i = 0; i < finds.length; i += BATCH_SIZE) {
+        const batch = finds.slice(i, i + BATCH_SIZE);
+        const findStatements = batch.map(f =>
+          env.DB.prepare(`
+            INSERT INTO finder_finds (
+              find_id, finder_id, gc_code, cache_name, cache_owner,
+              find_date, county, state, country, cache_type,
+              difficulty, terrain, fav_points, lat, lon, placement_date
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT (find_id) DO NOTHING
+          `).bind(
+            uuid(),
+            fileRow.owner_finder_id,
+            f.gc_code,
+            f.cache_name ?? null,
+            f.cache_owner ?? null,
+            f.find_date,
+            f.county ?? null,
+            f.state ?? null,
+            f.country ?? null,
+            f.cache_type ?? null,
+            f.difficulty ?? null,
+            f.terrain ?? null,
+            f.fav_points ?? 0,
+            f.lat ?? null,
+            f.lon ?? null,
+            f.placement_date ?? null,
+          )
+        );
+        await env.DB.batch(findStatements);
+      }
+    } catch (e) {
+      console.error(`Finds upsert failed: ${(e as Error).message}`);
     }
   }
 

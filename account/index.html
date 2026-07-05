@@ -383,7 +383,7 @@
   <span class="sep">·</span>
   <span>Forged 2026</span>
   <span class="sep">·</span>
-  <span>Build 2026.07.04.006</span>
+  <span>Build 2026.07.04.008</span>
 </footer>
 
 <script>
@@ -511,56 +511,87 @@ async function extractGpxMetadataBrowser(file) {
     let latestDate = null;
     let detectedUsername = null;
     const finderCounts = new Map();
-    // countyData: Map of "county|state" -> { county, state, country, firstFound: ISO date }
     const countyData = new Map();
+    const finds = []; // full find records for finder_finds table
 
-    // Helper to extract gsak:County and groundspeak:state/country from a wpt chunk
+    // Extract a text value between two tags
+    function between(str, open, close, start = 0) {
+      const s = str.indexOf(open, start);
+      if (s === -1) return null;
+      const e = str.indexOf(close, s + open.length);
+      if (e === -1) return null;
+      return str.slice(s + open.length, e).trim() || null;
+    }
+
+    // Extract content of a tag that may have attributes: <tag attr="x">content</tag>
+    function betweenTag(str, tagName, start = 0) {
+      const openStart = str.indexOf(`<${tagName}`, start);
+      if (openStart === -1) return null;
+      const openEnd = str.indexOf('>', openStart);
+      if (openEnd === -1) return null;
+      const closeTag = `</${tagName}>`;
+      const closeStart = str.indexOf(closeTag, openEnd);
+      if (closeStart === -1) return null;
+      return str.slice(openEnd + 1, closeStart).trim() || null;
+    }
+
     function extractWptGeo(chunk) {
       let county = null, state = null, country = null;
-      // GSAK county extension (PGC format)
-      const ctyOpen  = chunk.indexOf('<gsak:County>');
-      const ctyClose = chunk.indexOf('</gsak:County>');
-      if (ctyOpen !== -1 && ctyClose !== -1) {
-        let raw = chunk.slice(ctyOpen + 13, ctyClose).trim();
-        // Strip state suffix e.g. "Fort Bend County (TX)"
-        raw = raw.replace(/\s*\([A-Z]{2}\)\s*$/, '').trim();
-        if (raw) county = raw;
-      }
-      // groundspeak state
-      const stOpen  = chunk.indexOf('<groundspeak:state>');
-      const stClose = chunk.indexOf('</groundspeak:state>');
-      if (stOpen !== -1 && stClose !== -1) state = chunk.slice(stOpen + 19, stClose).trim() || null;
-      // groundspeak country
-      const coOpen  = chunk.indexOf('<groundspeak:country>');
-      const coClose = chunk.indexOf('</groundspeak:country>');
-      if (coOpen !== -1 && coClose !== -1) country = chunk.slice(coOpen + 21, coClose).trim() || null;
+      const ctyRaw = between(chunk, '<gsak:County>', '</gsak:County>');
+      if (ctyRaw) county = ctyRaw.replace(/\s*\([A-Z]{2}\)\s*$/, '').trim() || null;
+      state   = between(chunk, '<groundspeak:state>',   '</groundspeak:state>');
+      country = between(chunk, '<groundspeak:country>', '</groundspeak:country>');
       return { county, state, country };
     }
 
     if (format === 'pgc') {
       const wptChunks = text.split('</wpt>');
       for (const chunk of wptChunks) {
+        // Extract cache-level fields
+        const gcCode  = between(chunk, '<name>', '</name>');
+        if (!gcCode || !gcCode.startsWith('GC')) continue;
+
         const logsStart = chunk.indexOf('<groundspeak:logs>');
         if (logsStart === -1) continue;
+
+        // Cache metadata
+        const cacheName     = between(chunk, '<groundspeak:name>', '</groundspeak:name>');
+        const cacheOwner    = betweenTag(chunk, 'groundspeak:owner');
+        const cacheType     = between(chunk, '<groundspeak:type>', '</groundspeak:type>');
+        const diffStr       = between(chunk, '<groundspeak:difficulty>', '</groundspeak:difficulty>');
+        const terrStr       = between(chunk, '<groundspeak:terrain>', '</groundspeak:terrain>');
+        const placedTimeRaw = chunk.slice(0, logsStart).indexOf('<time>') !== -1
+          ? between(chunk.slice(0, logsStart), '<time>', '</time>') : null;
+        const placementDate = placedTimeRaw ? placedTimeRaw.slice(0, 10) : null;
+
+        // Lat/lon from wpt attributes
+        const latMatch = chunk.match(/lat="([^"]+)"/);
+        const lonMatch = chunk.match(/lon="([^"]+)"/);
+        const lat = latMatch ? parseFloat(latMatch[1]) : null;
+        const lon = lonMatch ? parseFloat(lonMatch[1]) : null;
+
+        // FP from gsak extension
+        const fpStr = between(chunk, '<gsak:FavPoints>', '</gsak:FavPoints>');
+        const favPoints = fpStr ? parseInt(fpStr, 10) : 0;
+
+        const { county, state, country } = extractWptGeo(chunk);
+
+        // Find log
         const logsSection = chunk.slice(logsStart);
         const logChunks = logsSection.split('</groundspeak:log>');
         let counted = false;
         let findDate = null;
+
         for (const log of logChunks) {
           if (counted) break;
-          const typeOpen  = log.indexOf('<groundspeak:type>');
-          const typeClose = log.indexOf('</groundspeak:type>');
-          if (typeOpen === -1 || typeClose === -1) continue;
-          const logType = log.slice(typeOpen + 18, typeClose).trim();
-          if (!FOUND_TYPES.has(logType)) continue;
-          findCount++;
-          counted = true;
-          const dateOpen  = log.indexOf('<groundspeak:date>');
-          const dateClose = log.indexOf('</groundspeak:date>');
-          if (dateOpen !== -1 && dateClose !== -1) {
-            findDate = log.slice(dateOpen + 18, dateClose).trim().slice(0, 10);
-            if (findDate && (!latestDate || findDate > latestDate)) latestDate = findDate;
-          }
+          const logType = between(log, '<groundspeak:type>', '</groundspeak:type>');
+          if (!logType || !FOUND_TYPES.has(logType)) continue;
+
+          const dateRaw = between(log, '<groundspeak:date>', '</groundspeak:date>');
+          findDate = dateRaw ? dateRaw.slice(0, 10) : null;
+          if (!findDate) continue; // skip if no date — can't place in trip window
+
+          // Track finder username
           const finderTagStart = log.indexOf('<groundspeak:finder');
           const finderTagEnd   = log.indexOf('</groundspeak:finder>');
           if (finderTagStart !== -1 && finderTagEnd !== -1) {
@@ -570,10 +601,30 @@ async function extractGpxMetadataBrowser(file) {
               if (fname) finderCounts.set(fname, (finderCounts.get(fname) ?? 0) + 1);
             }
           }
-        }
-        // Extract county data for this find
-        if (counted && findDate) {
-          const { county, state, country } = extractWptGeo(chunk);
+
+          findCount++;
+          counted = true;
+          if (!latestDate || findDate > latestDate) latestDate = findDate;
+
+          // Full find record
+          finds.push({
+            gc_code:        gcCode,
+            cache_name:     cacheName,
+            cache_owner:    cacheOwner,
+            find_date:      findDate,
+            county:         county,
+            state:          state,
+            country:        country ?? 'United States',
+            cache_type:     cacheType,
+            difficulty:     diffStr ? parseFloat(diffStr) : null,
+            terrain:        terrStr ? parseFloat(terrStr) : null,
+            fav_points:     isNaN(favPoints) ? 0 : favPoints,
+            lat:            lat,
+            lon:            lon,
+            placement_date: placementDate,
+          });
+
+          // County data — keep earliest firstFound
           if (county && state) {
             const key = `${county}|${state}`;
             const existing = countyData.get(key);
@@ -584,6 +635,7 @@ async function extractGpxMetadataBrowser(file) {
         }
       }
     } else {
+      // gc.com format — limited data available
       const wptChunks = text.split('</wpt>');
       for (const chunk of wptChunks) {
         const symOpen  = chunk.indexOf('<sym>');
@@ -591,15 +643,26 @@ async function extractGpxMetadataBrowser(file) {
         if (symOpen === -1 || symClose === -1) continue;
         const sym = chunk.slice(symOpen + 5, symClose).trim();
         if (!sym.includes('Found')) continue;
+
+        const gcCode    = between(chunk, '<name>', '</name>');
+        if (!gcCode || !gcCode.startsWith('GC')) continue;
+
+        const timeRaw = between(chunk, '<time>', '</time>');
+        const findDate = timeRaw ? timeRaw.slice(0, 10) : null;
+        if (!findDate) continue;
+
         findCount++;
-        let findDate = null;
-        const timeOpen  = chunk.indexOf('<time>');
-        const timeClose = chunk.indexOf('</time>');
-        if (timeOpen !== -1 && timeClose !== -1) {
-          findDate = chunk.slice(timeOpen + 6, timeClose).trim().slice(0, 10);
-          if (findDate && (!latestDate || findDate > latestDate)) latestDate = findDate;
-        }
-        // gc.com format doesn't have county data
+        if (!latestDate || findDate > latestDate) latestDate = findDate;
+
+        finds.push({
+          gc_code: gcCode,
+          cache_name: between(chunk, '<desc>', '</desc>'),
+          cache_owner: null,
+          find_date: findDate,
+          county: null, state: null, country: null,
+          cache_type: null, difficulty: null, terrain: null,
+          fav_points: 0, lat: null, lon: null, placement_date: null,
+        });
       }
     }
 
@@ -608,7 +671,7 @@ async function extractGpxMetadataBrowser(file) {
     }
     const counties = [...countyData.values()];
     console.log(`[gpx-meta] Text parse done in ${(performance.now()-tp0).toFixed(0)}ms — ${findCount} finds, ${counties.length} counties, format=${format}, username=${detectedUsername}`);
-    return { findCount, dataThrough: latestDate, format, detectedUsername, counties };
+    return { findCount, dataThrough: latestDate, format, detectedUsername, counties, finds };
   }
 
   const tb0 = performance.now();
@@ -625,6 +688,7 @@ async function extractGpxMetadataBrowser(file) {
     const decoder = new TextDecoder('utf-8');
     let totalFinds = 0, latestDate = null, format = 'unknown', detectedUsername = null;
     const mergedCounties = new Map();
+    const mergedFinds = new Map(); // gc_code+find_date -> find (handles re-finds)
     for (const [, data] of gpxEntries) {
       const text = decoder.decode(data);
       const meta = await processGpxText(text);
@@ -632,15 +696,18 @@ async function extractGpxMetadataBrowser(file) {
       if (meta.format !== 'unknown') format = meta.format;
       if (meta.dataThrough && (!latestDate || meta.dataThrough > latestDate)) latestDate = meta.dataThrough;
       if (meta.detectedUsername && !detectedUsername) detectedUsername = meta.detectedUsername;
-      // Merge counties — keep earliest firstFound per county key
       for (const c of (meta.counties ?? [])) {
         const key = `${c.county}|${c.state}`;
         const existing = mergedCounties.get(key);
         if (!existing || c.firstFound < existing.firstFound) mergedCounties.set(key, c);
       }
+      for (const f of (meta.finds ?? [])) {
+        const key = `${f.gc_code}|${f.find_date}`;
+        if (!mergedFinds.has(key)) mergedFinds.set(key, f);
+      }
     }
     console.log(`[gpx-meta] Total ZIP extraction time: ${(performance.now()-t0).toFixed(0)}ms`);
-    return { findCount: totalFinds, dataThrough: latestDate, format, detectedUsername, counties: [...mergedCounties.values()] };
+    return { findCount: totalFinds, dataThrough: latestDate, format, detectedUsername, counties: [...mergedCounties.values()], finds: [...mergedFinds.values()] };
   } else {
     const text = new TextDecoder('utf-8').decode(buffer);
     const result = await processGpxText(text);
@@ -818,6 +885,7 @@ async function uploadFile(entry) {
         format: entry.metadata?.format ?? 'unknown',
         detected_username: entry.metadata?.detectedUsername ?? null,
         counties: entry.metadata?.counties ?? [],
+        finds: entry.metadata?.finds ?? [],
       })
     });
     const result = await resp.json();
