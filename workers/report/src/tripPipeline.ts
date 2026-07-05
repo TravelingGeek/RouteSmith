@@ -1,19 +1,15 @@
 /**
- * tripPipeline.ts — Trip-window pipeline endpoint.
+ * tripPipeline.ts — Trip-window pipeline using targeted D1 queries.
  *
- * POST /api/report/trip/:id/run
- *   Queries finder_finds in D1 for the trip date window — no GPX parsing.
- *   Runs stats and rules on the small result set, returns JSON.
- *   Result is cached in trip_reports (D1 + R2).
- *
- * GET /api/report/trip/:id/result
- *   Returns the cached result for the most recent run.
+ * Instead of loading all lifetime finds into memory, uses targeted D1 queries:
+ * - Trip-window finds: full data, small set (~200 rows for a week trip)
+ * - Prior data: aggregated DISTINCT values, not individual rows
+ * - Milestone/Jasmer: only gc_code + find_date + placement_date
  */
 
 import type { AuthUser } from './auth.js';
 import type { Env, Waypoint, RuleContext } from './types.js';
 import {
-  computePriorData,
   computeAggregateStats,
   computeDailyStats,
   computeMilestones,
@@ -22,12 +18,11 @@ import {
   computeDtFills,
   computeStateCompletions,
   filterToTripWindow,
-  diagnoseEmptyTripWindow,
 } from './statistics.js';
 import { buildDefaultRules, evaluateAllRules } from './rules.js';
 import { buildCountiesData } from './countyMap.js';
 import { fetchReferenceListsFromR2, injectReferenceContext } from './referenceLists.js';
-import { STATE_ABBREVIATIONS } from './types.js';
+import { countyKey, STATE_ABBREVIATIONS } from './types.js';
 
 function uuid(): string { return crypto.randomUUID(); }
 function now(): number  { return Math.floor(Date.now() / 1000); }
@@ -36,25 +31,12 @@ function jsonError(msg: string, status = 400): Response {
   return new Response(JSON.stringify({ error: msg }), { status, headers: { 'Content-Type': 'application/json' } });
 }
 
-// ============================================================================
-// D1 find row type
-// ============================================================================
-
 interface FindRow {
-  find_id: string;
-  gc_code: string;
-  cache_name: string | null;
-  cache_owner: string | null;
-  find_date: string;
-  county: string | null;
-  state: string | null;
-  country: string | null;
-  cache_type: string | null;
-  difficulty: number | null;
-  terrain: number | null;
-  fav_points: number;
-  lat: number | null;
-  lon: number | null;
+  find_id: string; gc_code: string; cache_name: string | null;
+  cache_owner: string | null; find_date: string;
+  county: string | null; state: string | null; country: string | null;
+  cache_type: string | null; difficulty: number | null; terrain: number | null;
+  fav_points: number; lat: number | null; lon: number | null;
   placement_date: string | null;
 }
 
@@ -91,7 +73,6 @@ export async function handleTripRun(
   user: AuthUser,
   env: Env,
 ): Promise<Response> {
-  // Load trip
   const trip = await env.DB
     .prepare(`SELECT * FROM trips WHERE trip_id = ? AND user_id = ?`)
     .bind(tripId, user.userId)
@@ -105,7 +86,6 @@ export async function handleTripRun(
   if (!trip) return jsonError('Trip not found', 404);
   if (!trip.date_start || !trip.date_end) return jsonError('Trip must have start and end dates set');
 
-  // Load owner finder
   const ownerFinder = await env.DB
     .prepare(`
       SELECT tf.finder_id, tf.gc_username, tf.display_name,
@@ -116,66 +96,131 @@ export async function handleTripRun(
     `)
     .bind(tripId)
     .first<{
-      finder_id: string;
-      gc_username: string | null; display_name: string | null;
+      finder_id: string; gc_username: string | null; display_name: string | null;
       f_gc_username: string | null; f_display_name: string | null;
     }>();
 
   if (!ownerFinder) return jsonError('Trip owner finder not found');
 
+  const finderId    = ownerFinder.finder_id;
   const gcUsername  = ownerFinder.gc_username || ownerFinder.f_gc_username || '';
   const displayName = ownerFinder.display_name || ownerFinder.f_display_name || gcUsername;
+  const tripStart   = trip.date_start;
+  const tripEnd     = trip.date_end;
 
-  // Check finds are available in D1
+  // ── Check finds available ─────────────────────────────────────────────────
   const countCheck = await env.DB
     .prepare(`SELECT COUNT(*) as cnt FROM finder_finds WHERE finder_id = ?`)
-    .bind(ownerFinder.finder_id)
+    .bind(finderId)
     .first<{ cnt: number }>();
 
   if (!countCheck?.cnt) {
-    return jsonError('No find data in database. Re-upload your My Finds GPX on the account page to populate find-level data.');
+    return jsonError('No find data in database. Re-upload your My Finds GPX on the account page.');
   }
 
-  // Fetch ALL lifetime finds from D1 (needed for prior county/state/country/type computation)
-  const { results: allRows } = await env.DB
+  // ── Query 1: Trip-window finds (full data — small set) ────────────────────
+  const { results: tripRows } = await env.DB
     .prepare(`
       SELECT find_id, gc_code, cache_name, cache_owner, find_date,
              county, state, country, cache_type,
              difficulty, terrain, fav_points, lat, lon, placement_date
       FROM finder_finds
+      WHERE finder_id = ? AND find_date >= ? AND find_date <= ?
+      ORDER BY find_date ASC
+    `)
+    .bind(finderId, tripStart, tripEnd)
+    .all<FindRow>();
+
+  const tripFinds = tripRows.map(rowToWaypoint);
+
+  // ── Query 2: Prior counties (DISTINCT — memory-efficient) ─────────────────
+  const { results: priorCountyRows } = await env.DB
+    .prepare(`
+      SELECT DISTINCT county, state FROM finder_finds
+      WHERE finder_id = ? AND find_date < ? AND county IS NOT NULL AND state IS NOT NULL
+    `)
+    .bind(finderId, tripStart)
+    .all<{ county: string; state: string }>();
+
+  const priorCounties = new Set(priorCountyRows.map(r => countyKey(r.county, r.state)));
+
+  // ── Query 3: Prior states ─────────────────────────────────────────────────
+  const { results: priorStateRows } = await env.DB
+    .prepare(`
+      SELECT DISTINCT state FROM finder_finds
+      WHERE finder_id = ? AND find_date < ? AND state IS NOT NULL
+    `)
+    .bind(finderId, tripStart)
+    .all<{ state: string }>();
+
+  const priorStates = new Set(priorStateRows.map(r => r.state));
+
+  // ── Query 4: Prior countries ──────────────────────────────────────────────
+  const { results: priorCountryRows } = await env.DB
+    .prepare(`
+      SELECT DISTINCT country FROM finder_finds
+      WHERE finder_id = ? AND find_date < ? AND country IS NOT NULL
+    `)
+    .bind(finderId, tripStart)
+    .all<{ country: string }>();
+
+  const priorCountries = new Set(priorCountryRows.map(r => r.country));
+
+  // ── Query 5: Prior cache types ────────────────────────────────────────────
+  const { results: priorTypeRows } = await env.DB
+    .prepare(`
+      SELECT DISTINCT cache_type FROM finder_finds
+      WHERE finder_id = ? AND find_date < ? AND cache_type IS NOT NULL
+    `)
+    .bind(finderId, tripStart)
+    .all<{ cache_type: string }>();
+
+  const priorTypes = new Set(priorTypeRows.map(r => r.cache_type));
+
+  // ── Query 6: Lifetime finds for milestone/Jasmer (minimal fields) ─────────
+  const { results: lifetimeRows } = await env.DB
+    .prepare(`
+      SELECT gc_code, find_date, placement_date, cache_type, difficulty, terrain
+      FROM finder_finds
       WHERE finder_id = ?
       ORDER BY find_date ASC
     `)
-    .bind(ownerFinder.finder_id)
-    .all<FindRow>();
+    .bind(finderId)
+    .all<{ gc_code: string; find_date: string; placement_date: string | null; cache_type: string | null; difficulty: number | null; terrain: number | null }>();
 
-  const allFinds = allRows.map(rowToWaypoint);
+  // Minimal Waypoint objects for milestone/Jasmer computation
+  const lifetimeMinimal: Waypoint[] = lifetimeRows.map(r => ({
+    gcCode: r.gc_code,
+    name: r.gc_code,
+    cacheType: r.cache_type,
+    lat: 0, lon: 0, container: null,
+    difficulty: r.difficulty, terrain: r.terrain,
+    country: null, state: null, county: null,
+    placementTime: r.placement_date ? new Date(r.placement_date + 'T00:00:00Z') : null,
+    findDate: new Date(r.find_date + 'T12:00:00Z'),
+    favoritePoints: 0, cacheOwner: null,
+    attributes: new Set(), finderLogText: null, sym: null, archived: false,
+  }));
 
-  const tripStart = new Date(trip.date_start + 'T00:00:00Z');
-  const tripEnd   = new Date(trip.date_end   + 'T00:00:00Z');
+  const tripStartDate = new Date(tripStart + 'T00:00:00Z');
+  const tripEndDate   = new Date(tripEnd   + 'T00:00:00Z');
 
-  // Trip-window filter
-  const tripFinds = filterToTripWindow(allFinds, tripStart, tripEnd);
-
+  // ── Statistics ────────────────────────────────────────────────────────────
   const diagnostics: string[] = [];
-  if (!tripFinds.length && allFinds.length > 0) {
-    diagnostics.push(diagnoseEmptyTripWindow(allFinds, tripStart, tripEnd, gcUsername));
+  if (!tripFinds.length) {
+    diagnostics.push(`No finds found between ${tripStart} and ${tripEnd} for ${gcUsername}. Check that your GPX data covers this date range.`);
   }
 
-  // Statistics
-  const { priorCounties, priorStates, priorCountries, priorTypes } =
-    computePriorData(allFinds, tripStart);
-
   const aggregate   = computeAggregateStats(tripFinds, priorCounties, priorStates, priorCountries, priorTypes);
-  const byDay       = computeDailyStats(tripFinds, priorCounties, tripStart, tripEnd);
-  const milestones  = computeMilestones(allFinds, tripStart, tripEnd);
-  const jasmerFills = computeJasmerFills(allFinds, tripStart, tripEnd);
-  const dtFills     = computeDtFills(allFinds, tripStart, tripEnd);
+  const byDay       = computeDailyStats(tripFinds, priorCounties, tripStartDate, tripEndDate);
+  const milestones  = computeMilestones(lifetimeMinimal, tripStartDate, tripEndDate);
+  const jasmerFills = computeJasmerFills(lifetimeMinimal, tripStartDate, tripEndDate);
+  const dtFills     = computeDtFills(lifetimeMinimal, tripStartDate, tripEndDate);
   const stateComps  = computeStateCompletions(tripFinds, priorCounties);
-  const jasmerGrid  = computeJasmerGridState(allFinds, tripStart, tripEnd);
+  const jasmerGrid  = computeJasmerGridState(lifetimeMinimal, tripStartDate, tripEndDate);
   const countiesData = buildCountiesData(tripFinds, priorCounties);
 
-  // Rule context
+  // ── Rules ─────────────────────────────────────────────────────────────────
   const ctx: RuleContext = { priorCounties, priorStates, priorCountries, priorTypes };
   for (const [gc, m] of milestones)  (ctx as Record<string, number>)[`milestone_for_${gc}`] = m;
   for (const [gc, c] of jasmerFills) (ctx as Record<string, string>)[`jasmer_fill_${gc}`] = c;
@@ -189,17 +234,18 @@ export async function handleTripRun(
   const rules = buildDefaultRules();
   const { results: ruleResults, warnings } = evaluateAllRules(tripFinds, rules, ctx);
 
+  // ── Serialize result ──────────────────────────────────────────────────────
   const result = {
     trip_id: tripId,
     trip_name: trip.name,
-    start_date: trip.date_start,
-    end_date: trip.date_end,
+    start_date: tripStart,
+    end_date: tripEnd,
     generated_at: now(),
-    lifetime_find_count: allFinds.length,
+    lifetime_find_count: lifetimeRows.length,
     trip_find_count: tripFinds.length,
     warnings: [...refLists.warnings, ...warnings],
     diagnostics,
-    owner: { finder_id: ownerFinder.finder_id, display_name: displayName, gc_username: gcUsername },
+    owner: { finder_id: finderId, display_name: displayName, gc_username: gcUsername },
     aggregate,
     byDay: byDay.map(ds => ({
       dayDate: ds.dayDate.toISOString().slice(0, 10),
@@ -241,11 +287,9 @@ export async function handleTripRun(
     },
   };
 
-  // Cache result in R2 + D1
+  // ── Cache result ──────────────────────────────────────────────────────────
   const resultKey = `report-results/${user.userId}/${tripId}/latest.json`;
-  const reportId  = uuid();
-  const ts        = now();
-
+  const ts = now();
   try {
     const encoded = new TextEncoder().encode(JSON.stringify(result));
     await env.REPORT_BUCKET.put(resultKey, encoded.buffer as ArrayBuffer, {
@@ -254,7 +298,7 @@ export async function handleTripRun(
     await env.DB.prepare(`
       INSERT INTO trip_reports (report_id, trip_id, generated_at, output_r2_key, field_flags)
       VALUES (?, ?, ?, ?, ?)
-    `).bind(reportId, tripId, ts, resultKey, JSON.stringify(result.fieldAvailability)).run();
+    `).bind(uuid(), tripId, ts, resultKey, JSON.stringify(result.fieldAvailability)).run();
   } catch { /* non-fatal */ }
 
   return new Response(JSON.stringify(result), { headers: { 'Content-Type': 'application/json' } });
