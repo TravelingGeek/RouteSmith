@@ -729,6 +729,46 @@ document.getElementById('companion-save').addEventListener('click', async () => 
   await refresh();
 });
 
+// ── Run Report ────────────────────────────────────────────────────
+function initRunReport() {
+  const btn      = document.getElementById('run-report-btn');
+  const statusEl = document.getElementById('report-status');
+  if (!btn) return;
+
+  btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    btn.textContent = 'Running…';
+    statusEl.textContent = 'Parsing GPX and computing stats…';
+
+    try {
+      const token = await getToken();
+      const resp  = await fetch(`${BASE}/api/report/trip/${TRIP_ID}/run`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token },
+      });
+      const result = await resp.json();
+      if (result.error) throw new Error(result.error);
+
+      statusEl.textContent = `✓ ${result.trip_find_count} finds · ${result.aggregate?.newCounties ?? 0} new counties · ${result.ruleResults?.length ?? 0} rules fired`;
+      btn.textContent = 'Re-run Report';
+      window._lastReportResult = result;
+
+      console.log('Report result:', {
+        finds: result.trip_find_count,
+        newCounties: result.aggregate?.newCounties,
+        fp: result.aggregate?.favoritePointsEarned,
+        rules: result.ruleResults?.map(r => r.rule.id + '(' + r.matches.length + ')').join(', '),
+        byDay: result.byDay?.map(d => d.dayDate + ':' + d.finds).join(', '),
+      });
+    } catch (e) {
+      statusEl.textContent = '✗ ' + e.message;
+      btn.textContent = 'Run Report';
+    } finally {
+      btn.disabled = false;
+    }
+  });
+}
+
 // ── Auth + init ───────────────────────────────────────────────────
 window.addEventListener('load', async () => {
   await window.Clerk.load();
@@ -764,6 +804,7 @@ window.addEventListener('load', async () => {
     renderCompanions(companions);
     loadingEl.style.display = 'none';
     mainContent.style.display = 'block';
+    initRunReport();
   } catch (e) {
     loadingEl.textContent = 'Error loading trip.';
   }
