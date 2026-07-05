@@ -19,6 +19,7 @@
 import type { Env, JobMessage } from './types.js';
 import { handleGpxParseJob } from './gpxParseJob.js';
 import { handleReportRunJob } from './reportRunJob.js';
+import { handleTripRunJob } from './tripRunJob.js';
 
 export default {
   // ── Queue consumer ──────────────────────────────────────────────────────────
@@ -46,6 +47,16 @@ export default {
               job.job_id,
               job.user_id,
               job.payload as unknown as import('./types.js').ReportRunPayload,
+              attemptNumber,
+              env,
+            );
+            break;
+
+          case 'trip_run':
+            await handleTripRunJob(
+              job.job_id,
+              job.user_id,
+              job.payload as unknown as import('./types.js').TripRunPayload,
               attemptNumber,
               env,
             );

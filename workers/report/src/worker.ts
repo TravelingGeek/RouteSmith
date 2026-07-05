@@ -19,7 +19,7 @@ import { requireAuth, unauthorizedResponse, AuthError } from './auth.js';
 import { handleAccountSync, handleAccountMe, handleGpxFiles } from './account.js';
 import { handlePresign, handleUploadData, handleConfirm, handleJobStatus } from './upload.js';
 import { handleReportRunFromR2, handleReportStatus } from './reportRun.js';
-import { handleTripRun, handleTripResult } from './tripPipeline.js';
+import { handleTripRun, handleTripStatus, handleTripResult } from './tripPipeline.js';
 import { handleListTrips, handleCreateTrip, handleGetTrip, handleUpdateTrip, handleDeleteTrip, handleListCompanions, handleAddCompanion, handleRemoveCompanion, handleListFinders, handleUpdateFinder } from './trips.js';
 import type { TripInput } from './types.js';
 
@@ -128,6 +128,11 @@ export default {
     const tripRunMatch = url.pathname.match(/^\/api\/report\/trip\/([\w-]+)\/run$/);
     if (tripRunMatch && request.method === 'POST') {
       return addCors(await handleTripRun(tripRunMatch[1], user, env), request);
+    }
+
+    const tripStatusMatch = url.pathname.match(/^\/api\/report\/trip\/([\w-]+)\/status\/([\w-]+)$/);
+    if (tripStatusMatch && request.method === 'GET') {
+      return addCors(await handleTripStatus(tripStatusMatch[1], tripStatusMatch[2], user, env), request);
     }
 
     const tripResultMatch = url.pathname.match(/^\/api\/report\/trip\/([\w-]+)\/result$/);

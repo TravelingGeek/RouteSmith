@@ -264,7 +264,7 @@ export interface Queue<T> {
   send(message: T): Promise<void>;
 }
 
-export type JobType = 'gpx_parse' | 'report_run';
+export type JobType = 'gpx_parse' | 'report_run' | 'trip_run';
 export type JobModule = 'report' | 'plan' | 'navigate';
 
 export interface JobMessage {

@@ -258,7 +258,7 @@ export interface Env {
 // Job message schema
 // ============================================================================
 
-export type JobType = 'gpx_parse' | 'report_run';
+export type JobType = 'gpx_parse' | 'report_run' | 'trip_run';
 export type JobModule = 'report' | 'plan' | 'navigate';
 export type JobStatus = 'pending' | 'processing' | 'complete' | 'failed';
 
@@ -310,4 +310,16 @@ export interface ReportRunResult {
   result_r2_key: string;
   find_count: number;
   companion_count: number;
+}
+
+export interface TripRunPayload {
+  trip_id: string;
+  user_id: string;
+  result_r2_key: string;
+}
+
+export interface TripRunResult {
+  result_r2_key: string;
+  trip_find_count: number;
+  lifetime_find_count: number;
 }
