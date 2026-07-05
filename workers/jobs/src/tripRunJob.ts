@@ -215,6 +215,21 @@ export async function handleTripRunJob(
   console.log(`[trip_run] rules fired: ${ruleResults.length}`);
 
   // ── Serialize and store result ────────────────────────────────────────────
+  // Pre-map byDay to avoid circular reference issues and reduce result size
+  const mappedByDay = byDay.map((ds: any) => ({
+    dayDate: ds.dayDate.toISOString().slice(0, 10),
+    finds: ds.finds,
+    favoritePoints: ds.favoritePoints,
+    newCounties: ds.newCounties,
+    byCacheType: ds.byCacheType,
+    bestFind: ds.bestFind ? {
+      gcCode: ds.bestFind.gcCode,
+      name: ds.bestFind.name,
+      favoritePoints: ds.bestFind.favoritePoints,
+      cacheType: ds.bestFind.cacheType,
+    } : null,
+  }));
+
   const result = {
     trip_id,
     trip_name: trip.name,
@@ -229,19 +244,7 @@ export async function handleTripRunJob(
       : [],
     owner: { finder_id: finderId, display_name: displayName, gc_username: gcUsername },
     aggregate,
-    byDay: byDay.map((ds: any) => ({
-      dayDate: ds.dayDate.toISOString().slice(0, 10),
-      finds: ds.finds,
-      favoritePoints: ds.favoritePoints,
-      newCounties: ds.newCounties,
-      byCacheType: ds.byCacheType,
-      bestFind: ds.bestFind ? {
-        gcCode: ds.bestFind.gcCode,
-        name: ds.bestFind.name,
-        favoritePoints: ds.bestFind.favoritePoints,
-        cacheType: ds.bestFind.cacheType,
-      } : null,
-    })),
+    byDay: mappedByDay,
     ruleResults: ruleResults.map((rr: any) => ({
       rule: { id: rr.rule.id, displayName: rr.rule.displayName, severity: rr.rule.severity },
       matches: rr.matches.map((m: any) => ({
@@ -258,18 +261,35 @@ export async function handleTripRunJob(
       })),
     })),
     countiesData: {
-      firstTime: [...(countiesData as any).firstTime],
-      previouslyFound: [...(countiesData as any).previouslyFound],
-      stateCoverage: (countiesData as any).stateCoverage,
+      firstTimeCount: (countiesData as any).firstTime.size,
+      previouslyFoundCount: (countiesData as any).previouslyFound.size,
+      firstTime: [...(countiesData as any).firstTime].slice(0, 500),
     },
-    jasmerGridState: Object.fromEntries(jasmerGrid),
+    jasmerNewCells: [...jasmerGrid.entries()]
+      .filter(([gc]) => tripFinds.some(w => w.gcCode === gc))
+      .map(([gc, cell]) => ({ gcCode: gc, cell })),
     fieldAvailability: {
       hasCounty: tripFinds.filter(w => w.county).length / Math.max(tripFinds.length, 1) >= 0.1,
       hasFp: tripFinds.filter(w => w.favoritePoints > 0).length / Math.max(tripFinds.length, 1) >= 0.1,
     },
   };
 
-  const encoded = new TextEncoder().encode(JSON.stringify(result));
+  // Per-day size breakdown
+  mappedByDay.forEach((d: any, i: number) => {
+    console.log(`[trip_run] day ${i} sizes: byCacheType=${JSON.stringify(d.byCacheType).length} bestFind=${JSON.stringify(d.bestFind).length} total=${JSON.stringify(d).length}`);
+  });
+  // Diagnose which fields are large
+  console.log('[trip_run] size breakdown:',
+    'ruleResults:', JSON.stringify(result.ruleResults).length,
+    'byDay (raw):', JSON.stringify(byDay).length,
+    'byDay (mapped):', JSON.stringify(mappedByDay).length,
+    'countiesData:', JSON.stringify(result.countiesData).length,
+    'jasmerNewCells:', JSON.stringify(result.jasmerNewCells).length,
+    'aggregate:', JSON.stringify(result.aggregate).length,
+  );
+  const serialized = JSON.stringify(result);
+  console.log(`[trip_run] result JSON size: ${serialized.length} bytes (${(serialized.length/1024).toFixed(1)}KB)`);
+  const encoded = new TextEncoder().encode(serialized);
   await env.REPORT_BUCKET.put(result_r2_key, encoded.buffer as ArrayBuffer, {
     httpMetadata: { contentType: 'application/json' },
   });

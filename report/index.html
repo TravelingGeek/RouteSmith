@@ -386,7 +386,7 @@
   <span class="sep">·</span>
   <span>Forged 2026</span>
   <span class="sep">·</span>
-  <span>Build 2026.07.04.013</span>
+  <span>Build 2026.07.04.014</span>
 </footer>
 
 <script>
@@ -499,6 +499,11 @@ modalSave.addEventListener('click', async () => {
   if (!name) { document.getElementById('trip-name').focus(); return; }
   if (!start || !end) { alert('Please set start and end dates.'); return; }
   if (start > end) { alert('End date must be on or after start date.'); return; }
+  const startYear = parseInt(start.slice(0, 4));
+  const endYear   = parseInt(end.slice(0, 4));
+  const currentYear = new Date().getFullYear();
+  if (startYear < 2000 || startYear > currentYear + 5) { alert('Start date year looks wrong — please check.'); return; }
+  if (endYear   < 2000 || endYear   > currentYear + 5) { alert('End date year looks wrong — please check.'); return; }
 
   modalSave.disabled = true;
   modalSave.textContent = 'Creating…';

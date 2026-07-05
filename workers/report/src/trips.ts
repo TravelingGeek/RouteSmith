@@ -13,6 +13,16 @@ import type { AuthUser } from './auth.js';
 import type { Env } from './types.js';
 
 function uuid(): string { return crypto.randomUUID(); }
+
+function isValidTripDate(dateStr: string | null | undefined): boolean {
+  if (!dateStr) return true; // null/undefined is allowed
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false;
+  const d = new Date(dateStr + 'T00:00:00Z');
+  if (isNaN(d.getTime())) return false;
+  const year = d.getUTCFullYear();
+  const currentYear = new Date().getUTCFullYear();
+  return year >= 2000 && year <= currentYear + 5; // must be 2000-present+5yr
+}
 function now(): number  { return Math.floor(Date.now() / 1000); }
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -76,6 +86,12 @@ export async function handleCreateTrip(
   catch { return jsonError('Invalid JSON body'); }
 
   if (!body.name?.trim()) return jsonError('name is required');
+  if (body.date_start && !isValidTripDate(body.date_start)) {
+    return jsonError('date_start must be a valid date between 2000 and 5 years from now (YYYY-MM-DD)');
+  }
+  if (body.date_end && !isValidTripDate(body.date_end)) {
+    return jsonError('date_end must be a valid date between 2000 and 5 years from now (YYYY-MM-DD)');
+  }
   if (body.date_start && body.date_end && body.date_start > body.date_end) {
     return jsonError('date_end must be on or after date_start');
   }
@@ -194,6 +210,14 @@ export async function handleUpdateTrip(
     .bind(tripId, user.userId)
     .first();
   if (!existing) return jsonError('Trip not found', 404);
+
+  // Validate dates if being updated
+  if (body.date_start !== undefined && body.date_start && !isValidTripDate(body.date_start)) {
+    return jsonError('date_start must be a valid date between 2000 and 5 years from now (YYYY-MM-DD)');
+  }
+  if (body.date_end !== undefined && body.date_end && !isValidTripDate(body.date_end)) {
+    return jsonError('date_end must be a valid date between 2000 and 5 years from now (YYYY-MM-DD)');
+  }
 
   const fields: string[] = [];
   const values: unknown[] = [];

@@ -442,7 +442,7 @@
   <span class="sep">·</span>
   <span>Forged 2026</span>
   <span class="sep">·</span>
-  <span>Build 2026.07.04.013</span>
+  <span>Build 2026.07.04.014</span>
 </footer>
 
 <script>
@@ -667,6 +667,18 @@ document.getElementById('edit-save').addEventListener('click', async () => {
       gas_cost:       parseFloat(document.getElementById('edit-gas').value) || null,
     }),
   });
+  const es = document.getElementById('edit-start').value;
+  const ee = document.getElementById('edit-end').value;
+  const cy = new Date().getFullYear();
+  if (es && (parseInt(es.slice(0,4)) < 2000 || parseInt(es.slice(0,4)) > cy + 5)) {
+    alert('Start date year looks wrong — please check.'); btn.disabled = false; btn.textContent = 'Save Changes'; return;
+  }
+  if (ee && (parseInt(ee.slice(0,4)) < 2000 || parseInt(ee.slice(0,4)) > cy + 5)) {
+    alert('End date year looks wrong — please check.'); btn.disabled = false; btn.textContent = 'Save Changes'; return;
+  }
+  if (es && ee && es > ee) {
+    alert('End date must be on or after start date.'); btn.disabled = false; btn.textContent = 'Save Changes'; return;
+  }
   document.getElementById('edit-modal').classList.remove('open');
   btn.disabled = false; btn.textContent = 'Save Changes';
   await refresh();
