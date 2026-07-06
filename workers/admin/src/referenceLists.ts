@@ -94,18 +94,6 @@ export async function handleUploadReferenceList(
     },
   });
 
-  // Log the upload in D1
-  await env.DB.prepare(`
-    INSERT INTO gpx_file_events (
-      event_id, gpx_file_id, event_type, executed_by_user_id, note, occurred_at
-    ) VALUES (?, 'system', 'reference_list_uploaded', ?, ?, ?)
-  `).bind(
-    crypto.randomUUID(),
-    user.userId,
-    `Reference list uploaded: ${name} (${body.byteLength} bytes)`,
-    Math.floor(Date.now() / 1000),
-  ).run();
-
   return jsonResponse({
     name,
     key,
