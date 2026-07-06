@@ -113,18 +113,33 @@ export default {
       }), request);
     }
 
-    // Jobs monitor (future)
+    // Jobs monitor with pagination
     if (url.pathname === '/api/admin/jobs' && request.method === 'GET') {
-      const limit = parseInt(url.searchParams.get('limit') ?? '50');
+      const limit  = Math.min(parseInt(url.searchParams.get('limit')  ?? '25'), 100);
+      const offset = parseInt(url.searchParams.get('offset') ?? '0');
       const status = url.searchParams.get('status');
       const query = status
-        ? `SELECT job_id, module, job_type, status, user_id, attempt_count, error, created_at, updated_at FROM jobs WHERE status = ? ORDER BY created_at DESC LIMIT ?`
-        : `SELECT job_id, module, job_type, status, user_id, attempt_count, error, created_at, updated_at FROM jobs ORDER BY created_at DESC LIMIT ?`;
+        ? `SELECT job_id, module, job_type, status, user_id, attempt_count, error, created_at, updated_at FROM jobs WHERE status = ? ORDER BY created_at DESC LIMIT ? OFFSET ?`
+        : `SELECT job_id, module, job_type, status, user_id, attempt_count, error, created_at, updated_at FROM jobs ORDER BY created_at DESC LIMIT ? OFFSET ?`;
       const stmt = status
-        ? env.DB.prepare(query).bind(status, limit)
-        : env.DB.prepare(query).bind(limit);
+        ? env.DB.prepare(query).bind(status, limit, offset)
+        : env.DB.prepare(query).bind(limit, offset);
       const { results } = await stmt.all();
       return addCors(new Response(JSON.stringify({ jobs: results }), {
+        headers: { 'Content-Type': 'application/json' },
+      }), request);
+    }
+
+    // Purge old completed/failed jobs
+    if (url.pathname === '/api/admin/jobs/purge' && request.method === 'POST') {
+      let body: { cutoff_ts?: number };
+      try { body = await request.json(); } catch { body = {}; }
+      const cutoff = body.cutoff_ts ?? (Math.floor(Date.now() / 1000) - 7 * 86400);
+      await env.DB.prepare(
+        `DELETE FROM jobs WHERE status IN ('complete', 'failed') AND created_at < ?`
+      ).bind(cutoff).run();
+      // D1 doesn't return affected row count easily — just confirm success
+      return addCors(new Response(JSON.stringify({ deleted: true }), {
         headers: { 'Content-Type': 'application/json' },
       }), request);
     }

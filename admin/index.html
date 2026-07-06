@@ -6,7 +6,7 @@
 <title>Routesmith — Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
 <script
   async
@@ -29,159 +29,63 @@
     --rule: #c9bda0;
     --rule-soft: #ddd2b5;
   }
-
   * { box-sizing: border-box; }
   html { -webkit-font-smoothing: antialiased; }
-
   body {
-    margin: 0; min-height: 100vh;
-    background: var(--paper);
-    background-image:
-      linear-gradient(rgba(168,120,50,0.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(168,120,50,0.05) 1px, transparent 1px);
+    margin: 0; min-height: 100vh; background: var(--paper);
+    background-image: linear-gradient(rgba(168,120,50,0.05) 1px,transparent 1px),linear-gradient(90deg,rgba(168,120,50,0.05) 1px,transparent 1px);
     background-size: 28px 28px;
-    color: var(--ink);
-    font-family: 'Source Serif 4', Charter, Georgia, serif;
+    color: var(--ink); font-family: 'Source Serif 4',Charter,Georgia,serif;
     line-height: 1.6; font-size: 16px;
   }
-
   .site-header {
-    max-width: 960px; margin: 0 auto; padding: 18px 40px;
+    max-width: 1000px; margin: 0 auto; padding: 18px 40px;
     display: flex; justify-content: space-between; align-items: center;
     border-bottom: 1px solid var(--rule-soft);
   }
-  .site-brand {
-    font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; font-weight: 500;
-    text-transform: uppercase; letter-spacing: 0.14em; color: var(--brass-deep);
-    text-decoration: none;
-  }
-  .admin-badge {
-    font-family: 'JetBrains Mono', monospace; font-size: 0.68rem;
-    text-transform: uppercase; letter-spacing: 0.12em;
-    color: var(--stamp); border: 1px solid var(--stamp);
-    padding: 2px 10px; border-radius: 2px;
-  }
-  .nav-user {
-    font-family: 'JetBrains Mono', monospace; font-size: 0.72rem;
-    color: var(--ink-soft); display: flex; align-items: center; gap: 12px;
-  }
-  .btn-signout {
-    font-family: 'JetBrains Mono', monospace; font-size: 0.7rem;
-    text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-muted);
-    background: none; border: 1px solid var(--rule); padding: 5px 12px;
-    border-radius: 2px; cursor: pointer; transition: color 0.15s, border-color 0.15s;
-  }
-  .btn-signout:hover { color: var(--stamp); border-color: var(--stamp); }
-
-  .page { max-width: 960px; margin: 0 auto; padding: 40px 40px 80px; }
-
-  .page-title {
-    font-family: 'Fraunces', serif; font-weight: 600; font-size: 1.8rem;
-    color: var(--ink); margin: 0 0 32px; letter-spacing: -0.02em;
-  }
-
-  /* Sections */
-  .admin-section { margin-bottom: 40px; }
-  .section-header {
-    display: flex; justify-content: space-between; align-items: center;
-    padding-bottom: 10px; border-bottom: 2px solid var(--rule); margin-bottom: 18px;
-  }
-  .section-title {
-    font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;
-    text-transform: uppercase; letter-spacing: 0.16em; color: var(--brass-deep);
-  }
-
-  /* Reference list table */
-  .ref-table { width: 100%; border-collapse: collapse; }
-  .ref-table th {
-    font-family: 'JetBrains Mono', monospace; font-size: 0.68rem;
-    text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-muted);
-    text-align: left; padding: 6px 12px; border-bottom: 1px solid var(--rule);
-  }
-  .ref-table td {
-    font-size: 0.9rem; padding: 10px 12px;
-    border-bottom: 1px solid var(--rule-soft); vertical-align: middle;
-  }
-  .ref-table tr:last-child td { border-bottom: none; }
-  .ref-name { font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: var(--ink); }
-  .ref-status-present { color: var(--forge); font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; }
-  .ref-status-missing { color: var(--stamp); font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; }
-  .ref-meta { font-size: 0.82rem; color: var(--ink-muted); }
-
-  /* Upload zone */
-  .upload-row { display: flex; align-items: center; gap: 10px; }
-  .file-input-label {
-    font-family: 'JetBrains Mono', monospace; font-size: 0.72rem;
-    text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-muted);
-    border: 1px solid var(--rule); padding: 6px 14px; border-radius: 2px;
-    cursor: pointer; transition: border-color 0.15s, color 0.15s; white-space: nowrap;
-  }
-  .file-input-label:hover { color: var(--brass-deep); border-color: var(--brass); }
-  .file-input-label input { display: none; }
-  .selected-filename { font-family: 'JetBrains Mono', monospace; font-size: 0.74rem; color: var(--ink-soft); }
-
-  /* Buttons */
-  .btn-primary {
-    font-family: 'JetBrains Mono', monospace; font-size: 0.74rem; font-weight: 600;
-    text-transform: uppercase; letter-spacing: 0.1em; color: var(--paper);
-    background: var(--brass-deep); border: none; padding: 8px 16px;
-    border-radius: 2px; cursor: pointer; transition: background 0.15s; white-space: nowrap;
-  }
-  .btn-primary:hover { background: var(--ink); }
-  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-
-  .btn-danger {
-    font-family: 'JetBrains Mono', monospace; font-size: 0.7rem;
-    text-transform: uppercase; letter-spacing: 0.08em; color: var(--stamp);
-    background: none; border: 1px solid transparent; padding: 4px 10px;
-    border-radius: 2px; cursor: pointer; transition: border-color 0.15s;
-  }
-  .btn-danger:hover { border-color: var(--stamp); }
-
-  /* Status message */
-  .status-msg {
-    font-family: 'JetBrains Mono', monospace; font-size: 0.72rem;
-    padding: 8px 14px; border-radius: 2px; margin-top: 12px; display: none;
-  }
-  .status-msg.ok  { color: var(--forge); background: rgba(45,90,42,0.08); border: 1px solid var(--forge); }
-  .status-msg.err { color: var(--stamp); background: rgba(168,51,40,0.08); border: 1px solid var(--stamp); }
-
-  /* Jobs table */
-  .jobs-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
-  .jobs-table th {
-    font-family: 'JetBrains Mono', monospace; font-size: 0.66rem;
-    text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-muted);
-    text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--rule);
-  }
-  .jobs-table td { padding: 8px 10px; border-bottom: 1px solid var(--rule-soft); font-size: 0.82rem; }
-  .job-status { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; padding: 2px 8px; border-radius: 2px; }
-  .job-status.complete  { color: var(--forge); background: rgba(45,90,42,0.08); }
-  .job-status.failed    { color: var(--stamp); background: rgba(168,51,40,0.08); }
-  .job-status.pending, .job-status.processing { color: var(--brass-deep); background: rgba(168,120,50,0.08); }
-
-  .loading {
-    text-align: center; padding: 60px 0;
-    font-family: 'JetBrains Mono', monospace; font-size: 0.78rem;
-    text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-muted);
-  }
-
-  .access-denied {
-    text-align: center; padding: 80px 0;
-    border: 1px solid var(--rule); border-top: 3px solid var(--stamp);
-    background: rgba(255,252,240,0.6);
-  }
-  .access-denied-title {
-    font-family: 'Fraunces', serif; font-weight: 600; font-size: 1.5rem;
-    color: var(--stamp); margin: 0 0 12px;
-  }
-
-  footer {
-    text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem;
-    text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-muted);
-    padding-bottom: 24px; margin-top: 48px;
-  }
-  footer .domain { color: var(--brass-deep); }
-  footer .sep { margin: 0 10px; color: var(--rule); }
+  .site-brand { font-family:'JetBrains Mono',monospace; font-size:0.78rem; font-weight:500; text-transform:uppercase; letter-spacing:0.14em; color:var(--brass-deep); text-decoration:none; }
+  .admin-badge { font-family:'JetBrains Mono',monospace; font-size:0.68rem; text-transform:uppercase; letter-spacing:0.12em; color:var(--stamp); border:1px solid var(--stamp); padding:2px 10px; border-radius:2px; }
+  .nav-user { font-family:'JetBrains Mono',monospace; font-size:0.72rem; color:var(--ink-soft); display:flex; align-items:center; gap:12px; }
+  .btn-signout { font-family:'JetBrains Mono',monospace; font-size:0.7rem; text-transform:uppercase; letter-spacing:0.1em; color:var(--ink-muted); background:none; border:1px solid var(--rule); padding:5px 12px; border-radius:2px; cursor:pointer; }
+  .btn-signout:hover { color:var(--stamp); border-color:var(--stamp); }
+  .page { max-width:1000px; margin:0 auto; padding:36px 40px 80px; }
+  .page-title { font-family:'Fraunces',serif; font-weight:600; font-size:1.8rem; color:var(--ink); margin:0 0 32px; letter-spacing:-0.02em; }
+  .admin-section { margin-bottom:44px; }
+  .section-header { display:flex; justify-content:space-between; align-items:center; padding-bottom:10px; border-bottom:2px solid var(--rule); margin-bottom:18px; flex-wrap:wrap; gap:10px; }
+  .section-title { font-family:'JetBrains Mono',monospace; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.16em; color:var(--brass-deep); }
+  table { width:100%; border-collapse:collapse; }
+  th { font-family:'JetBrains Mono',monospace; font-size:0.68rem; text-transform:uppercase; letter-spacing:0.1em; color:var(--ink-muted); text-align:left; padding:6px 12px; border-bottom:1px solid var(--rule); }
+  td { font-size:0.88rem; padding:10px 12px; border-bottom:1px solid var(--rule-soft); vertical-align:middle; }
+  tr:last-child td { border-bottom:none; }
+  .mono { font-family:'JetBrains Mono',monospace; font-size:0.78rem; }
+  .present { color:var(--forge); }
+  .missing { color:var(--stamp); }
+  .muted { color:var(--ink-muted); font-size:0.82rem; }
+  .btn-primary { font-family:'JetBrains Mono',monospace; font-size:0.74rem; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:var(--paper); background:var(--brass-deep); border:none; padding:7px 16px; border-radius:2px; cursor:pointer; white-space:nowrap; }
+  .btn-primary:hover { background:var(--ink); }
+  .btn-primary:disabled { opacity:0.5; cursor:not-allowed; }
+  .btn-sm { font-family:'JetBrains Mono',monospace; font-size:0.7rem; text-transform:uppercase; letter-spacing:0.08em; color:var(--ink-muted); background:none; border:1px solid var(--rule); padding:4px 12px; border-radius:2px; cursor:pointer; white-space:nowrap; }
+  .btn-sm:hover { color:var(--ink); border-color:var(--ink-soft); }
+  .btn-danger { font-family:'JetBrains Mono',monospace; font-size:0.7rem; text-transform:uppercase; letter-spacing:0.08em; color:var(--stamp); background:none; border:1px solid transparent; padding:4px 10px; border-radius:2px; cursor:pointer; }
+  .btn-danger:hover { border-color:var(--stamp); }
+  .upload-zone { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .file-label { font-family:'JetBrains Mono',monospace; font-size:0.7rem; text-transform:uppercase; letter-spacing:0.1em; color:var(--ink-muted); border:1px solid var(--rule); padding:5px 12px; border-radius:2px; cursor:pointer; white-space:nowrap; }
+  .file-label:hover { color:var(--brass-deep); border-color:var(--brass); }
+  .file-label input { display:none; }
+  .status-msg { font-family:'JetBrains Mono',monospace; font-size:0.72rem; padding:8px 14px; border-radius:2px; margin-top:10px; }
+  .status-ok  { color:var(--forge); background:rgba(45,90,42,0.08); border:1px solid var(--forge); }
+  .status-err { color:var(--stamp); background:rgba(168,51,40,0.08); border:1px solid var(--stamp); }
+  .job-badge { font-family:'JetBrains Mono',monospace; font-size:0.68rem; padding:2px 8px; border-radius:2px; }
+  .job-badge.complete  { color:var(--forge); background:rgba(45,90,42,0.08); }
+  .job-badge.failed    { color:var(--stamp); background:rgba(168,51,40,0.08); }
+  .job-badge.pending,.job-badge.processing { color:var(--brass-deep); background:rgba(168,120,50,0.08); }
+  .loading { text-align:center; padding:60px 0; font-family:'JetBrains Mono',monospace; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.14em; color:var(--ink-muted); }
+  .access-denied { text-align:center; padding:80px 40px; border:1px solid var(--rule); border-top:3px solid var(--stamp); background:rgba(255,252,240,0.6); }
+  .access-denied-title { font-family:'Fraunces',serif; font-weight:600; font-size:1.5rem; color:var(--stamp); margin:0 0 12px; }
+  .pagination { display:flex; align-items:center; gap:8px; margin-top:14px; }
+  footer { text-align:center; font-family:'JetBrains Mono',monospace; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.14em; color:var(--ink-muted); padding-bottom:24px; margin-top:48px; }
+  footer .domain { color:var(--brass-deep); }
+  footer .sep { margin:0 10px; color:var(--rule); }
 </style>
 </head>
 <body>
@@ -207,36 +111,36 @@
   <div id="main-content" style="display:none;">
     <h1 class="page-title">Admin</h1>
 
+    <!-- Users -->
+    <div class="admin-section">
+      <div class="section-header">
+        <div class="section-title">Users</div>
+        <button class="btn-sm" onclick="loadUsers()">Refresh</button>
+      </div>
+      <table>
+        <thead><tr><th>Email</th><th>Display name</th><th>Username</th><th>Admin</th></tr></thead>
+        <tbody id="users-tbody"><tr><td colspan="4" class="muted">Loading…</td></tr></tbody>
+      </table>
+    </div>
+
     <!-- Reference Lists -->
     <div class="admin-section">
       <div class="section-header">
         <div class="section-title">Reference Lists</div>
-        <button class="btn-primary" id="refresh-refs-btn" onclick="loadReferenceLists()">Refresh</button>
+        <button class="btn-sm" onclick="loadReferenceLists()">Refresh</button>
       </div>
-
-      <table class="ref-table" id="ref-table">
-        <thead>
-          <tr>
-            <th>File</th>
-            <th>Status</th>
-            <th>Size</th>
-            <th>Uploaded</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody id="ref-tbody">
-          <tr><td colspan="5" style="color:var(--ink-muted);font-style:italic;padding:16px 12px;">Loading…</td></tr>
-        </tbody>
+      <table>
+        <thead><tr><th>Description</th><th>File</th><th>Status</th><th>Size</th><th>Uploaded</th><th>Action</th></tr></thead>
+        <tbody id="ref-tbody"><tr><td colspan="6" class="muted">Loading…</td></tr></tbody>
       </table>
-
-      <div id="ref-status" class="status-msg"></div>
+      <div id="ref-status"></div>
     </div>
 
-    <!-- Jobs Monitor -->
+    <!-- Jobs -->
     <div class="admin-section">
       <div class="section-header">
         <div class="section-title">Recent Jobs</div>
-        <div style="display:flex;gap:8px;align-items:center;">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
           <select id="job-status-filter" style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;border:1px solid var(--rule);padding:5px 10px;border-radius:2px;background:white;color:var(--ink);">
             <option value="">All</option>
             <option value="pending">Pending</option>
@@ -244,45 +148,15 @@
             <option value="complete">Complete</option>
             <option value="failed">Failed</option>
           </select>
-          <button class="btn-primary" onclick="loadJobs()">Refresh</button>
+          <button class="btn-sm" onclick="loadJobs(0)">Refresh</button>
+          <button class="btn-danger" onclick="purgeOldJobs()">Purge completed</button>
         </div>
       </div>
-      <table class="jobs-table">
-        <thead>
-          <tr>
-            <th>Job ID</th>
-            <th>Type</th>
-            <th>Status</th>
-            <th>Attempts</th>
-            <th>Created</th>
-            <th>Error</th>
-          </tr>
-        </thead>
-        <tbody id="jobs-tbody">
-          <tr><td colspan="6" style="color:var(--ink-muted);font-style:italic;padding:16px 10px;">Loading…</td></tr>
-        </tbody>
+      <table>
+        <thead><tr><th>Job ID</th><th>Type</th><th>Status</th><th>Attempts</th><th>Created</th><th>Error</th></tr></thead>
+        <tbody id="jobs-tbody"><tr><td colspan="6" class="muted">Loading…</td></tr></tbody>
       </table>
-    </div>
-
-    <!-- Users -->
-    <div class="admin-section">
-      <div class="section-header">
-        <div class="section-title">Users</div>
-        <button class="btn-primary" onclick="loadUsers()">Refresh</button>
-      </div>
-      <table class="jobs-table">
-        <thead>
-          <tr>
-            <th>Email</th>
-            <th>Display name</th>
-            <th>Username</th>
-            <th>Admin</th>
-          </tr>
-        </thead>
-        <tbody id="users-tbody">
-          <tr><td colspan="4" style="color:var(--ink-muted);font-style:italic;padding:16px 10px;">Loading…</td></tr>
-        </tbody>
-      </table>
+      <div class="pagination" id="jobs-pagination"></div>
     </div>
 
   </div>
@@ -293,114 +167,101 @@
   <span class="sep">·</span>
   <span>Admin</span>
   <span class="sep">·</span>
-  <span>Build 2026.07.04.014</span>
+  <span>Build 2026.07.05.015</span>
 </footer>
 
 <script>
 const ADMIN_BASE = 'https://routesmith-admin.gtl6645.workers.dev';
 const getToken = () => window.Clerk.session.getToken({ template: 'routesmith' });
 
+const PAGE_SIZE = 25;
+let jobsOffset = 0;
+
 function fmtDate(iso) {
   if (!iso) return '—';
-  return new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return new Date(iso).toLocaleString('en-US', { month:'short', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit' });
 }
-
+function fmtEpoch(n) { return n ? fmtDate(new Date(n * 1000).toISOString()) : '—'; }
 function fmtBytes(n) {
   if (!n) return '—';
   if (n < 1024) return n + ' B';
-  if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
-  return (n / 1024 / 1024).toFixed(1) + ' MB';
+  if (n < 1024*1024) return (n/1024).toFixed(1) + ' KB';
+  return (n/1024/1024).toFixed(1) + ' MB';
 }
+function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function showStatus(msg, isErr) {
   const el = document.getElementById('ref-status');
   el.textContent = msg;
-  el.className = 'status-msg ' + (isErr ? 'err' : 'ok');
-  el.style.display = 'block';
-  setTimeout(() => { el.style.display = 'none'; }, 5000);
+  el.className = 'status-msg ' + (isErr ? 'status-err' : 'status-ok');
+  setTimeout(() => { el.textContent = ''; el.className = ''; }, 6000);
 }
 
 // ── Reference Lists ───────────────────────────────────────────────
-const EXPECTED_FILES = [
-  'oldest_active_per_state.gpx',
-  'oldest_active_per_country.gpx',
-  'cache_across_america.gpx',
-  'cache_odyssey.gpx',
+const REF_FILES = [
+  { name: 'oldest_active_per_state.gpx',   label: 'Oldest Active Caches per State' },
+  { name: 'oldest_active_per_country.gpx', label: 'Oldest Active Caches per Country' },
+  { name: 'cache_across_america.gpx',      label: 'Cache Across America' },
+  { name: 'cache_odyssey.gpx',             label: 'Cache Odyssey' },
 ];
+
+// Store pending files keyed by filename
+const pendingFiles = {};
 
 async function loadReferenceLists() {
   const tbody = document.getElementById('ref-tbody');
-  tbody.innerHTML = '<tr><td colspan="5" style="color:var(--ink-muted);font-style:italic;padding:16px 12px;">Loading…</td></tr>';
-
+  tbody.innerHTML = '<tr><td colspan="6" class="muted">Loading…</td></tr>';
   const token = await getToken();
   const resp = await fetch(`${ADMIN_BASE}/api/admin/reference-lists`, {
-    headers: { 'Authorization': 'Bearer ' + token },
+    headers: { 'Authorization': 'Bearer ' + token }
   });
   const data = await resp.json();
-  if (data.error) { tbody.innerHTML = `<tr><td colspan="5" style="color:var(--stamp);">${data.error}</td></tr>`; return; }
+  if (data.error) { tbody.innerHTML = `<tr><td colspan="6" style="color:var(--stamp);">${esc(data.error)}</td></tr>`; return; }
 
-  const presentMap = new Map(data.files.map(f => [f.name, f]));
+  const presentMap = new Map((data.files||[]).map(f => [f.name, f]));
 
-  tbody.innerHTML = EXPECTED_FILES.map(name => {
+  tbody.innerHTML = REF_FILES.map(({ name, label }) => {
     const f = presentMap.get(name);
-    const uploadId = `upload-${name.replace(/\./g, '-')}`;
-    if (f) {
-      return `
-      <tr>
-        <td><span class="ref-name">${name}</span></td>
-        <td><span class="ref-status-present">✓ Present</span></td>
-        <td class="ref-meta">${fmtBytes(f.size)}</td>
-        <td class="ref-meta">${fmtDate(f.uploaded)}</td>
-        <td>
-          <div class="upload-row">
-            <label class="file-input-label">
-              Replace
-              <input type="file" accept=".gpx" onchange="onFileSelected(this, '${name}')">
-            </label>
-            <button class="btn-danger" onclick="deleteRefFile('${name}')">Delete</button>
-          </div>
-        </td>
-      </tr>`;
-    } else {
-      return `
-      <tr>
-        <td><span class="ref-name">${name}</span></td>
-        <td><span class="ref-status-missing">✗ Missing</span></td>
-        <td class="ref-meta">—</td>
-        <td class="ref-meta">—</td>
-        <td>
-          <div class="upload-row">
-            <label class="file-input-label">
-              Upload
-              <input type="file" accept=".gpx" onchange="onFileSelected(this, '${name}')">
-            </label>
-          </div>
-        </td>
-      </tr>`;
-    }
+    const safeId = name.replace(/[^a-z0-9]/g, '_');
+    return `<tr id="row_${safeId}">
+      <td><strong>${esc(label)}</strong></td>
+      <td class="mono muted">${esc(name)}</td>
+      <td>${f ? '<span class="present">✓ Present</span>' : '<span class="missing">✗ Missing</span>'}</td>
+      <td class="muted">${f ? fmtBytes(f.size) : '—'}</td>
+      <td class="muted">${f ? fmtDate(f.uploaded) : '—'}</td>
+      <td>
+        <div class="upload-zone">
+          <label class="file-label">
+            ${f ? 'Replace' : 'Upload'}
+            <input type="file" accept=".gpx" onchange="onRefFileSelected(this, '${esc(name)}')">
+          </label>
+          <button class="btn-primary" id="upload_btn_${safeId}" style="display:none;" onclick="uploadRefFile('${esc(name)}')">Upload</button>
+          ${f ? `<button class="btn-danger" onclick="deleteRefFile('${esc(name)}')">Delete</button>` : ''}
+        </div>
+        <div id="upload_status_${safeId}" class="muted" style="margin-top:4px;font-family:'JetBrains Mono',monospace;font-size:0.7rem;"></div>
+      </td>
+    </tr>`;
   }).join('');
 }
 
-function onFileSelected(input, name) {
+function onRefFileSelected(input, name) {
   const file = input.files[0];
   if (!file) return;
-
-  // Replace the label with upload button
-  const row = input.closest('tr');
-  const actionCell = row.querySelector('td:last-child');
-  actionCell.innerHTML = `
-    <div class="upload-row">
-      <span class="selected-filename">${file.name}</span>
-      <button class="btn-primary" onclick="uploadRefFile('${name}', this, ${JSON.stringify(file.name)})">Upload</button>
-    </div>`;
-  actionCell._pendingFile = file;
+  pendingFiles[name] = file;
+  const safeId = name.replace(/[^a-z0-9]/g, '_');
+  const btn = document.getElementById(`upload_btn_${safeId}`);
+  const statusEl = document.getElementById(`upload_status_${safeId}`);
+  if (btn) btn.style.display = 'inline-block';
+  if (statusEl) statusEl.textContent = file.name;
 }
 
-async function uploadRefFile(name, btn, filename) {
-  const row = btn.closest('tr');
-  const actionCell = row.querySelector('td:last-child');
-  const file = actionCell._pendingFile;
-  if (!file) return;
+async function uploadRefFile(name) {
+  const file = pendingFiles[name];
+  if (!file) { showStatus('No file selected', true); return; }
+
+  const safeId = name.replace(/[^a-z0-9]/g, '_');
+  const btn = document.getElementById(`upload_btn_${safeId}`);
+  const statusEl = document.getElementById(`upload_status_${safeId}`);
 
   btn.disabled = true;
   btn.textContent = 'Uploading…';
@@ -409,29 +270,28 @@ async function uploadRefFile(name, btn, filename) {
     const token = await getToken();
     const resp = await fetch(`${ADMIN_BASE}/api/admin/reference-lists/${encodeURIComponent(name)}`, {
       method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + token,
-        'Content-Type': 'application/gpx+xml',
-      },
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/gpx+xml' },
       body: file,
     });
     const result = await resp.json();
     if (result.error) throw new Error(result.error);
-    showStatus(`✓ ${name} uploaded (${fmtBytes(result.size)})`, false);
+    delete pendingFiles[name];
+    showStatus(`✓ ${name} uploaded successfully (${fmtBytes(result.size)})`, false);
     await loadReferenceLists();
   } catch (e) {
     showStatus(`✗ Upload failed: ${e.message}`, true);
     btn.disabled = false;
     btn.textContent = 'Upload';
+    if (statusEl) statusEl.textContent = '';
   }
 }
 
 async function deleteRefFile(name) {
-  if (!confirm(`Delete ${name}? The pipeline will not fire rules that depend on it.`)) return;
+  if (!confirm(`Delete ${name}?\n\nThe pipeline will not fire rules that depend on this file.`)) return;
   const token = await getToken();
   const resp = await fetch(`${ADMIN_BASE}/api/admin/reference-lists/${encodeURIComponent(name)}`, {
     method: 'DELETE',
-    headers: { 'Authorization': 'Bearer ' + token },
+    headers: { 'Authorization': 'Bearer ' + token }
   });
   const result = await resp.json();
   if (result.error) { showStatus(`✗ ${result.error}`, true); return; }
@@ -440,66 +300,94 @@ async function deleteRefFile(name) {
 }
 
 // ── Jobs ──────────────────────────────────────────────────────────
-async function loadJobs() {
+async function loadJobs(offset) {
+  if (offset !== undefined) jobsOffset = offset;
   const tbody = document.getElementById('jobs-tbody');
-  tbody.innerHTML = '<tr><td colspan="6" style="color:var(--ink-muted);padding:12px 10px;">Loading…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="6" class="muted">Loading…</td></tr>';
   const status = document.getElementById('job-status-filter').value;
   const token = await getToken();
-  const url = status
-    ? `${ADMIN_BASE}/api/admin/jobs?status=${status}&limit=50`
-    : `${ADMIN_BASE}/api/admin/jobs?limit=50`;
-  const resp = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+  const params = new URLSearchParams({ limit: PAGE_SIZE, offset: jobsOffset });
+  if (status) params.set('status', status);
+  const resp = await fetch(`${ADMIN_BASE}/api/admin/jobs?${params}`, {
+    headers: { 'Authorization': 'Bearer ' + token }
+  });
   const data = await resp.json();
   if (!data.jobs?.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="color:var(--ink-muted);font-style:italic;padding:12px 10px;">No jobs found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="muted" style="padding:16px 10px;">No jobs found.</td></tr>';
+    document.getElementById('jobs-pagination').innerHTML = '';
     return;
   }
   tbody.innerHTML = data.jobs.map(j => `
     <tr>
-      <td style="font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:var(--ink-muted);">${j.job_id.slice(0,8)}…</td>
-      <td style="font-family:'JetBrains Mono',monospace;font-size:0.74rem;">${j.job_type}</td>
-      <td><span class="job-status ${j.status}">${j.status}</span></td>
+      <td class="mono" style="font-size:0.68rem;color:var(--ink-muted);">${j.job_id.slice(0,8)}…</td>
+      <td class="mono">${esc(j.job_type)}</td>
+      <td><span class="job-badge ${j.status}">${j.status}</span></td>
       <td style="text-align:center;">${j.attempt_count ?? 0}</td>
-      <td style="font-size:0.78rem;color:var(--ink-muted);">${fmtDate(new Date(j.created_at * 1000).toISOString())}</td>
-      <td style="font-size:0.74rem;color:var(--stamp);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${j.error ?? ''}">${j.error ?? '—'}</td>
+      <td class="muted">${fmtEpoch(j.created_at)}</td>
+      <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--stamp);font-size:0.78rem;" title="${esc(j.error??'')}">${esc(j.error??'—')}</td>
     </tr>`).join('');
+
+  // Pagination
+  const pg = document.getElementById('jobs-pagination');
+  const buttons = [];
+  if (jobsOffset > 0) buttons.push(`<button class="btn-sm" onclick="loadJobs(${jobsOffset - PAGE_SIZE})">← Previous</button>`);
+  if (data.jobs.length === PAGE_SIZE) buttons.push(`<button class="btn-sm" onclick="loadJobs(${jobsOffset + PAGE_SIZE})">Next →</button>`);
+  if (buttons.length) {
+    pg.innerHTML = buttons.join('') + `<span class="muted" style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;">Showing ${jobsOffset + 1}–${jobsOffset + data.jobs.length}</span>`;
+  } else {
+    pg.innerHTML = '';
+  }
 }
+
+async function purgeOldJobs() {
+  if (!confirm('Delete all complete and failed jobs older than 7 days?')) return;
+  const token = await getToken();
+  const cutoff = Math.floor(Date.now() / 1000) - (7 * 86400);
+  const resp = await fetch(`${ADMIN_BASE}/api/admin/jobs/purge`, {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cutoff_ts: cutoff }),
+  });
+  const result = await resp.json();
+  if (result.error) { alert(result.error); return; }
+  showStatus(`✓ Purged ${result.deleted} jobs.`, false);
+  await loadJobs(0);
+}
+
+document.getElementById('job-status-filter').addEventListener('change', () => loadJobs(0));
 
 // ── Users ─────────────────────────────────────────────────────────
 async function loadUsers() {
   const tbody = document.getElementById('users-tbody');
   const token = await getToken();
-  const resp = await fetch(`${ADMIN_BASE}/api/admin/users`, { headers: { 'Authorization': 'Bearer ' + token } });
+  const resp = await fetch(`${ADMIN_BASE}/api/admin/users`, {
+    headers: { 'Authorization': 'Bearer ' + token }
+  });
   const data = await resp.json();
   if (!data.users?.length) {
-    tbody.innerHTML = '<tr><td colspan="4" style="color:var(--ink-muted);padding:12px 10px;">No users.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" class="muted" style="padding:12px;">No users.</td></tr>';
     return;
   }
   tbody.innerHTML = data.users.map(u => `
     <tr>
-      <td>${u.email}</td>
-      <td>${u.display_name ?? '—'}</td>
-      <td style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;">${u.username ?? '—'}</td>
-      <td>${u.is_admin ? '<span style="color:var(--stamp);font-family:JetBrains Mono,monospace;font-size:0.72rem;">ADMIN</span>' : '—'}</td>
+      <td>${esc(u.email)}</td>
+      <td>${esc(u.display_name??'—')}</td>
+      <td class="mono">${esc(u.username??'—')}</td>
+      <td>${u.is_admin ? '<span style="color:var(--stamp);font-family:\'JetBrains Mono\',monospace;font-size:0.72rem;font-weight:600;">ADMIN</span>' : '—'}</td>
     </tr>`).join('');
 }
-
-// ── Job status filter ─────────────────────────────────────────────
-document.getElementById('job-status-filter').addEventListener('change', loadJobs);
 
 // ── Auth ──────────────────────────────────────────────────────────
 window.addEventListener('load', async () => {
   await window.Clerk.load();
-
-  const loadingEl   = document.getElementById('loading-state');
+  const loadingEl    = document.getElementById('loading-state');
   const accessDenied = document.getElementById('access-denied');
-  const mainContent = document.getElementById('main-content');
-  const navUser     = document.getElementById('nav-user');
-  const navUserName = document.getElementById('nav-user-name');
+  const mainContent  = document.getElementById('main-content');
+  const navUser      = document.getElementById('nav-user');
+  const navUserName  = document.getElementById('nav-user-name');
 
   document.getElementById('signout-btn').addEventListener('click', async () => {
-    await window.Clerk.signOut();
-    location.href = '/account/';
+    await window.Clerk.signOut(); location.href = '/account/';
   });
 
   const user = window.Clerk.user;
@@ -509,29 +397,23 @@ window.addEventListener('load', async () => {
   navUser.style.display = 'flex';
   navUserName.textContent = name;
 
-  // Verify admin access via the admin Worker
   try {
     const token = await getToken();
     const resp = await fetch(`${ADMIN_BASE}/api/admin/reference-lists`, {
-      headers: { 'Authorization': 'Bearer ' + token },
+      headers: { 'Authorization': 'Bearer ' + token }
     });
-
     if (resp.status === 403) {
       loadingEl.style.display = 'none';
       accessDenied.style.display = 'block';
       return;
     }
-
     loadingEl.style.display = 'none';
     mainContent.style.display = 'block';
-
-    // Load all sections
-    await Promise.all([loadReferenceLists(), loadJobs(), loadUsers()]);
+    await Promise.all([loadUsers(), loadReferenceLists(), loadJobs(0)]);
   } catch (e) {
     loadingEl.textContent = 'Error loading admin panel.';
   }
 });
 </script>
-
 </body>
 </html>
