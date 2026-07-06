@@ -20,6 +20,7 @@ import { handleAccountSync, handleAccountMe, handleGpxFiles } from './account.js
 import { handlePresign, handleUploadData, handleConfirm, handleJobStatus } from './upload.js';
 import { handleReportRunFromR2, handleReportStatus } from './reportRun.js';
 import { handleTripRun, handleTripStatus, handleTripResult } from './tripPipeline.js';
+import { handleGetPreferences, handleGetPreference, handleSetPreference, handleDeletePreference } from './preferences.js';
 import { handleListTrips, handleCreateTrip, handleGetTrip, handleUpdateTrip, handleDeleteTrip, handleListCompanions, handleAddCompanion, handleRemoveCompanion, handleListFinders, handleUpdateFinder } from './trips.js';
 import type { TripInput } from './types.js';
 
@@ -122,6 +123,18 @@ export default {
     const companionItem = url.pathname.match(/^\/api\/trips\/([\w-]+)\/companions\/([\w-]+)$/);
     if (companionItem && request.method === 'DELETE') {
       return addCors(await handleRemoveCompanion(companionItem[1], companionItem[2], user, env), request);
+    }
+
+    // Preferences routes
+    if (url.pathname === '/api/preferences' && request.method === 'GET') {
+      return addCors(await handleGetPreferences(user, env), request);
+    }
+    const prefKeyMatch = url.pathname.match(/^\/api\/preferences\/(.+)$/);
+    if (prefKeyMatch) {
+      const key = decodeURIComponent(prefKeyMatch[1]);
+      if (request.method === 'GET')    return addCors(await handleGetPreference(key, user, env), request);
+      if (request.method === 'PUT')    return addCors(await handleSetPreference(key, request, user, env), request);
+      if (request.method === 'DELETE') return addCors(await handleDeletePreference(key, user, env), request);
     }
 
     // Trip pipeline routes

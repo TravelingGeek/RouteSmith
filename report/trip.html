@@ -358,6 +358,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
         <button class="btn-primary" id="run-report-btn">Run Report</button>
+        <a class="btn-secondary" id="dashboard-link" href="#" style="display:none;text-decoration:none;padding:10px 20px;">View Dashboard →</a>
         <div id="report-status" style="font-family:'JetBrains Mono',monospace;font-size:0.74rem;color:var(--ink-muted);text-transform:uppercase;letter-spacing:0.1em;"></div>
       </div>
     </div>
@@ -442,7 +443,7 @@
   <span class="sep">·</span>
   <span>Forged 2026</span>
   <span class="sep">·</span>
-  <span>Build 2026.07.04.014</span>
+  <span>Build 2026.07.05.018</span>
 </footer>
 
 <script>
@@ -782,6 +783,8 @@ function initRunReport() {
           statusEl.textContent = `✓ ${result.trip_find_count} finds · ${result.aggregate?.newCounties ?? 0} new counties · ${result.ruleResults?.length ?? 0} rules fired`;
           btn.textContent = 'Re-run Report';
           window._lastReportResult = result;
+      const dashLink = document.getElementById('dashboard-link');
+      if (dashLink) { dashLink.href = `/dashboard/?id=${TRIP_ID}`; dashLink.style.display='inline-block'; }
           console.log('Report result:', {
             finds: result.trip_find_count,
             newCounties: result.aggregate?.newCounties,

@@ -386,7 +386,7 @@
   <span class="sep">·</span>
   <span>Forged 2026</span>
   <span class="sep">·</span>
-  <span>Build 2026.07.04.014</span>
+  <span>Build 2026.07.05.018</span>
 </footer>
 
 <script>
@@ -446,7 +446,7 @@ function renderTrips(trips) {
         <span class="trip-status ${trip.status}">${trip.status}</span>
       </div>`;
     card.addEventListener('click', () => {
-      location.href = `/report/trip.html?id=${trip.trip_id}`;
+      location.href = `/dashboard/?id=${trip.trip_id}`;
     });
     listEl.appendChild(card);
   }
