@@ -96,14 +96,15 @@ export default {
     if (refMatch) {
       const name = decodeURIComponent(refMatch[1]);
       if (request.method === 'POST') {
-        return addCors(await handleUploadReferenceList(name, request, user, env), request);
+        const cacheCount = url.searchParams.get('cache_count');
+        return addCors(await handleUploadReferenceList(name, request, user, env, cacheCount ? parseInt(cacheCount) : null), request);
       }
       if (request.method === 'DELETE') {
         return addCors(await handleDeleteReferenceList(name, user, env), request);
       }
     }
 
-    // Users list (future)
+    // Users list
     if (url.pathname === '/api/admin/users' && request.method === 'GET') {
       const { results } = await env.DB
         .prepare(`SELECT user_id, email, display_name, username, is_admin FROM users ORDER BY email`)
@@ -111,6 +112,23 @@ export default {
       return addCors(new Response(JSON.stringify({ users: results }), {
         headers: { 'Content-Type': 'application/json' },
       }), request);
+    }
+
+    // Users edit
+    const userMatch = url.pathname.match(/^\/api\/admin\/users\/([\w-]+)$/);
+    if (userMatch && request.method === 'PATCH') {
+      const userId = decodeURIComponent(userMatch[1]);
+      let body: { display_name?: string | null; username?: string | null; is_admin?: number };
+      try { body = await request.json(); } catch { return addCors(jsonError('Invalid JSON'), request); }
+      const fields: string[] = [];
+      const values: unknown[] = [];
+      if (body.display_name !== undefined) { fields.push('display_name = ?'); values.push(body.display_name); }
+      if (body.username     !== undefined) { fields.push('username = ?');     values.push(body.username); }
+      if (body.is_admin     !== undefined) { fields.push('is_admin = ?');     values.push(body.is_admin ? 1 : 0); }
+      if (!fields.length) return addCors(jsonError('No fields to update'), request);
+      values.push(userId);
+      await env.DB.prepare(`UPDATE users SET ${fields.join(', ')} WHERE user_id = ?`).bind(...values).run();
+      return addCors(new Response(JSON.stringify({ updated: true }), { headers: { 'Content-Type': 'application/json' } }), request);
     }
 
     // Jobs monitor with pagination

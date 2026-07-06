@@ -51,6 +51,7 @@ export async function handleListReferenceLists(
     uploaded: obj.uploaded?.toISOString() ?? null,
     contentType: obj.httpMetadata?.contentType ?? null,
     uploadedBy: obj.customMetadata?.uploaded_by ?? null,
+    cacheCount: obj.customMetadata?.cache_count ? parseInt(obj.customMetadata.cache_count) : null,
   }));
 
   // Also show which expected files are missing
@@ -70,6 +71,7 @@ export async function handleUploadReferenceList(
   request: Request,
   user: AuthUser,
   env: Env,
+  cacheCount: number | null = null,
 ): Promise<Response> {
   if (!ALLOWED_REFERENCE_FILES.has(name)) {
     return jsonError(
@@ -91,10 +93,12 @@ export async function handleUploadReferenceList(
       uploaded_by: user.userId,
       uploaded_at: new Date().toISOString(),
       original_name: name,
+      cache_count: cacheCount != null ? String(cacheCount) : '',
     },
   });
 
   return jsonResponse({
+    cache_count: cacheCount,
     name,
     key,
     size: body.byteLength,

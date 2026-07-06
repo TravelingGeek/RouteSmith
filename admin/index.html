@@ -12,32 +12,23 @@
   src="https://ready-redbird-56.clerk.accounts.dev/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"
   type="text/javascript"></script>
 <style>
-  :root {
-    --paper:#fbf5e6;--ink:#1f1810;--ink-soft:#4a3f2e;--ink-muted:#7a6f5a;
-    --brass:#a87832;--brass-deep:#7a5621;--forge:#2d5a2a;--stamp:#a83328;
-    --rule:#c9bda0;--rule-soft:#ddd2b5;
-  }
+  :root{--paper:#fbf5e6;--ink:#1f1810;--ink-soft:#4a3f2e;--ink-muted:#7a6f5a;--brass:#a87832;--brass-deep:#7a5621;--forge:#2d5a2a;--stamp:#a83328;--rule:#c9bda0;--rule-soft:#ddd2b5;}
   *{box-sizing:border-box;}html{-webkit-font-smoothing:antialiased;}
-  body{margin:0;min-height:100vh;background:var(--paper);
-    background-image:linear-gradient(rgba(168,120,50,0.05) 1px,transparent 1px),linear-gradient(90deg,rgba(168,120,50,0.05) 1px,transparent 1px);
-    background-size:28px 28px;color:var(--ink);font-family:'Source Serif 4',Georgia,serif;line-height:1.6;font-size:16px;}
+  body{margin:0;min-height:100vh;background:var(--paper);background-image:linear-gradient(rgba(168,120,50,0.05) 1px,transparent 1px),linear-gradient(90deg,rgba(168,120,50,0.05) 1px,transparent 1px);background-size:28px 28px;color:var(--ink);font-family:'Source Serif 4',Georgia,serif;line-height:1.6;font-size:16px;}
   .site-header{max-width:1000px;margin:0 auto;padding:18px 40px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--rule-soft);}
   .site-brand{font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:500;text-transform:uppercase;letter-spacing:0.14em;color:var(--brass-deep);text-decoration:none;}
   .admin-badge{font-family:'JetBrains Mono',monospace;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--stamp);border:1px solid var(--stamp);padding:2px 10px;border-radius:2px;}
   .nav-user{font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--ink-soft);display:flex;align-items:center;gap:12px;}
   .page{max-width:1000px;margin:0 auto;padding:36px 40px 80px;}
   .page-title{font-family:'Fraunces',serif;font-weight:600;font-size:1.8rem;color:var(--ink);margin:0 0 28px;letter-spacing:-0.02em;}
-  /* Collapsible sections */
   .admin-section{margin-bottom:12px;border:1px solid var(--rule);background:rgba(255,252,240,0.5);}
   .section-toggle{width:100%;display:flex;justify-content:space-between;align-items:center;padding:14px 20px;background:none;border:none;cursor:pointer;text-align:left;gap:12px;}
   .section-toggle:hover{background:rgba(168,120,50,0.04);}
   .section-title{font-family:'JetBrains Mono',monospace;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.16em;color:var(--brass-deep);}
-  .section-chevron{font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--ink-muted);transition:transform 0.2s;}
-  .section-chevron.open{transform:rotate(90deg);}
+  .section-chevron{font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--ink-muted);}
   .section-body{display:none;padding:0 20px 20px;}
   .section-body.open{display:block;}
   .section-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;}
-  /* Tables */
   table{width:100%;border-collapse:collapse;}
   th{font-family:'JetBrains Mono',monospace;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--ink-muted);text-align:left;padding:6px 12px;border-bottom:1px solid var(--rule);}
   td{font-size:0.88rem;padding:10px 12px;border-bottom:1px solid var(--rule-soft);vertical-align:middle;}
@@ -46,7 +37,6 @@
   .muted{color:var(--ink-muted);font-size:0.82rem;}
   .present{color:var(--forge);}
   .missing{color:var(--stamp);}
-  /* Buttons */
   .btn-primary{font-family:'JetBrains Mono',monospace;font-size:0.74rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--paper);background:var(--brass-deep);border:none;padding:7px 16px;border-radius:2px;cursor:pointer;white-space:nowrap;}
   .btn-primary:hover{background:var(--ink);}
   .btn-primary:disabled{opacity:0.5;cursor:not-allowed;}
@@ -58,16 +48,25 @@
   .file-label:hover{color:var(--brass-deep);border-color:var(--brass);}
   .file-label input{display:none;}
   .upload-zone{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-  /* Status */
   .status-msg{font-family:'JetBrains Mono',monospace;font-size:0.72rem;padding:8px 14px;border-radius:2px;margin-top:10px;}
   .status-ok{color:var(--forge);background:rgba(45,90,42,0.08);border:1px solid var(--forge);}
   .status-err{color:var(--stamp);background:rgba(168,51,40,0.08);border:1px solid var(--stamp);}
-  /* Job badges */
   .job-badge{font-family:'JetBrains Mono',monospace;font-size:0.68rem;padding:2px 8px;border-radius:2px;}
   .job-badge.complete{color:var(--forge);background:rgba(45,90,42,0.08);}
   .job-badge.failed{color:var(--stamp);background:rgba(168,51,40,0.08);}
   .job-badge.pending,.job-badge.processing{color:var(--brass-deep);background:rgba(168,120,50,0.08);}
   .pagination{display:flex;align-items:center;gap:8px;margin-top:14px;flex-wrap:wrap;}
+  /* Edit modal */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(31,24,16,0.5);z-index:100;align-items:center;justify-content:center;padding:20px;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:var(--paper);border:1px solid var(--rule);border-top:3px solid var(--brass-deep);width:100%;max-width:420px;padding:28px 32px;}
+  .modal-title{font-family:'Fraunces',serif;font-weight:600;font-size:1.3rem;color:var(--ink);margin:0 0 20px;}
+  .form-group{margin-bottom:16px;}
+  .form-label{display:block;font-family:'JetBrains Mono',monospace;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--ink-muted);margin-bottom:5px;}
+  .form-input{width:100%;font-family:'Source Serif 4',serif;font-size:0.96rem;color:var(--ink);background:white;border:1px solid var(--rule);padding:7px 10px;border-radius:2px;outline:none;}
+  .form-input:focus{border-color:var(--brass);}
+  .form-check{display:flex;align-items:center;gap:8px;font-size:0.92rem;}
+  .form-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;}
   .loading{text-align:center;padding:60px 0;font-family:'JetBrains Mono',monospace;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.14em;color:var(--ink-muted);}
   .access-denied{text-align:center;padding:80px 40px;border:1px solid var(--rule);border-top:3px solid var(--stamp);background:rgba(255,252,240,0.6);}
   .access-denied-title{font-family:'Fraunces',serif;font-weight:600;font-size:1.5rem;color:var(--stamp);margin:0 0 12px;}
@@ -105,12 +104,10 @@
         <span class="section-chevron" id="chevron-users">▶</span>
       </button>
       <div class="section-body" id="body-users">
-        <div class="section-actions">
-          <button class="btn-sm" onclick="loadUsers()">Refresh</button>
-        </div>
+        <div class="section-actions"><button class="btn-sm" onclick="loadUsers()">Refresh</button></div>
         <table>
-          <thead><tr><th>Email</th><th>Display name</th><th>Username</th><th>Admin</th></tr></thead>
-          <tbody id="users-tbody"><tr><td colspan="4" class="muted">—</td></tr></tbody>
+          <thead><tr><th>Email</th><th>Display name</th><th>Username</th><th>Admin</th><th>Actions</th></tr></thead>
+          <tbody id="users-tbody"><tr><td colspan="5" class="muted">—</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -122,11 +119,9 @@
         <span class="section-chevron" id="chevron-refs">▶</span>
       </button>
       <div class="section-body" id="body-refs">
-        <div class="section-actions">
-          <button class="btn-sm" onclick="loadReferenceLists()">Refresh</button>
-        </div>
+        <div class="section-actions"><button class="btn-sm" onclick="loadReferenceLists()">Refresh</button></div>
         <table>
-          <thead><tr><th>Description</th><th>Status</th><th>Size</th><th>Uploaded</th><th>Action</th></tr></thead>
+          <thead><tr><th>Description</th><th>Status</th><th>Caches</th><th>Uploaded</th><th>Action</th></tr></thead>
           <tbody id="ref-tbody"><tr><td colspan="5" class="muted">—</td></tr></tbody>
         </table>
         <div id="ref-status"></div>
@@ -158,7 +153,32 @@
         <div class="pagination" id="jobs-pagination"></div>
       </div>
     </div>
+  </div>
+</div>
 
+<!-- Edit User Modal -->
+<div class="modal-overlay" id="edit-user-modal">
+  <div class="modal">
+    <div class="modal-title">Edit User</div>
+    <input type="hidden" id="edit-user-id">
+    <div class="form-group">
+      <label class="form-label">Display name</label>
+      <input class="form-input" type="text" id="edit-user-display">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Username</label>
+      <input class="form-input" type="text" id="edit-user-username">
+    </div>
+    <div class="form-group">
+      <label class="form-check">
+        <input type="checkbox" id="edit-user-admin">
+        <span>Admin access</span>
+      </label>
+    </div>
+    <div class="form-actions">
+      <button class="btn-sm" onclick="closeEditUser()">Cancel</button>
+      <button class="btn-primary" onclick="saveUser()">Save</button>
+    </div>
   </div>
 </div>
 
@@ -167,7 +187,7 @@
   <span class="sep">·</span>
   <span>Admin</span>
   <span class="sep">·</span>
-  <span>Build 2026.07.05.016</span>
+  <span>Build 2026.07.05.017</span>
 </footer>
 
 <script>
@@ -176,13 +196,13 @@ const getToken = () => window.Clerk.session.getToken({ template: 'routesmith' })
 const PAGE_SIZE = 25;
 let jobsOffset = 0;
 const pendingFiles = {};
+const refCacheCounts = {}; // name -> count from browser parse
 
-// ── Collapsible sections ──────────────────────────────────────────
+// ── Sections ──────────────────────────────────────────────────────
 function toggleSection(id) {
   const body    = document.getElementById('body-' + id);
   const chevron = document.getElementById('chevron-' + id);
   const isOpen  = body.classList.toggle('open');
-  chevron.classList.toggle('open', isOpen);
   chevron.textContent = isOpen ? '▼' : '▶';
   if (isOpen) {
     if (id === 'users') loadUsers();
@@ -197,12 +217,6 @@ function fmtDate(iso) {
   return new Date(iso).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
 }
 function fmtEpoch(n) { return n ? fmtDate(new Date(n*1000).toISOString()) : '—'; }
-function fmtBytes(n) {
-  if (!n) return '—';
-  if (n < 1024) return n + ' B';
-  if (n < 1048576) return (n/1024).toFixed(1) + ' KB';
-  return (n/1048576).toFixed(1) + ' MB';
-}
 function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function showStatus(msg, isErr) {
@@ -210,6 +224,20 @@ function showStatus(msg, isErr) {
   el.textContent = msg;
   el.className = 'status-msg ' + (isErr ? 'status-err' : 'status-ok');
   setTimeout(() => { el.textContent=''; el.className=''; }, 6000);
+}
+
+// ── Browser GPX parser (count wpt elements) ───────────────────────
+function countGpxCaches(text) {
+  // Count <wpt> elements — works for both PGC and gc.com format reference files
+  let count = 0;
+  let pos = 0;
+  while ((pos = text.indexOf('<wpt', pos)) !== -1) { count++; pos += 4; }
+  return count;
+}
+
+async function parseRefFile(file) {
+  const text = await file.text();
+  return countGpxCaches(text);
 }
 
 // ── Reference Lists ───────────────────────────────────────────────
@@ -224,28 +252,25 @@ async function loadReferenceLists() {
   const tbody = document.getElementById('ref-tbody');
   tbody.innerHTML = '<tr><td colspan="5" class="muted">Loading…</td></tr>';
   const token = await getToken();
-  const resp  = await fetch(`${ADMIN_BASE}/api/admin/reference-lists`, {
-    headers: {'Authorization':'Bearer '+token}
-  });
-  const data = await resp.json();
+  const resp  = await fetch(`${ADMIN_BASE}/api/admin/reference-lists`, {headers:{'Authorization':'Bearer '+token}});
+  const data  = await resp.json();
   if (data.error) { tbody.innerHTML=`<tr><td colspan="5" style="color:var(--stamp);">${esc(data.error)}</td></tr>`; return; }
-
   const presentMap = new Map((data.files||[]).map(f=>[f.name,f]));
-
-  tbody.innerHTML = REF_FILES.map(({name, label}) => {
+  tbody.innerHTML = REF_FILES.map(({name,label}) => {
     const f   = presentMap.get(name);
     const sid = name.replace(/[^a-z0-9]/g,'_');
+    const cachedCount = refCacheCounts[name];
+    const countDisplay = f
+      ? (cachedCount != null ? cachedCount.toLocaleString() + ' caches' : (f.cacheCount != null ? f.cacheCount.toLocaleString() + ' caches' : '—'))
+      : '—';
     return `<tr>
       <td><strong>${esc(label)}</strong></td>
       <td>${f ? '<span class="present">✓ Present</span>' : '<span class="missing">✗ Missing</span>'}</td>
-      <td class="muted">${f ? fmtBytes(f.size) : '—'}</td>
+      <td class="mono muted">${countDisplay}</td>
       <td class="muted">${f ? fmtDate(f.uploaded) : '—'}</td>
       <td>
         <div class="upload-zone" id="uz_${sid}">
-          <label class="file-label">
-            ${f ? 'Replace' : 'Upload'}
-            <input type="file" accept=".gpx" data-refname="${esc(name)}" onchange="onRefFileSelected(this)">
-          </label>
+          <label class="file-label">Select File<input type="file" accept=".gpx" data-refname="${esc(name)}" onchange="onRefFileSelected(this)"></label>
           ${f ? `<button class="btn-danger" onclick="deleteRefFile('${esc(name)}')">Delete</button>` : ''}
         </div>
         <div id="us_${sid}" style="margin-top:4px;font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--ink-muted);"></div>
@@ -254,7 +279,7 @@ async function loadReferenceLists() {
   }).join('');
 }
 
-function onRefFileSelected(input) {
+async function onRefFileSelected(input) {
   const name = input.dataset.refname;
   const file = input.files[0];
   if (!file) return;
@@ -264,31 +289,35 @@ function onRefFileSelected(input) {
   const uz  = document.getElementById('uz_' + sid);
   const us  = document.getElementById('us_' + sid);
 
-  // Replace the zone with just an upload button (no file label) + filename hint
+  uz.innerHTML = `<span class="muted" style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;">Analyzing…</span>`;
+  if (us) us.textContent = file.name;
+
+  // Parse cache count in browser
+  const count = await parseRefFile(file);
+  refCacheCounts[name] = count;
+
   uz.innerHTML = `<button class="btn-primary" onclick="uploadRefFile('${esc(name)}')">Upload</button>
     <button class="btn-sm" onclick="cancelRefUpload('${esc(name)}')">Cancel</button>`;
-  us.textContent = file.name + ' (' + fmtBytes(file.size) + ')';
+  if (us) us.textContent = `${file.name} · ${count.toLocaleString()} caches`;
 }
 
 function cancelRefUpload(name) {
   delete pendingFiles[name];
-  loadReferenceLists(); // refresh the row back to original state
+  loadReferenceLists();
 }
 
 async function uploadRefFile(name) {
   const file = pendingFiles[name];
   if (!file) { showStatus('No file selected', true); return; }
-
   const sid = name.replace(/[^a-z0-9]/g,'_');
   const uz  = document.getElementById('uz_' + sid);
   const us  = document.getElementById('us_' + sid);
-
   if (uz) uz.innerHTML = '<span class="muted" style="font-family:\'JetBrains Mono\',monospace;font-size:0.72rem;">Uploading…</span>';
   if (us) us.textContent = '';
-
   try {
     const token = await getToken();
-    const resp  = await fetch(`${ADMIN_BASE}/api/admin/reference-lists/${encodeURIComponent(name)}`, {
+    const count = refCacheCounts[name] ?? 0;
+    const resp  = await fetch(`${ADMIN_BASE}/api/admin/reference-lists/${encodeURIComponent(name)}?cache_count=${count}`, {
       method:'POST',
       headers:{'Authorization':'Bearer '+token,'Content-Type':'application/gpx+xml'},
       body: file,
@@ -296,7 +325,7 @@ async function uploadRefFile(name) {
     const result = await resp.json();
     if (result.error) throw new Error(result.error);
     delete pendingFiles[name];
-    showStatus(`✓ ${name} uploaded (${fmtBytes(result.size)})`, false);
+    showStatus(`✓ ${name} uploaded · ${count.toLocaleString()} caches`, false);
     await loadReferenceLists();
   } catch(e) {
     showStatus(`✗ Upload failed: ${e.message}`, true);
@@ -325,9 +354,7 @@ async function loadJobs(offset) {
   const token  = await getToken();
   const params = new URLSearchParams({limit:PAGE_SIZE, offset:jobsOffset});
   if (status) params.set('status', status);
-  const resp = await fetch(`${ADMIN_BASE}/api/admin/jobs?${params}`, {
-    headers:{'Authorization':'Bearer '+token}
-  });
+  const resp = await fetch(`${ADMIN_BASE}/api/admin/jobs?${params}`, {headers:{'Authorization':'Bearer '+token}});
   const data = await resp.json();
   if (!data.jobs?.length) {
     tbody.innerHTML = '<tr><td colspan="6" class="muted" style="padding:16px 10px;">No jobs found.</td></tr>';
@@ -343,7 +370,6 @@ async function loadJobs(offset) {
       <td class="muted">${fmtEpoch(j.created_at)}</td>
       <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--stamp);font-size:0.78rem;" title="${esc(j.error??'')}">${esc(j.error??'—')}</td>
     </tr>`).join('');
-
   const pg = document.getElementById('jobs-pagination');
   const btns = [];
   if (jobsOffset > 0) btns.push(`<button class="btn-sm" onclick="loadJobs(${jobsOffset-PAGE_SIZE})">← Prev</button>`);
@@ -356,8 +382,7 @@ async function purgeOldJobs() {
   const token  = await getToken();
   const cutoff = Math.floor(Date.now()/1000) - 7*86400;
   const resp   = await fetch(`${ADMIN_BASE}/api/admin/jobs/purge`, {
-    method:'POST',
-    headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+    method:'POST', headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
     body: JSON.stringify({cutoff_ts:cutoff}),
   });
   const result = await resp.json();
@@ -365,19 +390,16 @@ async function purgeOldJobs() {
   showStatus('✓ Old jobs purged.', false);
   await loadJobs(0);
 }
-
 document.getElementById('job-status-filter').addEventListener('change', () => loadJobs(0));
 
 // ── Users ─────────────────────────────────────────────────────────
 async function loadUsers() {
   const tbody = document.getElementById('users-tbody');
   const token = await getToken();
-  const resp  = await fetch(`${ADMIN_BASE}/api/admin/users`, {
-    headers:{'Authorization':'Bearer '+token}
-  });
-  const data = await resp.json();
+  const resp  = await fetch(`${ADMIN_BASE}/api/admin/users`, {headers:{'Authorization':'Bearer '+token}});
+  const data  = await resp.json();
   if (!data.users?.length) {
-    tbody.innerHTML = '<tr><td colspan="4" class="muted" style="padding:12px;">No users.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="muted" style="padding:12px;">No users.</td></tr>';
     return;
   }
   tbody.innerHTML = data.users.map(u=>`
@@ -386,8 +408,50 @@ async function loadUsers() {
       <td>${esc(u.display_name??'—')}</td>
       <td class="mono">${esc(u.username??'—')}</td>
       <td>${u.is_admin?'<span style="color:var(--stamp);font-family:\'JetBrains Mono\',monospace;font-size:0.72rem;font-weight:600;">ADMIN</span>':'—'}</td>
+      <td style="display:flex;gap:6px;">
+        <button class="btn-sm" onclick="openEditUser(${JSON.stringify(u)})">Edit</button>
+        <button class="btn-danger" onclick="deleteUser('${esc(u.user_id)}')" title="Not yet implemented" disabled style="opacity:0.4;cursor:not-allowed;">Delete</button>
+      </td>
     </tr>`).join('');
 }
+
+function openEditUser(u) {
+  document.getElementById('edit-user-id').value      = u.user_id;
+  document.getElementById('edit-user-display').value = u.display_name ?? '';
+  document.getElementById('edit-user-username').value = u.username ?? '';
+  document.getElementById('edit-user-admin').checked  = !!u.is_admin;
+  document.getElementById('edit-user-modal').classList.add('open');
+}
+
+function closeEditUser() {
+  document.getElementById('edit-user-modal').classList.remove('open');
+}
+
+async function saveUser() {
+  const userId = document.getElementById('edit-user-id').value;
+  const token  = await getToken();
+  const resp   = await fetch(`${ADMIN_BASE}/api/admin/users/${encodeURIComponent(userId)}`, {
+    method:'PATCH',
+    headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+    body: JSON.stringify({
+      display_name: document.getElementById('edit-user-display').value.trim() || null,
+      username:     document.getElementById('edit-user-username').value.trim() || null,
+      is_admin:     document.getElementById('edit-user-admin').checked ? 1 : 0,
+    }),
+  });
+  const result = await resp.json();
+  if (result.error) { alert(result.error); return; }
+  closeEditUser();
+  await loadUsers();
+}
+
+function deleteUser(userId) {
+  alert('User deletion is not yet implemented.\n\nSee admin todo list.');
+}
+
+document.getElementById('edit-user-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('edit-user-modal')) closeEditUser();
+});
 
 // ── Auth ──────────────────────────────────────────────────────────
 window.addEventListener('load', async () => {
@@ -411,9 +475,7 @@ window.addEventListener('load', async () => {
 
   try {
     const token = await getToken();
-    const resp  = await fetch(`${ADMIN_BASE}/api/admin/reference-lists`, {
-      headers:{'Authorization':'Bearer '+token}
-    });
+    const resp  = await fetch(`${ADMIN_BASE}/api/admin/reference-lists`, {headers:{'Authorization':'Bearer '+token}});
     if (resp.status === 403) {
       loadingEl.style.display = 'none';
       accessDenied.style.display = 'block';
@@ -421,7 +483,7 @@ window.addEventListener('load', async () => {
     }
     loadingEl.style.display = 'none';
     mainContent.style.display = 'block';
-    // Sections start collapsed — no auto-load
+    // Sections start collapsed
   } catch(e) {
     loadingEl.textContent = 'Error loading admin panel.';
   }
