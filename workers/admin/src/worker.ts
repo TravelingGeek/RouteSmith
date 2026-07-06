@@ -16,6 +16,7 @@ import {
   handleUploadReferenceList,
   handleDeleteReferenceList,
 } from './referenceLists.js';
+import { RULES } from './rules.js';
 
 const ALLOWED_ORIGINS = [
   'https://routesmithing.com',
@@ -158,6 +159,13 @@ export default {
       ).bind(cutoff).run();
       // D1 doesn't return affected row count easily — just confirm success
       return addCors(new Response(JSON.stringify({ deleted: true }), {
+        headers: { 'Content-Type': 'application/json' },
+      }), request);
+    }
+
+    // Rules list
+    if (url.pathname === '/api/admin/rules' && request.method === 'GET') {
+      return addCors(new Response(JSON.stringify({ rules: RULES }), {
         headers: { 'Content-Type': 'application/json' },
       }), request);
     }

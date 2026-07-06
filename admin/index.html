@@ -128,6 +128,21 @@
       </div>
     </div>
 
+    <!-- Rules -->
+    <div class="admin-section">
+      <button class="section-toggle" onclick="toggleSection('rules')">
+        <span class="section-title">Rules</span>
+        <span class="section-chevron" id="chevron-rules">▶</span>
+      </button>
+      <div class="section-body" id="body-rules">
+        <div class="section-actions"><button class="btn-sm" onclick="loadRules()">Refresh</button></div>
+        <table>
+          <thead><tr><th>Rule</th><th>Severity</th><th>Status</th><th>Description</th><th>Reference File</th></tr></thead>
+          <tbody id="rules-tbody"><tr><td colspan="5" class="muted">—</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Jobs -->
     <div class="admin-section">
       <button class="section-toggle" onclick="toggleSection('jobs')">
@@ -187,7 +202,7 @@
   <span class="sep">·</span>
   <span>Admin</span>
   <span class="sep">·</span>
-  <span>Build 2026.07.05.017</span>
+  <span>Build 2026.07.05.018</span>
 </footer>
 
 <script>
@@ -208,6 +223,7 @@ function toggleSection(id) {
     if (id === 'users') loadUsers();
     if (id === 'refs')  loadReferenceLists();
     if (id === 'jobs')  loadJobs(0);
+    if (id === 'rules') loadRules();
   }
 }
 
@@ -452,6 +468,64 @@ function deleteUser(userId) {
 document.getElementById('edit-user-modal').addEventListener('click', e => {
   if (e.target === document.getElementById('edit-user-modal')) closeEditUser();
 });
+
+// ── Rules ─────────────────────────────────────────────────────────
+let refListStatus = {}; // name -> present/missing
+
+async function loadRules() {
+  const tbody = document.getElementById('rules-tbody');
+  tbody.innerHTML = '<tr><td colspan="5" class="muted">Loading…</td></tr>';
+
+  const token = await getToken();
+  const [rulesResp, refResp] = await Promise.all([
+    fetch(`${ADMIN_BASE}/api/admin/rules`,           {headers:{'Authorization':'Bearer '+token}}),
+    fetch(`${ADMIN_BASE}/api/admin/reference-lists`, {headers:{'Authorization':'Bearer '+token}}),
+  ]);
+  const rulesData = await rulesResp.json();
+  const refData   = await refResp.json();
+
+  const presentFiles = new Set((refData.files||[]).map(f=>f.name));
+  const refMeta = new Map((refData.files||[]).map(f=>[f.name,f]));
+
+  if (!rulesData.rules?.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="muted">No rules found.</td></tr>';
+    return;
+  }
+
+  const severityColor = { marquee:'var(--forge)', featured:'var(--brass-deep)', note:'var(--ink-muted)' };
+
+  tbody.innerHTML = rulesData.rules.map(r => {
+    const hasRef  = !r.requiresReferenceFile;
+    const refReady = r.requiresReferenceFile ? presentFiles.has(r.requiresReferenceFile) : true;
+    const status  = hasRef
+      ? '<span class="present">✓ Active</span>'
+      : refReady
+        ? '<span class="present">✓ Active</span>'
+        : '<span class="missing">✗ Needs reference file</span>';
+
+    const refCell = r.requiresReferenceFile ? (() => {
+      const f = refMeta.get(r.requiresReferenceFile);
+      const sid = r.requiresReferenceFile.replace(/[^a-z0-9]/g,'_');
+      if (f) {
+        return `<span class="present mono" style="font-size:0.72rem;">✓ ${esc(r.requiresReferenceFile)}</span>
+          <br><span class="muted" style="font-size:0.72rem;">${f.cacheCount!=null?f.cacheCount.toLocaleString()+' caches':''}</span>`;
+      } else {
+        return `<span class="missing mono" style="font-size:0.72rem;">✗ ${esc(r.requiresReferenceFile)}</span><br>
+          <label class="file-label" style="margin-top:4px;display:inline-block;">Upload
+            <input type="file" accept=".gpx" data-refname="${esc(r.requiresReferenceFile)}" onchange="onRefFileSelected(this)">
+          </label>`;
+      }
+    })() : '<span class="muted">—</span>';
+
+    return `<tr>
+      <td><strong>${esc(r.displayName)}</strong><br><span class="mono muted" style="font-size:0.68rem;">${esc(r.id)}</span></td>
+      <td><span style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:${severityColor[r.severity]||'var(--ink-muted)'};">${r.severity}</span></td>
+      <td>${status}</td>
+      <td class="muted" style="font-size:0.84rem;">${esc(r.description)}</td>
+      <td>${refCell}</td>
+    </tr>`;
+  }).join('');
+}
 
 // ── Auth ──────────────────────────────────────────────────────────
 window.addEventListener('load', async () => {
