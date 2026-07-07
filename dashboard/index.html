@@ -15,24 +15,17 @@
   type="text/javascript"></script>
 <style>
 :root {
-  --paper:#fbf5e6;--paper-mid:#f5edd6;--ink:#1f1810;--ink-soft:#4a3f2e;--ink-muted:#7a6f5a;
-  --brass:#a87832;--brass-deep:#7a5621;--forge:#2d5a2a;--stamp:#a83328;
-  --rule:#c9bda0;--rule-soft:#ddd2b5;
-  --rail-w:180px;--header-h:52px;--summary-h:80px;--subnav-h:44px;
-  --anim-dur:180ms;
-  --c-lifetime:rgba(180,165,140,0.45);
-  --c-lifetime-border:rgba(150,135,110,0.7);
-  --c-new:#2d8a3e;
-  --c-new-border:#1a5c28;
-  --c-prev:rgba(120,180,130,0.55);
-  --c-prev-border:rgba(80,140,90,0.8);
+  --paper:#fbf5e6; --paper-mid:#f5edd6; --ink:#1f1810; --ink-soft:#4a3f2e; --ink-muted:#7a6f5a;
+  --brass:#a87832; --brass-deep:#7a5621; --forge:#2d5a2a; --stamp:#a83328;
+  --rule:#c9bda0; --rule-soft:#ddd2b5;
+  --rail-w:180px; --header-h:52px; --summary-h:80px; --subnav-h:44px; --anim-dur:180ms;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;overflow:hidden;}
 html{-webkit-font-smoothing:antialiased;}
 body{font-family:'Source Serif 4',Charter,Georgia,serif;font-size:15px;line-height:1.5;color:var(--ink);background:var(--paper);display:flex;flex-direction:column;}
 
-/* Header */
+/* ── Header ── */
 .dash-header{height:var(--header-h);background:var(--ink);display:flex;align-items:center;padding:0 20px;gap:16px;flex-shrink:0;z-index:10;}
 .dash-brand{font-family:'JetBrains Mono',monospace;font-size:0.72rem;font-weight:500;text-transform:uppercase;letter-spacing:0.14em;color:var(--brass);text-decoration:none;flex-shrink:0;}
 .trip-selector-btn{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:3px;padding:6px 14px;cursor:pointer;transition:background 0.15s;flex:1;max-width:380px;color:white;}
@@ -45,19 +38,18 @@ body{font-family:'Source Serif 4',Charter,Georgia,serif;font-size:15px;line-heig
 .header-btn:hover{color:white;border-color:rgba(255,255,255,0.5);}
 .header-user{font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:rgba(255,255,255,0.4);white-space:nowrap;}
 
-/* Summary bar */
+/* ── Summary bar ── */
 .summary-bar{height:var(--summary-h);background:var(--paper-mid);border-bottom:1px solid var(--rule);display:flex;align-items:center;padding:0 20px;gap:4px;flex-shrink:0;overflow-x:auto;}
 .summary-card{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 20px;border-radius:3px;cursor:pointer;flex-shrink:0;transition:background 0.15s;min-width:100px;border:1px solid transparent;}
 .summary-card:hover{background:rgba(168,120,50,0.08);border-color:var(--rule);}
-.summary-card.active{background:rgba(168,120,50,0.12);border-color:var(--brass);}
 .summary-val{font-family:'Fraunces',serif;font-weight:700;font-size:1.5rem;color:var(--ink);letter-spacing:-0.02em;line-height:1;}
 .summary-lbl{font-family:'JetBrains Mono',monospace;font-size:0.62rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--ink-muted);margin-top:4px;}
 .summary-sep{width:1px;height:36px;background:var(--rule);flex-shrink:0;}
 
-/* Body */
+/* ── Body ── */
 .dash-body{flex:1;display:flex;overflow:hidden;}
 
-/* Category rail */
+/* ── Category rail ── */
 .cat-rail{width:var(--rail-w);background:var(--paper);border-right:1px solid var(--rule);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;padding:12px 8px;gap:2px;}
 .cat-card{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:3px;cursor:pointer;border:1px solid transparent;transition:background 0.15s,border-color 0.15s;}
 .cat-card:hover{background:rgba(168,120,50,0.06);}
@@ -70,38 +62,31 @@ body{font-family:'Source Serif 4',Charter,Georgia,serif;font-size:15px;line-heig
 .cat-pin.pinned{color:var(--brass);}
 .cat-rail-sep{height:1px;background:var(--rule-soft);margin:6px 4px;}
 
-/* Content */
+/* ── Content area ── */
 .dash-content{flex:1;display:flex;flex-direction:column;overflow:hidden;}
 .sub-nav{height:var(--subnav-h);border-bottom:1px solid var(--rule);background:var(--paper);display:flex;align-items:center;padding:0 20px;gap:4px;flex-shrink:0;overflow-x:auto;}
 .sub-btn{font-family:'JetBrains Mono',monospace;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--ink-muted);background:none;border:none;border-bottom:2px solid transparent;padding:4px 14px;cursor:pointer;transition:color 0.15s,border-color 0.15s;white-space:nowrap;height:100%;}
 .sub-btn:hover{color:var(--ink);}
 .sub-btn.active{color:var(--forge);border-bottom-color:var(--forge);font-weight:600;}
 
-/* Main view */
+/* ── Main view ── */
 .main-view{flex:1;overflow:hidden;position:relative;}
 .view-panel{position:absolute;inset:0;opacity:0;pointer-events:none;transition:opacity var(--anim-dur) ease;}
 .view-panel.active{opacity:1;pointer-events:auto;}
 .no-anim .view-panel{transition:none;}
 
-/* Placeholder */
+/* ── Placeholder ── */
 .placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:40px;}
 .placeholder-icon{font-size:2.5rem;margin-bottom:16px;opacity:0.3;}
 .placeholder-title{font-family:'Fraunces',serif;font-weight:600;font-size:1.3rem;color:var(--ink-soft);margin-bottom:8px;}
 .placeholder-sub{font-size:0.9rem;color:var(--ink-muted);line-height:1.6;max-width:400px;}
 .placeholder-link{display:inline-block;margin-top:16px;font-family:'JetBrains Mono',monospace;font-size:0.74rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--brass-deep);text-decoration:none;border-bottom:1px dotted var(--brass);}
 
-/* County map panel */
-.map-panel{position:absolute;inset:0;display:flex;flex-direction:column;}
-#county-map{flex:1;}
-.map-legend{position:absolute;bottom:24px;left:16px;background:rgba(251,245,230,0.92);border:1px solid var(--rule);border-radius:3px;padding:10px 14px;display:flex;flex-direction:column;gap:6px;z-index:2;box-shadow:0 2px 8px rgba(31,24,16,0.1);}
-.legend-row{display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-muted);}
-.legend-swatch{width:16px;height:16px;border-radius:2px;flex-shrink:0;}
-.map-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:var(--paper);z-index:3;font-family:'JetBrains Mono',monospace;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.14em;color:var(--ink-muted);}
-
-/* Map panel with sidebar */
+/* ── County map panel ── */
 .map-panel{position:absolute;inset:0;display:flex;}
 .map-area{flex:1;position:relative;}
 #county-map{position:absolute;inset:0;}
+.map-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:var(--paper);z-index:3;font-family:'JetBrains Mono',monospace;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.14em;color:var(--ink-muted);}
 .map-sidebar{width:260px;flex-shrink:0;background:var(--paper);border-left:1px solid var(--rule);display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;}
 .map-sidebar-section{border-bottom:1px solid var(--rule-soft);}
 .map-sidebar-hdr{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;cursor:pointer;user-select:none;}
@@ -130,14 +115,13 @@ body{font-family:'Source Serif 4',Charter,Georgia,serif;font-size:15px;line-heig
 .county-list-state{font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:var(--ink-muted);margin-top:1px;}
 .county-list-chips{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;}
 .county-chip{font-size:0.64rem;padding:1px 6px;border-radius:2px;font-family:'JetBrains Mono',monospace;border:1px solid currentColor;}
-.map-info-box{padding:12px 14px;border-top:1px solid var(--rule-soft);font-size:0.82rem;color:var(--ink-muted);line-height:1.6;flex-shrink:0;}
+.map-info-box{padding:12px 14px;font-size:0.82rem;color:var(--ink-muted);line-height:1.6;flex-shrink:0;border-top:1px solid var(--rule-soft);}
 .map-capture-row{padding:10px 14px;border-top:1px solid var(--rule-soft);flex-shrink:0;}
 .capture-btn{width:100%;font-family:'JetBrains Mono',monospace;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--paper);background:var(--brass-deep);border:none;padding:8px;border-radius:2px;cursor:pointer;transition:background 0.15s;}
 .capture-btn:hover{background:var(--ink);}
 .capture-btn:disabled{opacity:0.5;cursor:not-allowed;}
-.map-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:var(--paper);z-index:3;font-family:'JetBrains Mono',monospace;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.14em;color:var(--ink-muted);}
 
-/* County list panel */
+/* ── County list panel ── */
 .county-list-panel{position:absolute;inset:0;overflow-y:auto;padding:20px;}
 .county-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;}
 .county-item{padding:8px 12px;border:1px solid var(--rule-soft);border-radius:2px;font-size:0.86rem;}
@@ -146,7 +130,7 @@ body{font-family:'Source Serif 4',Charter,Georgia,serif;font-size:15px;line-heig
 .county-item-state{font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:var(--ink-muted);}
 .county-item-badge{font-family:'JetBrains Mono',monospace;font-size:0.62rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--forge);margin-top:2px;}
 
-/* Trip flyout */
+/* ── Trip flyout ── */
 .flyout-overlay{display:none;position:fixed;inset:0;background:rgba(31,24,16,0.4);z-index:50;}
 .flyout-overlay.open{display:block;}
 .flyout{position:fixed;top:0;right:-420px;bottom:0;width:400px;background:var(--paper);border-left:1px solid var(--rule);z-index:51;display:flex;flex-direction:column;transition:right 0.25s ease;box-shadow:-4px 0 24px rgba(31,24,16,0.15);}
@@ -164,7 +148,7 @@ body{font-family:'Source Serif 4',Charter,Georgia,serif;font-size:15px;line-heig
 .trip-item-dates{font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:var(--ink-muted);margin-top:2px;}
 .trip-item-status{font-family:'JetBrains Mono',monospace;font-size:0.64rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--brass-deep);margin-top:4px;}
 
-/* Prefs flyout */
+/* ── Prefs flyout ── */
 .prefs-flyout{position:fixed;top:var(--header-h);right:-320px;bottom:0;width:300px;background:var(--paper);border-left:1px solid var(--rule);z-index:49;display:flex;flex-direction:column;transition:right 0.22s ease;box-shadow:-4px 0 20px rgba(31,24,16,0.12);}
 .prefs-flyout.open{right:0;}
 .prefs-header{padding:16px 20px;border-bottom:1px solid var(--rule-soft);font-family:'JetBrains Mono',monospace;font-size:0.74rem;text-transform:uppercase;letter-spacing:0.14em;color:var(--brass-deep);display:flex;justify-content:space-between;align-items:center;}
@@ -179,8 +163,10 @@ body{font-family:'Source Serif 4',Charter,Georgia,serif;font-size:15px;line-heig
 .toggle.on::after{transform:translateX(16px);}
 .toggle-label{font-size:0.86rem;color:var(--ink-soft);}
 
+/* ── Loading overlay ── */
 .loading-overlay{position:fixed;inset:0;background:var(--paper);display:flex;align-items:center;justify-content:center;z-index:100;flex-direction:column;gap:12px;}
 .loading-text{font-family:'JetBrains Mono',monospace;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.14em;color:var(--ink-muted);}
+
 footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;font-size:0.64rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--rule);padding:4px 12px;pointer-events:none;}
 </style>
 </head>
@@ -281,29 +267,30 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
 
 <script>
 const BASE     = 'https://routesmith-report.gtl6645.workers.dev';
-const MAPBOX_TOKEN = 'pk.eyJ1IjoiZ3RsNjY0NSIsImEiOiJjbTFrN3JkZnUwMGNpMmpwejdoY3lhcnN2In0.oMBGYUB8R9sk3h1rb1Ie1A';
 const getToken = () => window.Clerk.session.getToken({ template: 'routesmith' });
 
 // ── State ─────────────────────────────────────────────────────────
+let MAPBOX_TOKEN = ''; // loaded from Worker at runtime
+
 const state = {
-  tripId: null, trip: null, report: null, prefs: {},
-  activeCat: 'counties', activeSub: 'map',
-  pinnedCats: ['counties','highlights'],
-  animEnabled: true,
-  lifetimeCounties: null, // loaded once, cached
-  geojson: null,          // loaded once, cached
+  tripId:null, trip:null, report:null, prefs:{},
+  activeCat:'counties', activeSub:'map',
+  pinnedCats:['counties','highlights'],
+  animEnabled:true,
+  lifetimeCounties:null,
+  geojson:null,
 };
 
 // ── Categories ────────────────────────────────────────────────────
 const CATEGORIES = [
-  { id:'counties',   label:'Counties',     subs:['Map','New','Previously Found','Progress'] },
-  { id:'highlights', label:'Highlights',   subs:['Marquee','Featured','Notes'] },
-  { id:'rules',      label:'Rules',        subs:['All','Marquee','Featured','Notes'] },
-  { id:'dayByDay',   label:'Day by Day',   subs:['Chart','List'] },
-  { id:'jasmer',     label:'Jasmer Grid',  subs:['Trip Fills','Full Grid'] },
-  { id:'dtGrid',     label:'D/T Grid',     subs:['Trip Fills','Full Grid'] },
-  { id:'oldest',     label:'Oldest Active',subs:['By State','By Country'], requiresRef:true },
-  { id:'lifetime',   label:'Lifetime',     subs:['County Map','All Finds'] },
+  { id:'counties',   label:'Counties',      subs:['Map','New','Previously Found','Progress'] },
+  { id:'highlights', label:'Highlights',    subs:['Marquee','Featured','Notes'] },
+  { id:'rules',      label:'Rules',         subs:['All','Marquee','Featured','Notes'] },
+  { id:'dayByDay',   label:'Day by Day',    subs:['Chart','List'] },
+  { id:'jasmer',     label:'Jasmer Grid',   subs:['Trip Fills','Full Grid'] },
+  { id:'dtGrid',     label:'D/T Grid',      subs:['Trip Fills','Full Grid'] },
+  { id:'oldest',     label:'Oldest Active', subs:['By State','By Country'], requiresRef:true },
+  { id:'lifetime',   label:'Lifetime',      subs:['County Map','All Finds'] },
 ];
 
 function subId(s) { return s.toLowerCase().replace(/\s+/g,'-'); }
@@ -316,7 +303,7 @@ function fmtDate(iso) {
 function fmtDateRange(s,e) { return !s?'':s===e?fmtDate(s):fmtDate(s)+' – '+fmtDate(e); }
 function num(n) { return n!=null?Number(n).toLocaleString():'—'; }
 
-// ── STATE_FIPS lookup (abbrev → 2-digit FIPS prefix) ─────────────
+// ── STATE_FIPS ────────────────────────────────────────────────────
 const STATE_FIPS = {
   AL:'01',AK:'02',AZ:'04',AR:'05',CA:'06',CO:'08',CT:'09',DE:'10',FL:'12',GA:'13',
   HI:'15',ID:'16',IL:'17',IN:'18',IA:'19',KS:'20',KY:'21',LA:'22',ME:'23',MD:'24',
@@ -325,8 +312,8 @@ const STATE_FIPS = {
   SD:'46',TN:'47',TX:'48',UT:'49',VT:'50',VA:'51',WA:'53',WV:'54',WI:'55',WY:'56',
   DC:'11',PR:'72',
 };
+const FIPS_TO_STATE = Object.fromEntries(Object.entries(STATE_FIPS).map(([a,f])=>[f,a]));
 
-// State full name → abbreviation
 const STATE_NAME_TO_ABBREV = {
   'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA',
   'Colorado':'CO','Connecticut':'CT','Delaware':'DE','Florida':'FL','Georgia':'GA',
@@ -341,28 +328,23 @@ const STATE_NAME_TO_ABBREV = {
   'District of Columbia':'DC','Puerto Rico':'PR',
 };
 
-function stateToAbbrev(state) {
-  // Already an abbreviation?
-  if (state && state.length === 2 && STATE_FIPS[state.toUpperCase()]) return state.toUpperCase();
-  return STATE_NAME_TO_ABBREV[state] ?? null;
+function stateToAbbrev(s) {
+  if (!s) return null;
+  if (s.length === 2 && STATE_FIPS[s.toUpperCase()]) return s.toUpperCase();
+  return STATE_NAME_TO_ABBREV[s] ?? null;
 }
 
-// Build county → FIPS lookup from loaded GeoJSON
+// ── FIPS cache ────────────────────────────────────────────────────
 let countyFipsCache = null;
 function buildFipsCache(geojson) {
   if (countyFipsCache) return countyFipsCache;
-  countyFipsCache = new Map(); // "TX|Travis" → "48453"
+  countyFipsCache = new Map();
   for (const feat of geojson.features) {
-    const fips   = feat.id;
-    const name   = feat.properties.NAME;
-    const prefix = String(fips).slice(0, 2);
-    // Find state abbrev for this FIPS prefix
-    for (const [abbrev, fp] of Object.entries(STATE_FIPS)) {
-      if (fp === prefix) {
-        countyFipsCache.set(`${abbrev}|${name.toLowerCase()}`, String(fips).padStart(5,'0'));
-        break;
-      }
-    }
+    const fips   = String(feat.id).padStart(5,'0');
+    const name   = (feat.properties.NAME||'').toLowerCase();
+    const prefix = fips.slice(0,2);
+    const abbrev = FIPS_TO_STATE[prefix];
+    if (abbrev) countyFipsCache.set(`${abbrev}|${name}`, fips);
   }
   return countyFipsCache;
 }
@@ -370,15 +352,13 @@ function buildFipsCache(geojson) {
 function fipsForCounty(countyName, stateInput) {
   const abbrev = stateToAbbrev(stateInput);
   if (!abbrev || !countyFipsCache) return null;
-  // Try exact match, then strip common suffixes
-  const key = `${abbrev}|${countyName.toLowerCase()}`;
-  if (countyFipsCache.has(key)) return countyFipsCache.get(key);
-  // Strip "County", "Parish", "Borough", "Census Area" suffixes
-  const stripped = countyName.replace(/\s+(county|parish|borough|census area|municipality|city and borough|city|island)$/i,'').trim();
-  return countyFipsCache.get(`${abbrev}|${stripped.toLowerCase()}`) ?? null;
+  const name = countyName.toLowerCase();
+  if (countyFipsCache.has(`${abbrev}|${name}`)) return countyFipsCache.get(`${abbrev}|${name}`);
+  const stripped = name.replace(/\s+(county|parish|borough|census area|municipality|city and borough|city|island)$/,'').trim();
+  return countyFipsCache.get(`${abbrev}|${stripped}`) ?? null;
 }
 
-// ── GeoJSON loader ────────────────────────────────────────────────
+// ── Data loaders ──────────────────────────────────────────────────
 async function loadGeoJson() {
   if (state.geojson) return state.geojson;
   const resp = await fetch('https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json');
@@ -386,7 +366,6 @@ async function loadGeoJson() {
   return state.geojson;
 }
 
-// ── Lifetime counties loader ──────────────────────────────────────
 async function loadLifetimeCounties() {
   if (state.lifetimeCounties) return state.lifetimeCounties;
   const token = await getToken();
@@ -396,16 +375,11 @@ async function loadLifetimeCounties() {
   return state.lifetimeCounties;
 }
 
-// ── FIPS → abbrev reverse lookup ─────────────────────────────────
-const FIPS_TO_STATE = Object.fromEntries(Object.entries(STATE_FIPS).map(([a,f])=>[f,a]));
-
 // ── Map state ─────────────────────────────────────────────────────
-let mapInstance   = null;
-let mapLoaded     = false;
+let mapInstance    = null;
+let mapLoaded      = false;
 let currentBaseMap = 'road';
-let currentVizMode = 'fill';
-let mapCountyFips  = {}; // fips -> {county, state, stateAbbrev, status}
-let currentPopup   = null;
+let mapCountyFips  = {};
 
 const BASE_STYLES = {
   road:    'mapbox://styles/mapbox/navigation-day-v1',
@@ -415,45 +389,36 @@ const BASE_STYLES = {
 
 // ── Map sidebar helpers ───────────────────────────────────────────
 function toggleMapSection(id) {
-  const body = document.getElementById('msbody-' + id);
-  const chev = document.getElementById('mschev-' + id);
-  if (!body || !chev) return;
+  const body = document.getElementById('msbody-'+id);
+  const chev = document.getElementById('mschev-'+id);
+  if (!body||!chev) return;
   const isOpen = body.classList.contains('open');
-  body.classList.toggle('open', !isOpen);
-  body.classList.toggle('closed', isOpen);
-  chev.classList.toggle('open', !isOpen);
-}
-
-function setVizMode(mode) {
-  currentVizMode = mode;
-  ['pins','fill'].forEach(m => {
-    const btn = document.getElementById('vbtn-' + m);
-    if (btn) btn.classList.toggle('active', m === mode);
-  });
-  if (mapLoaded) updateMapLayers();
+  body.classList.toggle('open',!isOpen);
+  body.classList.toggle('closed',isOpen);
+  chev.classList.toggle('open',!isOpen);
 }
 
 function setBaseMap(mode) {
-  if (currentBaseMap === mode) return;
+  if (currentBaseMap===mode) return;
   currentBaseMap = mode;
-  ['road','terrain','topo'].forEach(m => {
-    const btn = document.getElementById('bmap-' + m);
-    if (btn) btn.classList.toggle('active', m === mode);
+  ['road','terrain','topo'].forEach(m=>{
+    const btn=document.getElementById('bmap-'+m);
+    if(btn) btn.classList.toggle('active',m===mode);
   });
   if (!mapInstance) return;
-  mapInstance.setStyle(BASE_STYLES[mode], { diff: false });
-  mapInstance.once('style.load', () => {
-    if (currentBaseMap === 'topo') addTopoOverlay();
+  mapInstance.setStyle(BASE_STYLES[mode],{diff:false});
+  mapInstance.once('style.load',()=>{
+    if (currentBaseMap==='topo') addTopoOverlay();
     if (mapLoaded) rebuildMapLayers();
   });
 }
 
 function addTopoOverlay() {
   if (mapInstance.getSource('usgs-topo-src')) return;
-  mapInstance.addSource('usgs-topo-src', {
+  mapInstance.addSource('usgs-topo-src',{
     type:'raster',
     tiles:['https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}'],
-    tileSize:256, maxzoom:16
+    tileSize:256,maxzoom:16
   });
   mapInstance.addLayer({id:'usgs-topo',type:'raster',source:'usgs-topo-src',paint:{'raster-opacity':1.0}},'waterway-label');
 }
@@ -461,13 +426,12 @@ function addTopoOverlay() {
 // ── County map render ─────────────────────────────────────────────
 async function renderCountyMap() {
   const loadingEl = document.getElementById('map-loading-indicator');
-  if (loadingEl) loadingEl.style.display = 'flex';
+  if (loadingEl) loadingEl.style.display='flex';
 
   try {
     const [geojson, lifetime] = await Promise.all([loadGeoJson(), loadLifetimeCounties()]);
     buildFipsCache(geojson);
 
-    // Build FIPS status map
     const lifetimeFips = new Set();
     const tripNewFips  = new Set();
     const tripPrevFips = new Set();
@@ -477,43 +441,37 @@ async function renderCountyMap() {
       if (fips) lifetimeFips.add(fips);
     }
     if (state.report?.countiesData) {
-      for (const key of (state.report.countiesData.firstTime ?? [])) {
-        const [county, st] = key.split('|');
-        const fips = fipsForCounty(county, st);
+      for (const key of (state.report.countiesData.firstTime??[])) {
+        const [county,st] = key.split('|');
+        const fips = fipsForCounty(county,st);
         if (fips) { tripNewFips.add(fips); lifetimeFips.add(fips); }
       }
-      for (const key of (state.report.countiesData.previouslyFound ?? [])) {
-        const [county, st] = key.split('|');
-        const fips = fipsForCounty(county, st);
+      for (const key of (state.report.countiesData.previouslyFound??[])) {
+        const [county,st] = key.split('|');
+        const fips = fipsForCounty(county,st);
         if (fips) { tripPrevFips.add(fips); lifetimeFips.add(fips); }
       }
     }
 
-    // Build fips metadata map
     mapCountyFips = {};
     for (const feat of geojson.features) {
-      const fips = String(feat.id).padStart(5,'0');
-      const stateAbbrev = FIPS_TO_STATE[fips.slice(0,2)] ?? '';
+      const fips      = String(feat.id).padStart(5,'0');
+      const stateAbbrev = FIPS_TO_STATE[fips.slice(0,2)]??'';
       let status = 0;
-      if (tripNewFips.has(fips))       status = 3;
+      if      (tripNewFips.has(fips))  status = 3;
       else if (tripPrevFips.has(fips)) status = 2;
       else if (lifetimeFips.has(fips)) status = 1;
-      mapCountyFips[fips] = {
-        county: feat.properties.NAME,
-        stateAbbrev,
-        status,
-      };
+      mapCountyFips[fips] = {county:feat.properties.NAME, stateAbbrev, status};
     }
 
-    // Build GeoJSON with status property
     const paintedGeojson = {
       ...geojson,
-      features: geojson.features.map(f => ({
+      features: geojson.features.map(f=>({
         ...f,
-        properties: {
+        properties:{
           ...f.properties,
-          status: mapCountyFips[String(f.id).padStart(5,'0')]?.status ?? 0,
-          stateAbbrev: mapCountyFips[String(f.id).padStart(5,'0')]?.stateAbbrev ?? '',
+          status:     mapCountyFips[String(f.id).padStart(5,'0')]?.status??0,
+          stateAbbrev:mapCountyFips[String(f.id).padStart(5,'0')]?.stateAbbrev??'',
         }
       }))
     };
@@ -522,19 +480,17 @@ async function renderCountyMap() {
       mapboxgl.accessToken = MAPBOX_TOKEN;
       mapboxgl.config.EVENTS_URL = ''; // disable telemetry
       mapInstance = new mapboxgl.Map({
-        container: 'county-map',
-        style: BASE_STYLES[currentBaseMap],
-        center: [-96, 38],
-        zoom: 3.5,
-        preserveDrawingBuffer: true,
+        container:'county-map',
+        style:BASE_STYLES[currentBaseMap],
+        center:[-96,38], zoom:3.5,
+        preserveDrawingBuffer:true,
       });
-      mapInstance.addControl(new mapboxgl.NavigationControl(), 'bottom-left');
-
-      mapInstance.on('load', () => {
+      mapInstance.addControl(new mapboxgl.NavigationControl(),'bottom-left');
+      mapInstance.on('load',()=>{
         mapLoaded = true;
         buildMapLayers(paintedGeojson);
-        fitMapToBounds(tripNewFips, tripPrevFips, geojson);
-        if (loadingEl) loadingEl.style.display = 'none';
+        fitMapToBounds(tripNewFips,tripPrevFips,geojson);
+        if (loadingEl) loadingEl.style.display='none';
       });
     } else if (mapLoaded) {
       if (mapInstance.getSource('counties')) {
@@ -542,16 +498,16 @@ async function renderCountyMap() {
       } else {
         buildMapLayers(paintedGeojson);
       }
-      fitMapToBounds(tripNewFips, tripPrevFips, geojson);
-      if (loadingEl) loadingEl.style.display = 'none';
+      fitMapToBounds(tripNewFips,tripPrevFips,geojson);
+      if (loadingEl) loadingEl.style.display='none';
     }
 
     mapInstance.resize();
-    buildMapSidebar(tripNewFips, tripPrevFips, geojson);
+    buildMapSidebar(tripNewFips,tripPrevFips);
 
   } catch(e) {
-    console.error('Map error:', e);
-    if (loadingEl) loadingEl.textContent = 'Error loading map: ' + e.message;
+    console.error('Map error:',e);
+    if (loadingEl) loadingEl.textContent='Error loading map: '+e.message;
   }
 }
 
@@ -560,80 +516,67 @@ function buildMapLayers(paintedGeojson) {
     mapInstance.getSource('counties').setData(paintedGeojson);
     return;
   }
-  mapInstance.addSource('counties', { type:'geojson', data:paintedGeojson });
+  mapInstance.addSource('counties',{type:'geojson',data:paintedGeojson});
   rebuildMapLayers();
   wireMapEvents();
 }
 
 function rebuildMapLayers() {
-  ['county-fill','county-border','county-pins'].forEach(id => {
-    try { if (mapInstance.getLayer(id)) mapInstance.removeLayer(id); } catch(e) {}
+  ['county-fill','county-border'].forEach(id=>{
+    try{if(mapInstance.getLayer(id))mapInstance.removeLayer(id);}catch(e){}
   });
-  updateMapLayers();
-}
-
-function updateMapLayers() {
-  // Fill layer
-  if (!mapInstance.getLayer('county-fill')) {
-    mapInstance.addLayer({
-      id:'county-fill', type:'fill', source:'counties',
-      paint:{
-        'fill-color':['match',['get','status'],3,'#2d8a3e',2,'#78b882',1,'#c8bfaa','rgba(0,0,0,0)'],
-        'fill-opacity':['match',['get','status'],3,0.75,2,0.55,1,0.40,0],
-      }
-    });
-  }
-  // Border
-  if (!mapInstance.getLayer('county-border')) {
-    mapInstance.addLayer({
-      id:'county-border', type:'line', source:'counties',
-      paint:{
-        'line-color':['match',['get','status'],3,'#1a5c28',2,'#4a8a54',1,'#a09080','rgba(0,0,0,0)'],
-        'line-width':['match',['get','status'],3,1.5,2,1,1,0.5,0],
-        'line-opacity':0.8,
-      }
-    });
-  }
+  mapInstance.addLayer({
+    id:'county-fill',type:'fill',source:'counties',
+    paint:{
+      'fill-color':['match',['get','status'],3,'#2d8a3e',2,'#78b882',1,'#c8bfaa','rgba(0,0,0,0)'],
+      'fill-opacity':['match',['get','status'],3,0.75,2,0.55,1,0.40,0],
+    }
+  });
+  mapInstance.addLayer({
+    id:'county-border',type:'line',source:'counties',
+    paint:{
+      'line-color':['match',['get','status'],3,'#1a5c28',2,'#4a8a54',1,'#a09080','rgba(0,0,0,0)'],
+      'line-width':['match',['get','status'],3,1.5,2,1,1,0.5,0],
+      'line-opacity':0.8,
+    }
+  });
 }
 
 function wireMapEvents() {
-  const popup = new mapboxgl.Popup({closeButton:false, closeOnClick:false});
-
-  mapInstance.on('mousemove','county-fill', e => {
+  const popup = new mapboxgl.Popup({closeButton:false,closeOnClick:false});
+  mapInstance.on('mousemove','county-fill',e=>{
     if (!e.features.length) return;
     const f  = e.features[0];
     const st = f.properties.status;
-    if (st === 0) { popup.remove(); return; }
+    if (st===0) { popup.remove(); return; }
     const countyName  = f.properties.NAME;
-    const stateAbbrev = f.properties.stateAbbrev || FIPS_TO_STATE[String(f.id).padStart(5,'0').slice(0,2)] || '';
+    const stateAbbrev = f.properties.stateAbbrev||FIPS_TO_STATE[String(f.id).padStart(5,'0').slice(0,2)]||'';
     const label = st===3?'New this trip':st===2?'Found this trip (prior)':'Lifetime find';
-    const labelColor = st===3?'#1a5c28':st===2?'#4a7a54':'#7a6f5a';
-    mapInstance.getCanvas().style.cursor = 'pointer';
+    const lc    = st===3?'#1a5c28':st===2?'#4a7a54':'#7a6f5a';
+    mapInstance.getCanvas().style.cursor='pointer';
     popup.setLngLat(e.lngLat)
       .setHTML(`<div style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;line-height:1.5;">
         <strong style="font-family:'Source Serif 4',serif;font-size:0.88rem;">${countyName} County</strong><br>
         <span style="color:#666;">${stateAbbrev}</span><br>
-        <span style="color:${labelColor};font-weight:600;">${label}</span>
+        <span style="color:${lc};font-weight:600;">${label}</span>
       </div>`)
       .addTo(mapInstance);
   });
-
-  mapInstance.on('mouseleave','county-fill', () => {
-    mapInstance.getCanvas().style.cursor = '';
+  mapInstance.on('mouseleave','county-fill',()=>{
+    mapInstance.getCanvas().style.cursor='';
     popup.remove();
   });
-
-  mapInstance.on('click','county-fill', e => {
+  mapInstance.on('click','county-fill',e=>{
     if (!e.features.length) return;
     const fips = String(e.features[0].id).padStart(5,'0');
     highlightCountyInSidebar(fips);
   });
 }
 
-function fitMapToBounds(tripNewFips, tripPrevFips, geojson) {
-  const tripFips = new Set([...tripNewFips, ...tripPrevFips]);
+function fitMapToBounds(tripNewFips,tripPrevFips,geojson) {
+  const tripFips = new Set([...tripNewFips,...tripPrevFips]);
   if (!tripFips.size) return;
-  let minLng=180, maxLng=-180, minLat=90, maxLat=-90;
+  let minLng=180,maxLng=-180,minLat=90,maxLat=-90;
   for (const feat of geojson.features) {
     const fips = String(feat.id).padStart(5,'0');
     if (!tripFips.has(fips)) continue;
@@ -641,131 +584,110 @@ function fitMapToBounds(tripNewFips, tripPrevFips, geojson) {
       ? feat.geometry.coordinates[0]
       : feat.geometry.coordinates.flat(2);
     for (const [lng,lat] of coords) {
-      if (lng<minLng) minLng=lng; if (lng>maxLng) maxLng=lng;
-      if (lat<minLat) minLat=lat; if (lat>maxLat) maxLat=lat;
+      if(lng<minLng)minLng=lng;if(lng>maxLng)maxLng=lng;
+      if(lat<minLat)minLat=lat;if(lat>maxLat)maxLat=lat;
     }
   }
-  if (minLng < maxLng) {
-    mapInstance.fitBounds([[minLng,minLat],[maxLng,maxLat]], {
-      padding:{top:40,bottom:40,left:40,right:40}, maxZoom:8, duration:800
+  if (minLng<maxLng) {
+    mapInstance.fitBounds([[minLng,minLat],[maxLng,maxLat]],{
+      padding:{top:40,bottom:40,left:40,right:40},maxZoom:8,duration:800
     });
   }
 }
 
 // ── Map sidebar ───────────────────────────────────────────────────
-function buildMapSidebar(tripNewFips, tripPrevFips, geojson) {
-  // Owner name
+function buildMapSidebar(tripNewFips,tripPrevFips) {
   const ownerNameEl = document.getElementById('map-owner-name');
   if (ownerNameEl && state.report?.owner) {
-    ownerNameEl.textContent = state.report.owner.gc_username || state.report.owner.display_name || '—';
+    ownerNameEl.textContent = state.report.owner.gc_username||state.report.owner.display_name||'—';
   }
 
-  // County list — trip counties first (new, then prev), sorted by state then name
-  const tripFips = [...tripNewFips, ...tripPrevFips];
-  const listEl = document.getElementById('map-county-list');
-  const countEl = document.getElementById('map-county-count');
+  const tripFips = [...tripNewFips,...tripPrevFips];
+  const listEl   = document.getElementById('map-county-list');
+  const countEl  = document.getElementById('map-county-count');
   if (!listEl) return;
 
   if (!tripFips.length) {
-    listEl.innerHTML = '<div style="padding:10px 14px;font-size:0.82rem;color:var(--ink-muted);">No trip counties found.</div>';
-    if (countEl) countEl.textContent = '0';
+    listEl.innerHTML='<div style="padding:10px 14px;font-size:0.82rem;color:var(--ink-muted);">No trip counties found.</div>';
+    if (countEl) countEl.textContent='0';
     return;
   }
+  if (countEl) countEl.textContent=tripFips.length;
 
-  if (countEl) countEl.textContent = tripFips.length;
-
-  const items = tripFips.map(fips => {
+  const items = tripFips.map(fips=>{
     const meta = mapCountyFips[fips];
-    if (!meta) return '';
-    const isNew = tripNewFips.has(fips);
-    return { fips, county: meta.county, stateAbbrev: meta.stateAbbrev, isNew };
-  }).filter(Boolean).sort((a,b) => a.stateAbbrev.localeCompare(b.stateAbbrev) || a.county.localeCompare(b.county));
+    if (!meta) return null;
+    return {fips, county:meta.county, stateAbbrev:meta.stateAbbrev, isNew:tripNewFips.has(fips)};
+  }).filter(Boolean).sort((a,b)=>a.stateAbbrev.localeCompare(b.stateAbbrev)||a.county.localeCompare(b.county));
 
-  listEl.innerHTML = items.map(item => `
+  listEl.innerHTML = items.map(item=>`
     <div class="county-list-item" data-fips="${item.fips}" onclick="flyToCounty('${item.fips}')">
       <div class="county-list-name">${item.county}</div>
       <div class="county-list-state">${item.stateAbbrev}</div>
-      ${item.isNew ? '<div class="county-list-chips"><span class="county-chip" style="color:var(--forge);border-color:var(--forge);background:rgba(45,90,42,0.08);">★ New</span></div>' : ''}
+      ${item.isNew?'<div class="county-list-chips"><span class="county-chip" style="color:var(--forge);border-color:var(--forge);background:rgba(45,90,42,0.08);">★ New</span></div>':''}
     </div>`).join('');
 }
 
 function flyToCounty(fips) {
-  if (!mapLoaded || !state.geojson) return;
-  const feat = state.geojson.features.find(f => String(f.id).padStart(5,'0') === fips);
+  if (!mapLoaded||!state.geojson) return;
+  const feat = state.geojson.features.find(f=>String(f.id).padStart(5,'0')===fips);
   if (!feat) return;
-
-  // Compute centroid
-  const coords = feat.geometry.type === 'Polygon'
+  const coords = feat.geometry.type==='Polygon'
     ? feat.geometry.coordinates[0]
     : feat.geometry.coordinates[0][0];
   const lng = coords.reduce((s,p)=>s+p[0],0)/coords.length;
   const lat = coords.reduce((s,p)=>s+p[1],0)/coords.length;
-
-  mapInstance.flyTo({center:[lng,lat], zoom:9, speed:1.2});
+  mapInstance.flyTo({center:[lng,lat],zoom:9,speed:1.2});
   highlightCountyInSidebar(fips);
 }
 
 function highlightCountyInSidebar(fips) {
-  document.querySelectorAll('.county-list-item.active').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.county-list-item.active').forEach(el=>el.classList.remove('active'));
   const item = document.querySelector(`.county-list-item[data-fips="${fips}"]`);
-  if (item) {
-    item.classList.add('active');
-    item.scrollIntoView({block:'nearest', behavior:'smooth'});
-  }
-
-  const meta = mapCountyFips[fips];
+  if (item) { item.classList.add('active'); item.scrollIntoView({block:'nearest',behavior:'smooth'}); }
+  const meta   = mapCountyFips[fips];
   const infoEl = document.getElementById('map-info-box');
-  if (!infoEl || !meta) return;
+  if (!infoEl||!meta) return;
   const label = meta.status===3?'New this trip':meta.status===2?'Found this trip (prior)':meta.status===1?'Lifetime find':'Never found';
   const color = meta.status===3?'var(--forge)':meta.status===2?'#4a7a54':'var(--ink-muted)';
-  infoEl.innerHTML = `<strong style="color:var(--ink);font-family:'Fraunces',serif;">${meta.county} County, ${meta.stateAbbrev}</strong><br>
+  infoEl.innerHTML=`<strong style="color:var(--ink);font-family:'Fraunces',serif;">${meta.county} County, ${meta.stateAbbrev}</strong><br>
     <span style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:${color};">${label}</span>`;
 }
 
-// ── Capture ───────────────────────────────────────────────────────
 async function captureCountyMap() {
   const btn = document.getElementById('map-capture-btn');
-  if (!btn || !mapInstance) return;
-  btn.disabled = true; btn.textContent = 'Capturing…';
+  if (!btn||!mapInstance) return;
+  btn.disabled=true; btn.textContent='Capturing…';
   try {
-    const mapCanvas = mapInstance.getCanvas();
-    const a = document.createElement('a');
-    a.href = mapCanvas.toDataURL('image/png');
-    a.download = `routesmith-map-${Date.now()}.png`;
+    const a=document.createElement('a');
+    a.href=mapInstance.getCanvas().toDataURL('image/png');
+    a.download=`routesmith-map-${Date.now()}.png`;
     a.click();
-  } catch(e) {
-    alert('Capture failed: ' + e.message);
-  } finally {
-    btn.disabled = false; btn.textContent = 'Capture Map PNG';
-  }
+  } catch(e) { alert('Capture failed: '+e.message); }
+  finally { btn.disabled=false; btn.textContent='Capture Map PNG'; }
 }
 
 // ── County list renderers ─────────────────────────────────────────
-function renderCountyList(filterFn, emptyMsg) {
-  const report = state.report;
-  if (!report) return placeholder('No report data','Run the report first.','📋');
-
-  const firstTime = new Set(report.countiesData?.firstTime ?? []);
-  const prevFound = new Set(report.countiesData?.previouslyFound ?? []);
-
-  const keys = [...filterFn(firstTime, prevFound)];
+function renderCountyList(filterFn,emptyMsg) {
+  if (!state.report) return placeholder('No report data','Run the report first.','📋');
+  const firstTime = new Set(state.report.countiesData?.firstTime??[]);
+  const prevFound = new Set(state.report.countiesData?.previouslyFound??[]);
+  const keys = [...filterFn(firstTime,prevFound)];
   if (!keys.length) return `<div class="county-list-panel"><p style="color:var(--ink-muted);padding:40px;text-align:center;">${emptyMsg}</p></div>`;
-
-  const items = keys.map(key => {
-    const [county, state] = key.split('|');
-    const isNew = firstTime.has(key);
+  const items = keys.map(key=>{
+    const [county,st]=key.split('|');
+    const isNew=firstTime.has(key);
     return `<div class="county-item${isNew?' new-county':''}">
       <div class="county-item-name">${county}</div>
-      <div class="county-item-state">${state}</div>
+      <div class="county-item-state">${st}</div>
       ${isNew?'<div class="county-item-badge">New</div>':''}
     </div>`;
   }).join('');
-
   return `<div class="county-list-panel"><div class="county-grid">${items}</div></div>`;
 }
 
 // ── Panel rendering ───────────────────────────────────────────────
-function placeholder(title, sub, icon, linkHref, linkText) {
+function placeholder(title,sub,icon,linkHref,linkText) {
   return `<div class="placeholder">
     <div class="placeholder-icon">${icon}</div>
     <div class="placeholder-title">${title}</div>
@@ -773,36 +695,26 @@ function placeholder(title, sub, icon, linkHref, linkText) {
     ${linkHref?`<a class="placeholder-link" href="${linkHref}">${linkText}</a>`:''}
   </div>`;
 }
+function getCatIcon(id){return{counties:'🗺',highlights:'⭐',rules:'📋',dayByDay:'📅',jasmer:'🟩',dtGrid:'⊞',oldest:'🏆',lifetime:'📦'}[id]||'📄';}
 
-function getCatIcon(id) {
-  return {counties:'🗺',highlights:'⭐',rules:'📋',dayByDay:'📅',jasmer:'🟩',dtGrid:'⊞',oldest:'🏆',lifetime:'📦'}[id]||'📄';
-}
-
-function renderPanelContent(catId, sub) {
-  if (!state.report && catId !== 'lifetime') {
+function renderPanelContent(catId,sub) {
+  if (!state.report && catId!=='lifetime') {
     return placeholder('No report data','Run the report from the trip detail page first.','📋',`/report/trip.html?id=${state.tripId}`,'Go to trip →');
   }
-
-  if (catId === 'counties') {
-    if (sub === 'map') {
+  if (catId==='counties') {
+    if (sub==='map') {
       return `<div class="map-panel">
         <div class="map-area">
           <div id="county-map"></div>
           <div class="map-loading" id="map-loading-indicator">Loading map data…</div>
         </div>
         <aside class="map-sidebar" id="map-sidebar">
-          <!-- Visualization -->
           <div class="map-sidebar-section">
             <div class="map-sidebar-hdr" onclick="toggleMapSection('viz')">
               <span class="map-sidebar-lbl">Visualization</span>
               <span class="map-sidebar-chev open" id="mschev-viz">▼</span>
             </div>
             <div class="map-sidebar-body open" id="msbody-viz">
-              <div class="map-sidebar-lbl" style="margin-bottom:5px;">Style</div>
-              <div class="viz-toggle" style="margin-bottom:10px;">
-                <button class="viz-btn active" id="vbtn-pins" onclick="setVizMode('pins')">Pins</button>
-                <button class="viz-btn" id="vbtn-fill" onclick="setVizMode('fill')">Fill</button>
-              </div>
               <div class="map-sidebar-lbl" style="margin-bottom:5px;">Base Map</div>
               <div class="viz-toggle">
                 <button class="viz-btn active" id="bmap-road" onclick="setBaseMap('road')">Road</button>
@@ -811,7 +723,6 @@ function renderPanelContent(catId, sub) {
               </div>
             </div>
           </div>
-          <!-- County Status Legend -->
           <div class="map-sidebar-section">
             <div class="map-sidebar-hdr" onclick="toggleMapSection('legend')">
               <span class="map-sidebar-lbl">County Status</span>
@@ -826,53 +737,41 @@ function renderPanelContent(catId, sub) {
               </div>
             </div>
           </div>
-          <!-- Finders -->
           <div class="map-sidebar-section">
             <div class="map-sidebar-hdr" onclick="toggleMapSection('finders')">
               <span class="map-sidebar-lbl">Finders</span>
               <span class="map-sidebar-chev open" id="mschev-finders">▼</span>
             </div>
             <div class="map-sidebar-body open" id="msbody-finders">
-              <div id="map-finder-legend">
-                <div class="finder-row">
-                  <div class="finder-dot-sm" style="background:var(--forge);"></div>
-                  <span id="map-owner-name">—</span>
-                </div>
+              <div class="finder-row">
+                <div class="finder-dot-sm" style="background:var(--forge);"></div>
+                <span id="map-owner-name">—</span>
               </div>
             </div>
           </div>
-          <!-- Counties list -->
-          <div class="map-sidebar-section" style="flex:1;display:flex;flex-direction:column;">
+          <div class="map-sidebar-section" style="flex:1;display:flex;flex-direction:column;min-height:0;">
             <div class="map-sidebar-hdr" onclick="toggleMapSection('counties')">
               <span class="map-sidebar-lbl">Counties (<span id="map-county-count">0</span>)</span>
               <span class="map-sidebar-chev open" id="mschev-counties">▼</span>
             </div>
-            <div class="map-sidebar-body open" id="msbody-counties" style="max-height:none;flex:1;padding:0;">
+            <div class="map-sidebar-body open" id="msbody-counties" style="max-height:none;flex:1;padding:0;overflow-y:auto;">
               <div class="county-list-items" id="map-county-list"></div>
             </div>
           </div>
-          <!-- Info box -->
           <div class="map-info-box" id="map-info-box">Click a county on the map or in the list.</div>
-          <!-- Capture -->
           <div class="map-capture-row">
             <button class="capture-btn" id="map-capture-btn" onclick="captureCountyMap()">Capture Map PNG</button>
           </div>
         </aside>
       </div>`;
     }
-    if (sub === 'new') {
-      return renderCountyList((ft,pf) => ft, 'No new counties on this trip.');
-    }
-    if (sub === 'previously-found') {
-      return renderCountyList((ft,pf) => pf, 'No previously found counties on this trip.');
-    }
+    if (sub==='new') return renderCountyList((ft)=>ft,'No new counties on this trip.');
+    if (sub==='previously-found') return renderCountyList((ft,pf)=>pf,'No previously found counties on this trip.');
   }
-
-  if (catId === 'oldest' || (CATEGORIES.find(c=>c.id===catId)?.requiresRef)) {
+  if (CATEGORIES.find(c=>c.id===catId)?.requiresRef) {
     return placeholder('Reference file required','Upload reference list files in the Admin panel.','📁','/admin/','Go to Admin →');
   }
-
-  return placeholder(`${CATEGORIES.find(c=>c.id===catId)?.label} — ${sub}`,'This view is being built.', getCatIcon(catId));
+  return placeholder(`${CATEGORIES.find(c=>c.id===catId)?.label} — ${sub}`,'This view is being built.',getCatIcon(catId));
 }
 
 // ── Navigation ────────────────────────────────────────────────────
@@ -880,43 +779,38 @@ let currentPanelId = null;
 
 async function showPanel(panelId) {
   const mainView = document.getElementById('main-view');
-
-  if (currentPanelId && currentPanelId !== panelId) {
-    const prev = document.getElementById('panel-' + currentPanelId);
+  if (currentPanelId && currentPanelId!==panelId) {
+    const prev = document.getElementById('panel-'+currentPanelId);
     if (prev) prev.classList.remove('active');
   }
-
-  let panel = document.getElementById('panel-' + panelId);
+  let panel = document.getElementById('panel-'+panelId);
   if (!panel) {
-    const [catId, sub] = panelId.split('::');
+    const [catId,sub] = panelId.split('::');
     panel = document.createElement('div');
     panel.className = 'view-panel';
-    panel.id = 'panel-' + panelId;
-    panel.innerHTML = renderPanelContent(catId, sub);
+    panel.id = 'panel-'+panelId;
+    panel.innerHTML = renderPanelContent(catId,sub);
     mainView.appendChild(panel);
   }
-
-  const delay = (currentPanelId && currentPanelId !== panelId && state.animEnabled) ? 20 : 0;
-  setTimeout(() => panel.classList.add('active'), delay);
+  const delay = (currentPanelId && currentPanelId!==panelId && state.animEnabled) ? 20 : 0;
+  setTimeout(()=>panel.classList.add('active'), delay);
   currentPanelId = panelId;
 
-  // Post-render hooks
-  const [catId, sub] = panelId.split('::');
-  if (catId === 'counties' && sub === 'map') {
-    // Wait for two animation frames to ensure the DOM element is rendered
-    requestAnimationFrame(() => requestAnimationFrame(() => {
+  const [catId,sub] = panelId.split('::');
+  if (catId==='counties' && sub==='map') {
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
       const container = document.getElementById('county-map');
       if (container) renderCountyMap();
-      else setTimeout(() => renderCountyMap(), 200);
+      else setTimeout(()=>renderCountyMap(), 200);
     }));
   }
 }
 
-function selectCategory(catId, sub) {
-  const cat = CATEGORIES.find(c => c.id === catId);
+function selectCategory(catId,sub) {
+  const cat = CATEGORIES.find(c=>c.id===catId);
   if (!cat) return;
   state.activeCat = catId;
-  state.activeSub = sub || subId(cat.subs[0]);
+  state.activeSub = sub||subId(cat.subs[0]);
   renderCatRail();
   renderSubNav();
   showPanel(`${catId}::${state.activeSub}`);
@@ -930,18 +824,18 @@ function selectSub(s) {
 
 // ── Rail & subnav ─────────────────────────────────────────────────
 function renderCatRail() {
-  const rail = document.getElementById('cat-rail');
-  const pinned   = CATEGORIES.filter(c => state.pinnedCats.includes(c.id));
-  const unpinned = CATEGORIES.filter(c => !state.pinnedCats.includes(c.id));
+  const rail     = document.getElementById('cat-rail');
+  const pinned   = CATEGORIES.filter(c=>state.pinnedCats.includes(c.id));
+  const unpinned = CATEGORIES.filter(c=>!state.pinnedCats.includes(c.id));
   let html = '';
-  pinned.forEach(c => { html += catCard(c, true); });
-  if (pinned.length && unpinned.length) html += '<div class="cat-rail-sep"></div>';
-  unpinned.forEach(c => { html += catCard(c, false); });
+  pinned.forEach(c=>{html+=catCard(c,true);});
+  if (pinned.length&&unpinned.length) html+='<div class="cat-rail-sep"></div>';
+  unpinned.forEach(c=>{html+=catCard(c,false);});
   rail.innerHTML = html;
 }
 
-function catCard(cat, isPinned) {
-  const isActive = cat.id === state.activeCat;
+function catCard(cat,isPinned) {
+  const isActive = cat.id===state.activeCat;
   const unavail  = !!cat.requiresRef;
   return `<div class="cat-card${isActive?' active':''}${unavail?' unavailable':''}"
     onclick="${unavail?'':` selectCategory('${cat.id}')`}">
@@ -952,55 +846,55 @@ function catCard(cat, isPinned) {
 
 function togglePin(catId) {
   const idx = state.pinnedCats.indexOf(catId);
-  if (idx >= 0) state.pinnedCats.splice(idx, 1);
+  if (idx>=0) state.pinnedCats.splice(idx,1);
   else state.pinnedCats.push(catId);
   renderCatRail();
-  savePref('dashboard.pinned_categories', state.pinnedCats);
+  savePref('dashboard.pinned_categories',state.pinnedCats);
 }
 
 function renderSubNav() {
-  const cat = CATEGORIES.find(c => c.id === state.activeCat);
+  const cat = CATEGORIES.find(c=>c.id===state.activeCat);
   if (!cat) return;
-  document.getElementById('sub-nav').innerHTML = cat.subs.map(s => {
+  document.getElementById('sub-nav').innerHTML = cat.subs.map(s=>{
     const sid = subId(s);
     return `<button class="sub-btn${sid===state.activeSub?' active':''}" onclick="selectSub('${sid}')">${s}</button>`;
   }).join('');
 }
 
-// ── Summary bar ───────────────────────────────────────────────────
-function updateSummary(report, trip) {
+// ── Summary ───────────────────────────────────────────────────────
+function updateSummary(report,trip) {
   const agg = report?.aggregate;
   document.getElementById('sum-finds').textContent    = num(report?.trip_find_count);
   document.getElementById('sum-counties').textContent = num(agg?.newCounties);
   document.getElementById('sum-fp').textContent       = num(agg?.favoritePointsEarned);
   document.getElementById('sum-rules').textContent    = num(report?.ruleResults?.length);
-  if (trip?.date_start && trip?.date_end) {
-    const days = Math.round((new Date(trip.date_end+'T00:00:00Z')-new Date(trip.date_start+'T00:00:00Z'))/86400000)+1;
-    document.getElementById('sum-days').textContent = days;
+  if (trip?.date_start&&trip?.date_end) {
+    const days=Math.round((new Date(trip.date_end+'T00:00:00Z')-new Date(trip.date_start+'T00:00:00Z'))/86400000)+1;
+    document.getElementById('sum-days').textContent=days;
   }
-  document.getElementById('sum-miles').textContent = trip?.distance_miles ? num(trip.distance_miles) : '—';
+  document.getElementById('sum-miles').textContent=trip?.distance_miles?num(trip.distance_miles):'—';
 }
 
 // ── Trip selector ─────────────────────────────────────────────────
-function openTripSelector() {
+function openTripSelector(){
   document.getElementById('flyout-overlay').classList.add('open');
   document.getElementById('trip-flyout').classList.add('open');
   loadTripList();
 }
-function closeTripSelector() {
+function closeTripSelector(){
   document.getElementById('flyout-overlay').classList.remove('open');
   document.getElementById('trip-flyout').classList.remove('open');
 }
 
 async function loadTripList() {
-  const el = document.getElementById('trip-list-items');
-  el.textContent = 'Loading…';
-  const token = await getToken();
-  const resp  = await fetch(`${BASE}/api/trips`, {headers:{'Authorization':'Bearer '+token}});
-  const data  = await resp.json();
-  const trips = data.trips ?? [];
-  if (!trips.length) { el.innerHTML = '<p style="color:var(--ink-muted);font-size:0.88rem;">No trips yet.</p>'; return; }
-  el.innerHTML = trips.map(t => `
+  const el=document.getElementById('trip-list-items');
+  el.textContent='Loading…';
+  const token=await getToken();
+  const resp=await fetch(`${BASE}/api/trips`,{headers:{'Authorization':'Bearer '+token}});
+  const data=await resp.json();
+  const trips=data.trips??[];
+  if (!trips.length){el.innerHTML='<p style="color:var(--ink-muted);font-size:0.88rem;">No trips yet.</p>';return;}
+  el.innerHTML=trips.map(t=>`
     <div class="trip-list-item${t.trip_id===state.tripId?' active':''}" onclick="selectTrip('${t.trip_id}')">
       <div class="trip-item-name">${t.name}</div>
       <div class="trip-item-dates">${fmtDateRange(t.date_start,t.date_end)}</div>
@@ -1008,133 +902,110 @@ async function loadTripList() {
     </div>`).join('');
 }
 
-async function selectTrip(tripId) {
-  closeTripSelector();
-  await loadTrip(tripId);
-}
-function newTrip() { closeTripSelector(); location.href='/report/'; }
+async function selectTrip(tripId){closeTripSelector();await loadTrip(tripId);}
+function newTrip(){closeTripSelector();location.href='/report/';}
 
 // ── Prefs ─────────────────────────────────────────────────────────
-function openPrefs() { document.getElementById('prefs-flyout').classList.add('open'); }
-function closePrefs() { document.getElementById('prefs-flyout').classList.remove('open'); }
+function closePrefs(){document.getElementById('prefs-flyout').classList.remove('open');}
 
 function setAnimEnabled(enabled) {
-  state.animEnabled = enabled;
-  document.getElementById('main-view').classList.toggle('no-anim', !enabled);
-  document.getElementById('anim-toggle').classList.toggle('on', enabled);
-  document.getElementById('anim-label').textContent = enabled ? 'Enabled' : 'Disabled';
+  state.animEnabled=enabled;
+  document.getElementById('main-view').classList.toggle('no-anim',!enabled);
+  document.getElementById('anim-toggle').classList.toggle('on',enabled);
+  document.getElementById('anim-label').textContent=enabled?'Enabled':'Disabled';
 }
+function toggleAnim(){setAnimEnabled(!state.animEnabled);savePref('dashboard.animations_enabled',state.animEnabled);}
 
-function toggleAnim() {
-  setAnimEnabled(!state.animEnabled);
-  savePref('dashboard.animations_enabled', state.animEnabled);
-}
-
-async function savePref(key, value) {
+async function savePref(key,value) {
   try {
-    const token = await getToken();
-    await fetch(`${BASE}/api/preferences/${encodeURIComponent(key)}`, {
-      method:'PUT',
-      headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
-      body: JSON.stringify({value}),
+    const token=await getToken();
+    await fetch(`${BASE}/api/preferences/${encodeURIComponent(key)}`,{
+      method:'PUT',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+      body:JSON.stringify({value}),
     });
-  } catch(e) { console.warn('pref save failed:', e); }
+  } catch(e){console.warn('pref save failed:',e);}
 }
 
 // ── Trip loading ──────────────────────────────────────────────────
 async function loadTrip(tripId) {
-  state.tripId = tripId;
-  state.report = null;
+  state.tripId=tripId; state.report=null;
+  const url=new URL(location.href);
+  url.searchParams.set('id',tripId);
+  history.replaceState({},'',url);
 
-  const url = new URL(location.href);
-  url.searchParams.set('id', tripId);
-  history.replaceState({}, '', url);
+  const token=await getToken();
+  const tripResp=await fetch(`${BASE}/api/trips/${tripId}`,{headers:{'Authorization':'Bearer '+token}});
+  state.trip=await tripResp.json();
 
-  const token = await getToken();
-  const tripResp = await fetch(`${BASE}/api/trips/${tripId}`, {headers:{'Authorization':'Bearer '+token}});
-  state.trip = await tripResp.json();
-
-  document.getElementById('trip-name-display').textContent  = state.trip.name ?? 'Trip';
-  document.getElementById('trip-dates-display').textContent = fmtDateRange(state.trip.date_start, state.trip.date_end);
-  document.title = `Routesmith — ${state.trip.name}`;
+  document.getElementById('trip-name-display').textContent  = state.trip.name??'Trip';
+  document.getElementById('trip-dates-display').textContent = fmtDateRange(state.trip.date_start,state.trip.date_end);
+  document.title=`Routesmith — ${state.trip.name}`;
 
   try {
-    const tok2 = await getToken();
-    const resultResp = await fetch(`${BASE}/api/report/trip/${tripId}/result`, {
-      headers:{'Authorization':'Bearer '+tok2}
-    });
-    if (resultResp.ok) {
-      state.report = await resultResp.json();
-      document.getElementById('run-report-header-btn').style.display = 'none';
+    const tok2=await getToken();
+    const rr=await fetch(`${BASE}/api/report/trip/${tripId}/result`,{headers:{'Authorization':'Bearer '+tok2}});
+    if (rr.ok) {
+      state.report=await rr.json();
+      document.getElementById('run-report-header-btn').style.display='none';
     } else {
-      document.getElementById('run-report-header-btn').style.display = 'inline-block';
+      document.getElementById('run-report-header-btn').style.display='inline-block';
     }
-  } catch { /* no cached result */ }
+  } catch{ /* no cached result */ }
 
-  updateSummary(state.report, state.trip);
-
-  // Clear panels and re-render current view
-  document.getElementById('main-view').innerHTML = '';
-  currentPanelId = null;
+  updateSummary(state.report,state.trip);
+  document.getElementById('main-view').innerHTML='';
+  currentPanelId=null;
   showPanel(`${state.activeCat}::${state.activeSub}`);
 }
 
 // ── Init ──────────────────────────────────────────────────────────
 window.addEventListener('load', async () => {
   await window.Clerk.load();
-  const user = window.Clerk.user;
-  if (!user) { location.href='/account/'; return; }
+  const user=window.Clerk.user;
+  if (!user){location.href='/account/';return;}
 
-  const name = user.firstName || user.fullName || user.primaryEmailAddress?.emailAddress || '';
-  document.getElementById('header-user-name').textContent = name;
+  const name=user.firstName||user.fullName||user.primaryEmailAddress?.emailAddress||'';
+  document.getElementById('header-user-name').textContent=name;
 
   // Load preferences
   try {
-    const token = await getToken();
-    const prefResp = await fetch(`${BASE}/api/preferences`, {headers:{'Authorization':'Bearer '+token}});
-    const prefData = await prefResp.json();
-    state.prefs = prefData.preferences ?? {};
-    state.pinnedCats  = state.prefs['dashboard.pinned_categories'] ?? ['counties','highlights'];
-    state.animEnabled = state.prefs['dashboard.animations_enabled'] !== false;
-  } catch { /* use defaults */ }
+    const token=await getToken();
+    const prefResp=await fetch(`${BASE}/api/preferences`,{headers:{'Authorization':'Bearer '+token}});
+    const prefData=await prefResp.json();
+    state.prefs=prefData.preferences??{};
+    state.pinnedCats  = state.prefs['dashboard.pinned_categories']??['counties','highlights'];
+    state.animEnabled = state.prefs['dashboard.animations_enabled']!==false;
+  } catch{ /* use defaults */ }
 
-  // Fetch Mapbox token from Worker (never hardcoded in client source)
+  // Fetch Mapbox token from Worker
   try {
-    const tok = await getToken();
-    const tkResp = await fetch(`${BASE}/api/config/mapbox-token`, {
-      headers: { 'Authorization': 'Bearer ' + tok }
-    });
-    const tkData = await tkResp.json();
-    MAPBOX_TOKEN = tkData.token ?? '';
-  } catch(e) {
-    console.warn('Failed to load Mapbox token:', e);
-  }
+    const tok=await getToken();
+    const tkResp=await fetch(`${BASE}/api/config/mapbox-token`,{headers:{'Authorization':'Bearer '+tok}});
+    const tkData=await tkResp.json();
+    MAPBOX_TOKEN=tkData.token??'';
+  } catch(e){console.warn('Failed to load Mapbox token:',e);}
 
   setAnimEnabled(state.animEnabled);
 
-  // Wire up buttons
-  document.getElementById('trip-selector-btn').addEventListener('click', openTripSelector);
-  document.getElementById('prefs-btn').addEventListener('click', () => {
+  document.getElementById('trip-selector-btn').addEventListener('click',openTripSelector);
+  document.getElementById('prefs-btn').addEventListener('click',()=>{
     document.getElementById('prefs-flyout').classList.toggle('open');
   });
-  document.getElementById('signout-btn').addEventListener('click', async () => {
-    await window.Clerk.signOut(); location.href='/account/';
+  document.getElementById('signout-btn').addEventListener('click',async()=>{
+    await window.Clerk.signOut();location.href='/account/';
   });
-  document.getElementById('run-report-header-btn').addEventListener('click', () => {
-    if (state.tripId) location.href=`/report/trip.html?id=${state.tripId}`;
+  document.getElementById('run-report-header-btn').addEventListener('click',()=>{
+    if(state.tripId) location.href=`/report/trip.html?id=${state.tripId}`;
   });
 
   renderCatRail();
-  selectCategory('counties', 'map');
-  document.getElementById('loading-overlay').style.display = 'none';
+  selectCategory('counties','map');
+  document.getElementById('loading-overlay').style.display='none';
 
-  const params  = new URLSearchParams(location.search);
-  const tripId  = params.get('id');
-  if (tripId) {
-    await loadTrip(tripId);
-  } else {
-    openTripSelector();
-  }
+  const params=new URLSearchParams(location.search);
+  const tripId=params.get('id');
+  if (tripId) await loadTrip(tripId);
+  else openTripSelector();
 });
 </script>
 </body>
