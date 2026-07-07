@@ -277,11 +277,11 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
   </div>
 </div>
 
-<footer>Build 2026.07.05.019</footer>
+<footer>Build 2026.07.05.020</footer>
 
 <script>
 const BASE     = 'https://routesmith-report.gtl6645.workers.dev';
-const MAPBOX_TOKEN = 'pk.eyJ1IjoidHJhdmVsaW5nZ2VlayIsImEiOiJjbXIyejAycXMwYWY0MnpweGFocHYwYjR1In0.3oZ5NSxcUTgfqcftNVpahg';
+const MAPBOX_TOKEN = 'pk.eyJ1IjoiZ3RsNjY0NSIsImEiOiJjbTFrN3JkZnUwMGNpMmpwejdoY3lhcnN2In0.oMBGYUB8R9sk3h1rb1Ie1A';
 const getToken = () => window.Clerk.session.getToken({ template: 'routesmith' });
 
 // ── State ─────────────────────────────────────────────────────────
@@ -902,8 +902,12 @@ async function showPanel(panelId) {
   // Post-render hooks
   const [catId, sub] = panelId.split('::');
   if (catId === 'counties' && sub === 'map') {
-    // Slight delay to let panel become visible before initializing map
-    setTimeout(() => renderCountyMap(), 50);
+    // Wait for two animation frames to ensure the DOM element is rendered
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const container = document.getElementById('county-map');
+      if (container) renderCountyMap();
+      else setTimeout(() => renderCountyMap(), 200);
+    }));
   }
 }
 
