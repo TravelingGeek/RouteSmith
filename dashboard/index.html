@@ -116,10 +116,7 @@ body{font-family:'Source Serif 4',Charter,Georgia,serif;font-size:15px;line-heig
 .county-list-chips{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;}
 .county-chip{font-size:0.64rem;padding:1px 6px;border-radius:2px;font-family:'JetBrains Mono',monospace;border:1px solid currentColor;}
 .map-info-box{padding:8px 12px;font-size:0.76rem;color:var(--ink-muted);line-height:1.5;flex-shrink:0;border-top:1px solid var(--rule-soft);}
-.map-capture-row{padding:10px 14px;border-top:1px solid var(--rule-soft);flex-shrink:0;}
-.capture-btn{width:100%;font-family:'JetBrains Mono',monospace;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--paper);background:var(--brass-deep);border:none;padding:8px;border-radius:2px;cursor:pointer;transition:background 0.15s;}
-.capture-btn:hover{background:var(--ink);}
-.capture-btn:disabled{opacity:0.5;cursor:not-allowed;}
+
 
 /* ── County list panel ── */
 .county-list-panel{position:absolute;inset:0;overflow-y:auto;padding:20px;}
@@ -263,7 +260,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
   </div>
 </div>
 
-<footer>Build 2026.07.05.025</footer>
+<footer>Build 2026.07.05.026</footer>
 
 <script>
 const BASE     = 'https://routesmith-report.gtl6645.workers.dev';
@@ -399,12 +396,11 @@ function toggleMapSection(id) {
 }
 
 function setVizMode(mode) {
-  ['fill','pins','arcs','rings'].forEach(m=>{
+  ['pins','arcs','rings'].forEach(m=>{
     const btn=document.getElementById('vbtn-'+m);
     if(btn&&!btn.disabled) btn.classList.toggle('active',m===mode);
   });
-  // Fill and Pins implemented; Arcs/Rings deferred to multi-finder
-  // TODO: implement pin markers layer for 'pins' mode
+  // TODO: implement pin markers for 'pins' mode; Arcs/Rings deferred to multi-finder
 }
 
 function setBaseMap(mode) {
@@ -561,18 +557,13 @@ function rebuildMapLayers() {
   mapInstance.addLayer({
     id:'county-fill',type:'fill',source:'counties',
     paint:{
-      'fill-color':['match',['get','status'],3,'#2d8a3e',2,'#78b882',1,'#8a7a64','rgba(0,0,0,0)'],
+      'fill-color':['match',['to-number',['get','status']],3,'#2d8a3e',2,'#78b882',1,'#8a7a64','rgba(0,0,0,0)'],
       'fill-opacity':[
         'case',
-        ['==',['get','status'],3], 0.75,
-        ['==',['get','status'],2], 0.55,
-        ['==',['get','status'],1],
-          // Zoom-dependent: more visible at low zoom, subtler when zoomed in
-          ['interpolate',['linear'],['zoom'],
-            3, 0.60,   // zoomed out — full US view
-            6, 0.45,   // state level
-            9, 0.30    // county level
-          ],
+        ['==',['to-number',['get','status']],3], 0.75,
+        ['==',['to-number',['get','status']],2], 0.55,
+        ['==',['to-number',['get','status']],1],
+          ['interpolate',['linear'],['zoom'],3,0.60,6,0.45,9,0.30],
         0
       ],
     }
@@ -580,9 +571,9 @@ function rebuildMapLayers() {
   mapInstance.addLayer({
     id:'county-border',type:'line',source:'counties',
     paint:{
-      'line-color':['match',['get','status'],3,'#1a5c28',2,'#4a8a54',1,'#6a5a44','rgba(0,0,0,0)'],
-      'line-width':['match',['get','status'],3,1.5,2,1.0,1,0.6,0],
-      'line-opacity':['match',['get','status'],3,0.85,2,0.75,1,0.65,0],
+      'line-color':['match',['to-number',['get','status']],3,'#1a5c28',2,'#4a8a54',1,'#6a5a44','rgba(0,0,0,0)'],
+      'line-width':['match',['to-number',['get','status']],3,1.5,2,1.0,1,0.6,0],
+      'line-opacity':['match',['to-number',['get','status']],3,0.85,2,0.75,1,0.65,0],
     }
   });
 }
@@ -592,7 +583,7 @@ function wireMapEvents() {
   mapInstance.on('mousemove','county-fill',e=>{
     if (!e.features.length) return;
     const f  = e.features[0];
-    const st = f.properties.status;
+    const st = Number(f.properties.status);
     if (st===0) { popup.remove(); return; }
     const countyName  = f.properties.NAME;
     const stateAbbrev = f.properties.stateAbbrev||FIPS_TO_STATE[String(f.id).padStart(5,'0').slice(0,2)]||'';
@@ -768,8 +759,7 @@ function renderPanelContent(catId,sub) {
             <div class="map-sidebar-body open" id="msbody-viz">
               <div class="map-sidebar-lbl" style="margin-bottom:5px;">Style</div>
               <div class="viz-toggle">
-                <button class="viz-btn active" id="vbtn-fill" onclick="setVizMode('fill')">Fill</button>
-                <button class="viz-btn" id="vbtn-pins" onclick="setVizMode('pins')">Pins</button>
+                <button class="viz-btn active" id="vbtn-pins" onclick="setVizMode('pins')">Pins</button>
                 <button class="viz-btn" id="vbtn-arcs" onclick="setVizMode('arcs')" title="Multi-finder only" style="opacity:0.5;cursor:not-allowed;" disabled>Arcs</button>
                 <button class="viz-btn" id="vbtn-rings" onclick="setVizMode('rings')" title="Multi-finder only" style="opacity:0.5;cursor:not-allowed;" disabled>Rings</button>
               </div>
@@ -817,9 +807,7 @@ function renderPanelContent(catId,sub) {
             </div>
           </div>
           <div class="map-info-box" id="map-info-box">Click a county on the map or in the list.</div>
-          <div class="map-capture-row">
-            <button class="capture-btn" id="map-capture-btn" onclick="captureCountyMap()">Capture Map PNG</button>
-          </div>
+
         </aside>
       </div>`;
     }
