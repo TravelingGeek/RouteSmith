@@ -168,6 +168,9 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
 </style>
 </head>
 <body>
+<script>console.log('Routesmith | dashboard | Build 2026.07.07.003');</script>
+
+
 
 <div class="loading-overlay" id="loading-overlay">
   <div class="loading-text">Loading dashboard…</div>
@@ -179,11 +182,13 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
     <span class="trip-selector-label">Trip</span>
     <span class="trip-selector-name" id="trip-name-display">Select a trip</span>
     <span class="trip-selector-dates" id="trip-dates-display"></span>
+    <span id="trip-stale-badge" style="display:none;font-family:'JetBrains Mono',monospace;font-size:0.62rem;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,160,60,0.9);background:rgba(255,160,60,0.15);border:1px solid rgba(255,160,60,0.4);padding:1px 7px;border-radius:2px;flex-shrink:0;">Outdated</span>
     <span style="color:rgba(255,255,255,0.3);font-size:0.8rem;">▼</span>
   </button>
   <div class="header-actions">
     <button class="header-btn" id="run-report-header-btn" style="display:none;">Run Report</button>
-    <button class="header-btn" id="prefs-btn">⚙ Settings</button>
+    <a href="/admin/" class="header-btn" id="admin-nav-link" style="display:none;text-decoration:none;">Admin</a>
+  <button class="header-btn" id="prefs-btn">⚙ Settings</button>
     <span class="header-user" id="header-user-name"></span>
     <button class="header-btn" id="signout-btn">Sign out</button>
   </div>
@@ -257,10 +262,15 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
         <span class="toggle-label" id="anim-label">Enabled</span>
       </div>
     </div>
+    <div class="pref-row" style="border-top:1px solid var(--rule-soft);padding-top:16px;">
+      <span class="pref-label">GPX Data</span>
+      <p class="pref-desc">Upload new My Finds GPX to pick up recently found caches. The report will be marked outdated and can be refreshed.</p>
+      <a href="/account/" style="display:inline-block;margin-top:6px;font-family:'JetBrains Mono',monospace;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--brass-deep);text-decoration:none;border-bottom:1px dotted var(--brass);">Update GPX →</a>
+    </div>
   </div>
 </div>
 
-<footer>Build 2026.07.07.001</footer>
+<footer>Build 2026.07.07.003</footer>
 
 <script>
 const BASE     = 'https://routesmith-report.gtl6645.workers.dev';
@@ -533,7 +543,8 @@ async function renderCountyMap() {
         fitMapToBounds(tripNewFips,tripPrevFips,geojson);
         if (loadingEl) loadingEl.style.display='none';
         // Force resize to ensure canvas fills container
-        setTimeout(()=>mapInstance.resize(), 100);
+        setTimeout(()=>{ mapInstance.resize(); }, 100);
+        setTimeout(()=>{ mapInstance.resize(); }, 500);
       };
       mapInstance.once('style.load', onMapReady);
       mapInstance.once('load', onMapReady);
@@ -743,7 +754,7 @@ function renderPanelContent(catId,sub) {
   if (!state.report && catId!=='lifetime') {
     return `<div class="placeholder">
       <div class="placeholder-icon">📋</div>
-      <div class="placeholder-title">No report data</div>
+      <div class="placeholder-title" id="placeholder-title">No report data</div>
       <div class="placeholder-sub">Generate the report to see this view.</div>
       <button class="placeholder-run-btn" id="inline-run-btn" onclick="inlineRunReport()">Generate Report</button>
       <div id="inline-run-status" style="margin-top:12px;font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--ink-muted);text-transform:uppercase;letter-spacing:0.1em;"></div>
@@ -949,7 +960,7 @@ async function loadTripList() {
       </div>
       <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
         <button class="flyout-trip-btn" onclick="event.stopPropagation();flyoutRunReport('${t.trip_id}')">Run Report</button>
-        <button class="flyout-trip-btn" onclick="event.stopPropagation();location.href='/report/trip.html?id=${t.trip_id}'">Edit</button>
+        <button class="flyout-trip-btn" onclick="event.stopPropagation();location.href='/report/trip.html?id=${t.trip_id}&from=dashboard'">Edit</button>
         <button class="flyout-trip-btn flyout-trip-btn-danger" onclick="event.stopPropagation();flyoutDeleteTrip('${t.trip_id}','${t.name.replace(/'/g,"\\'")}')">Delete</button>
       </div>
     </div>`).join('');
@@ -960,16 +971,52 @@ async function selectTrip(tripId){closeTripSelector();await loadTrip(tripId);}
 async function flyoutRunReport(tripId) {
   closeTripSelector();
   if (state.tripId !== tripId) await loadTrip(tripId);
-  // Trigger report run — find or create the run button
-  const btn = document.getElementById('inline-run-btn');
-  if (btn) { inlineRunReport(); }
-  else {
-    // Navigate to counties map which has the run button
-    selectCategory('counties','map');
-    setTimeout(()=>{
-      const b = document.getElementById('inline-run-btn');
-      if (b) inlineRunReport();
-    }, 300);
+  // Run report directly — don't depend on inline-run-btn existing
+  await startReportRun();
+}
+
+async function startReportRun() {
+  if (!state.tripId) return;
+  if (activeJobId) { await cancelActiveJob(); return; }
+
+  updateRunReportHeaderBtn(true);
+
+  try {
+    const token = await getToken();
+    const enqueueResp = await fetch(`${BASE}/api/report/trip/${state.tripId}/run`, {
+      method: 'POST', headers: { 'Authorization': 'Bearer ' + token },
+    });
+    const enqueued = await enqueueResp.json();
+    if (enqueued.error) throw new Error(enqueued.error);
+
+    activeJobId = enqueued.job_id;
+    activeJobTripId = state.tripId;
+
+    for (let i = 0; i < 60; i++) {
+      await new Promise(r => setTimeout(r, 3000));
+      if (!activeJobId) return; // cancelled
+      const tok2 = await getToken();
+      const statusResp = await fetch(`${BASE}/api/report/trip/${state.tripId}/status/${activeJobId}`, {
+        headers: { 'Authorization': 'Bearer ' + tok2 },
+      });
+      const statusData = await statusResp.json();
+      if (statusData.error) throw new Error(statusData.error);
+      if (statusResp.status === 200) {
+        activeJobId = null;
+        state.report = statusData;
+        updateSummary(state.report, state.trip);
+        document.getElementById('main-view').innerHTML = '';
+        currentPanelId = null;
+        showPanel(`${state.activeCat}::${state.activeSub}`);
+        updateRunReportHeaderBtn(false);
+        return;
+      }
+    }
+    throw new Error('Timed out.');
+  } catch(e) {
+    activeJobId = null;
+    updateRunReportHeaderBtn(false);
+    alert('Report failed: ' + e.message);
   }
 }
 
@@ -1036,7 +1083,10 @@ async function loadTrip(tripId) {
     const rr=await fetch(`${BASE}/api/report/trip/${tripId}/result`,{headers:{'Authorization':'Bearer '+tok2}});
     if (rr.ok) {
       state.report=await rr.json();
-      document.getElementById('run-report-header-btn').style.display='none';
+      const isStale = state.report._stale;
+      document.getElementById('run-report-header-btn').style.display = isStale ? 'inline-block' : 'none';
+      document.getElementById('run-report-header-btn').textContent   = isStale ? 'Refresh Report' : 'Run Report';
+      document.getElementById('trip-stale-badge').style.display      = isStale ? 'inline' : 'none';
     } else {
       document.getElementById('run-report-header-btn').style.display='inline-block';
     }
@@ -1216,6 +1266,15 @@ window.addEventListener('load', async () => {
   renderCatRail();
   selectCategory('counties','map');
   document.getElementById('loading-overlay').style.display='none';
+
+  // Check if admin and show admin nav link
+  try {
+    const atok = await getToken();
+    const achk = await fetch('https://routesmith-admin.gtl6645.workers.dev/api/admin/users', {
+      headers:{'Authorization':'Bearer '+atok}, signal:AbortSignal.timeout(3000)
+    });
+    if (achk.ok) document.getElementById('admin-nav-link').style.display='inline-block';
+  } catch(e) { /* not admin */ }
 
   const params=new URLSearchParams(location.search);
   const tripId=params.get('id');
