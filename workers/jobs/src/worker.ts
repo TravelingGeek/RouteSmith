@@ -102,13 +102,6 @@ export default {
       }
     }
   },
-
-  // ── Health check (dev only) ─────────────────────────────────────────────────
-  async fetch(_request: Request, _env: Env): Promise<Response> {
-    return new Response(JSON.stringify({ status: 'ok', worker: 'routesmith-jobs' }), {
-      headers: { 'Content-Type': 'application/json' },
-    });
-  },
 };
 
 // ============================================================================

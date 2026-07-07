@@ -448,6 +448,20 @@ export async function handleConfirm(
   const finds = body.finds ?? [];
   if (finds.length > 0 && fileRow.file_role === 'lifetime') {
     try {
+      // Use deterministic find_id based on (finder_id, gc_code, find_date)
+      // so re-uploads produce the same ID and ON CONFLICT correctly deduplicates.
+      // Format: ff_{finderId_hash}_{gcCode}_{findDate}
+      function deterministicFindId(finderId: string, gcCode: string, findDate: string): string {
+        // Simple stable hash — not cryptographic, just for dedup
+        const raw = `${finderId}|${gcCode}|${findDate}`;
+        let h = 0;
+        for (let i = 0; i < raw.length; i++) {
+          h = (Math.imul(31, h) + raw.charCodeAt(i)) | 0;
+        }
+        const hex = Math.abs(h).toString(16).padStart(8, '0');
+        return `ff_${hex}_${gcCode}_${findDate}`;
+      }
+
       const BATCH_SIZE = 50;
       for (let i = 0; i < finds.length; i += BATCH_SIZE) {
         const batch = finds.slice(i, i + BATCH_SIZE);
@@ -458,9 +472,21 @@ export async function handleConfirm(
               find_date, county, state, country, cache_type,
               difficulty, terrain, fav_points, lat, lon, placement_date
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT (find_id) DO NOTHING
+            ON CONFLICT (finder_id, gc_code, find_date) DO UPDATE SET
+              cache_name     = excluded.cache_name,
+              cache_owner    = excluded.cache_owner,
+              county         = excluded.county,
+              state          = excluded.state,
+              country        = excluded.country,
+              cache_type     = excluded.cache_type,
+              difficulty     = excluded.difficulty,
+              terrain        = excluded.terrain,
+              fav_points     = excluded.fav_points,
+              lat            = excluded.lat,
+              lon            = excluded.lon,
+              placement_date = excluded.placement_date
           `).bind(
-            uuid(),
+            deterministicFindId(fileRow.owner_finder_id, f.gc_code, f.find_date),
             fileRow.owner_finder_id,
             f.gc_code,
             f.cache_name ?? null,
@@ -480,6 +506,16 @@ export async function handleConfirm(
         );
         await env.DB.batch(findStatements);
       }
+
+      // Invalidate any trip reports that use this finder's data
+      // so dashboard shows "Outdated" badge
+      await env.DB.prepare(`
+        UPDATE trips SET report_invalidated_at = ?
+        WHERE trip_id IN (
+          SELECT trip_id FROM trip_finders WHERE finder_id = ?
+        )
+      `).bind(ts, fileRow.owner_finder_id).run();
+
     } catch (e) {
       console.error(`Finds upsert failed: ${(e as Error).message}`);
     }

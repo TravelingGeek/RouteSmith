@@ -159,7 +159,21 @@ export async function handleTripResult(
   const obj = await env.REPORT_BUCKET.get(report.output_r2_key);
   if (!obj) return jsonError('Report result not found in storage', 404);
 
-  return new Response(await obj.text(), { headers: { 'Content-Type': 'application/json' } });
+  // Check if trip data has been updated since report was generated
+  const tripMeta = await env.DB
+    .prepare(`SELECT report_invalidated_at FROM trips WHERE trip_id = ?`)
+    .bind(tripId)
+    .first<{ report_invalidated_at: number | null }>();
+
+  const text = await obj.text();
+  const result = JSON.parse(text);
+
+  // Inject staleness flag — dashboard uses this to show "Outdated" badge
+  const invalidatedAt = tripMeta?.report_invalidated_at ?? null;
+  result._stale = invalidatedAt && result.generated_at && invalidatedAt > result.generated_at;
+  result._invalidated_at = invalidatedAt;
+
+  return new Response(JSON.stringify(result), { headers: { 'Content-Type': 'application/json' } });
 }
 
 // ============================================================================

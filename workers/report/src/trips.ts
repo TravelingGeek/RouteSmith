@@ -235,8 +235,10 @@ export async function handleUpdateTrip(
   if (!fields.length) return jsonError('No fields to update');
 
   const ts = now();
+  // Invalidate cached report when trip metadata changes
   fields.push('updated_at = ?');
-  values.push(ts, tripId, user.userId);
+  fields.push('report_invalidated_at = ?');
+  values.push(ts, ts, tripId, user.userId);
 
   try {
     await env.DB

@@ -301,13 +301,14 @@ const encoded = new TextEncoder().encode(serialized);
   console.log(`[trip_run] result stored at ${result_r2_key}`);
 
   // ── Store report reference in D1 ──────────────────────────────────────────
-  await env.DB.prepare(`
-    INSERT INTO trip_reports (report_id, trip_id, generated_at, output_r2_key, field_flags)
-    VALUES (?, ?, ?, ?, ?)
-  `).bind(
-    crypto.randomUUID(), trip_id, ts, result_r2_key,
-    JSON.stringify(result.fieldAvailability)
-  ).run();
+  await env.DB.batch([
+    env.DB.prepare(`
+      INSERT INTO trip_reports (report_id, trip_id, generated_at, output_r2_key, field_flags)
+      VALUES (?, ?, ?, ?, ?)
+    `).bind(crypto.randomUUID(), trip_id, ts, result_r2_key, JSON.stringify(result.fieldAvailability)),
+    // Clear the stale flag — report is now fresh
+    env.DB.prepare(`UPDATE trips SET report_invalidated_at = NULL WHERE trip_id = ?`).bind(trip_id),
+  ]);
 
   const jobResult: TripRunResult = {
     result_r2_key,

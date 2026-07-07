@@ -605,17 +605,24 @@ window.addEventListener('load', async () => {
 
   try {
     const token = await getToken();
-    const resp  = await fetch(`${ADMIN_BASE}/api/admin/reference-lists`, {headers:{'Authorization':'Bearer '+token}});
+    const resp  = await fetch(`${ADMIN_BASE}/api/admin/health`, {
+      headers:{'Authorization':'Bearer '+token},
+      signal: AbortSignal.timeout(8000),
+    });
     if (resp.status === 403) {
       loadingEl.style.display = 'none';
       accessDenied.style.display = 'block';
       return;
     }
+    if (!resp.ok) throw new Error(`Worker returned ${resp.status}`);
     loadingEl.style.display = 'none';
     mainContent.style.display = 'block';
     // Sections start collapsed
   } catch(e) {
-    loadingEl.textContent = 'Error loading admin panel.';
+    loadingEl.style.display = 'none';
+    mainContent.style.display = 'block';
+    // Show error but still allow access — health check failure shouldn't block admin
+    console.warn('Admin health check failed:', e.message);
   }
 });
 </script>

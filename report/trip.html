@@ -446,7 +446,7 @@
   <span class="sep">·</span>
   <span>Forged 2026</span>
   <span class="sep">·</span>
-  <span>Build 2026.07.07.001</span>
+  <span>Build 2026.07.07.003</span>
 </footer>
 
 <script>
@@ -748,14 +748,14 @@ document.getElementById('companion-save').addEventListener('click', async () => 
 // ── Run Report ────────────────────────────────────────────────────
 function initRunReport() {
   // Show dashboard link if we came from there
-  const ref = document.referrer;
   const dashLink = document.getElementById('breadcrumb-dashboard-link');
   const dashSep  = document.getElementById('breadcrumb-dashboard-sep');
-  if (dashLink && (ref.includes('/dashboard/') || sessionStorage.getItem('fromDashboard'))) {
+  const fromDash = new URLSearchParams(location.search).get('from') === 'dashboard'
+    || document.referrer.includes('/dashboard/');
+  if (dashLink && fromDash) {
     dashLink.href = `/dashboard/?id=${TRIP_ID}`;
     dashLink.style.display = 'inline';
-    dashSep.style.display = 'inline';
-    sessionStorage.setItem('fromDashboard', '1');
+    if (dashSep) dashSep.style.display = 'inline';
   }
 
   // Delete trip
