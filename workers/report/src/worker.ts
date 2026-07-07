@@ -125,6 +125,28 @@ export default {
       return addCors(await handleRemoveCompanion(companionItem[1], companionItem[2], user, env), request);
     }
 
+    // County map lifetime data
+    if (url.pathname === '/api/county-map/lifetime' && request.method === 'GET') {
+      const ownerFinder = await env.DB
+        .prepare(`SELECT finder_id FROM finders WHERE owner_user_id = ? ORDER BY created_at ASC LIMIT 1`)
+        .bind(user.userId)
+        .first<{ finder_id: string }>();
+      if (!ownerFinder) return addCors(jsonError('No finder found', 404), request);
+      const { results } = await env.DB
+        .prepare(`
+          SELECT DISTINCT county, state, MIN(find_date) as first_found
+          FROM finder_finds
+          WHERE finder_id = ? AND county IS NOT NULL AND state IS NOT NULL
+          GROUP BY county, state
+          ORDER BY state, county
+        `)
+        .bind(ownerFinder.finder_id)
+        .all<{ county: string; state: string; first_found: string }>();
+      return addCors(new Response(JSON.stringify({ counties: results }), {
+        headers: { 'Content-Type': 'application/json' },
+      }), request);
+    }
+
     // Preferences routes
     if (url.pathname === '/api/preferences' && request.method === 'GET') {
       return addCors(await handleGetPreferences(user, env), request);
