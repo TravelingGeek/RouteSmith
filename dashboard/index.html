@@ -89,33 +89,33 @@ body{font-family:'Source Serif 4',Charter,Georgia,serif;font-size:15px;line-heig
 .map-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:var(--paper);z-index:3;font-family:'JetBrains Mono',monospace;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.14em;color:var(--ink-muted);}
 .map-sidebar{width:260px;flex-shrink:0;background:var(--paper);border-left:1px solid var(--rule);display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;}
 .map-sidebar-section{border-bottom:1px solid var(--rule-soft);}
-.map-sidebar-hdr{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;cursor:pointer;user-select:none;}
+.map-sidebar-hdr{display:flex;align-items:center;justify-content:space-between;padding:7px 12px;cursor:pointer;user-select:none;}
 .map-sidebar-hdr:hover{background:rgba(168,120,50,0.04);}
-.map-sidebar-lbl{font-family:'JetBrains Mono',monospace;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--ink-muted);}
+.map-sidebar-lbl{font-family:'JetBrains Mono',monospace;font-size:0.62rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--ink-muted);}
 .map-sidebar-chev{font-size:0.68rem;color:var(--ink-muted);transition:transform 0.2s;}
 .map-sidebar-chev.open{transform:rotate(180deg);}
 .map-sidebar-body{overflow:hidden;transition:max-height 0.25s ease,padding 0.25s ease;}
-.map-sidebar-body.open{max-height:600px;padding:10px 14px;}
-.map-sidebar-body.closed{max-height:0;padding:0 14px;}
+.map-sidebar-body.open{max-height:600px;padding:8px 12px;}
+.map-sidebar-body.closed{max-height:0;padding:0 12px;}
 .viz-toggle{display:flex;background:var(--paper-mid);border:1px solid var(--rule);border-radius:2px;overflow:hidden;margin-bottom:8px;}
-.viz-btn{flex:1;padding:6px 0;border:none;background:transparent;font-family:'JetBrains Mono',monospace;font-size:0.68rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-muted);cursor:pointer;transition:background 0.15s,color 0.15s;border-right:1px solid var(--rule);}
+.viz-btn{flex:1;padding:5px 0;border:none;background:transparent;font-family:'JetBrains Mono',monospace;font-size:0.62rem;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink-muted);cursor:pointer;transition:background 0.15s,color 0.15s;border-right:1px solid var(--rule);}
 .viz-btn:last-child{border-right:none;}
 .viz-btn:hover{background:var(--rule-soft);color:var(--ink);}
 .viz-btn.active{background:var(--forge);color:white;font-weight:600;}
 .map-legend-rows{display:flex;flex-direction:column;gap:5px;}
-.map-legend-row{display:flex;align-items:center;gap:8px;font-size:0.76rem;color:var(--ink-muted);}
+.map-legend-row{display:flex;align-items:center;gap:7px;font-size:0.72rem;color:var(--ink-muted);}
 .map-legend-swatch{width:18px;height:11px;border-radius:2px;border:1px solid rgba(0,0,0,0.12);flex-shrink:0;}
-.finder-row{display:flex;align-items:center;gap:8px;font-size:0.78rem;color:var(--ink-soft);}
+.finder-row{display:flex;align-items:center;gap:6px;font-size:0.74rem;color:var(--ink-soft);}
 .finder-dot-sm{width:10px;height:10px;border-radius:50%;flex-shrink:0;border:1.5px solid rgba(0,0,0,0.12);}
 .county-list-items{overflow-y:auto;max-height:300px;}
-.county-list-item{padding:7px 14px;border-bottom:1px solid var(--rule-soft);cursor:pointer;transition:background 0.12s;}
+.county-list-item{padding:5px 12px;border-bottom:1px solid var(--rule-soft);cursor:pointer;transition:background 0.12s;}
 .county-list-item:hover{background:var(--paper-mid);}
 .county-list-item.active{background:rgba(45,90,42,0.08);border-left:2px solid var(--forge);padding-left:12px;}
-.county-list-name{font-size:0.86rem;font-weight:600;color:var(--ink);}
-.county-list-state{font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:var(--ink-muted);margin-top:1px;}
+.county-list-name{font-size:0.80rem;font-weight:600;color:var(--ink);}
+.county-list-state{font-family:'JetBrains Mono',monospace;font-size:0.62rem;color:var(--ink-muted);}
 .county-list-chips{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;}
 .county-chip{font-size:0.64rem;padding:1px 6px;border-radius:2px;font-family:'JetBrains Mono',monospace;border:1px solid currentColor;}
-.map-info-box{padding:12px 14px;font-size:0.82rem;color:var(--ink-muted);line-height:1.6;flex-shrink:0;border-top:1px solid var(--rule-soft);}
+.map-info-box{padding:8px 12px;font-size:0.76rem;color:var(--ink-muted);line-height:1.5;flex-shrink:0;border-top:1px solid var(--rule-soft);}
 .map-capture-row{padding:10px 14px;border-top:1px solid var(--rule-soft);flex-shrink:0;}
 .capture-btn{width:100%;font-family:'JetBrains Mono',monospace;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--paper);background:var(--brass-deep);border:none;padding:8px;border-radius:2px;cursor:pointer;transition:background 0.15s;}
 .capture-btn:hover{background:var(--ink);}
@@ -263,7 +263,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
   </div>
 </div>
 
-<footer>Build 2026.07.05.024</footer>
+<footer>Build 2026.07.05.025</footer>
 
 <script>
 const BASE     = 'https://routesmith-report.gtl6645.workers.dev';
@@ -416,19 +416,21 @@ function setBaseMap(mode) {
   });
   if (!mapInstance) return;
   mapInstance.setStyle(BASE_STYLES[mode],{diff:false});
-  mapInstance.once('style.load',()=>{
+  const onStyleReady = () => {
     if (currentBaseMap==='topo') addTopoOverlay();
-    if (mapLoaded && mapInstance.getSource('counties') === undefined) {
-      // Source was lost on style reload — re-add it with current data
-      const src = state._lastPaintedGeojson;
-      if (src) {
-        mapInstance.addSource('counties',{type:'geojson',data:src});
-        rebuildMapLayers();
-      }
-    } else if (mapLoaded) {
-      rebuildMapLayers();
+    const src = state._lastPaintedGeojson;
+    if (src) {
+      try { if (mapInstance.getSource('counties')) mapInstance.removeSource('counties'); } catch(e){}
+      mapInstance.addSource('counties',{type:'geojson',data:src});
     }
-  });
+    rebuildMapLayers();
+  };
+  mapInstance.once('style.load', onStyleReady);
+  mapInstance.once('load', onStyleReady);
+  const styleReadyPoll = setInterval(()=>{
+    if (mapInstance.isStyleLoaded()) { clearInterval(styleReadyPoll); onStyleReady(); }
+  }, 100);
+  setTimeout(()=>{ clearInterval(styleReadyPoll); }, 8000);
 }
 
 function addTopoOverlay() {
@@ -507,12 +509,22 @@ async function renderCountyMap() {
         preserveDrawingBuffer:true,
       });
       mapInstance.addControl(new mapboxgl.NavigationControl(),'bottom-left');
-      mapInstance.on('load',()=>{
+
+      // POC-style dual-listener + polling for reliable style ready detection
+      const onMapReady = () => {
+        if (mapLoaded) return;
         mapLoaded = true;
+        clearInterval(mapReadyPoll);
         buildMapLayers(paintedGeojson);
         fitMapToBounds(tripNewFips,tripPrevFips,geojson);
         if (loadingEl) loadingEl.style.display='none';
-      });
+      };
+      mapInstance.once('style.load', onMapReady);
+      mapInstance.once('load', onMapReady);
+      const mapReadyPoll = setInterval(()=>{
+        if (mapInstance.isStyleLoaded()) onMapReady();
+      }, 100);
+      setTimeout(()=>{ clearInterval(mapReadyPoll); onMapReady(); }, 10000);
     } else if (mapLoaded) {
       if (mapInstance.getSource('counties')) {
         mapInstance.getSource('counties').setData(paintedGeojson);
@@ -549,16 +561,28 @@ function rebuildMapLayers() {
   mapInstance.addLayer({
     id:'county-fill',type:'fill',source:'counties',
     paint:{
-      'fill-color':['match',['get','status'],3,'#2d8a3e',2,'#78b882',1,'#c8bfaa','rgba(0,0,0,0)'],
-      'fill-opacity':['match',['get','status'],3,0.75,2,0.55,1,0.40,0],
+      'fill-color':['match',['get','status'],3,'#2d8a3e',2,'#78b882',1,'#8a7a64','rgba(0,0,0,0)'],
+      'fill-opacity':[
+        'case',
+        ['==',['get','status'],3], 0.75,
+        ['==',['get','status'],2], 0.55,
+        ['==',['get','status'],1],
+          // Zoom-dependent: more visible at low zoom, subtler when zoomed in
+          ['interpolate',['linear'],['zoom'],
+            3, 0.60,   // zoomed out — full US view
+            6, 0.45,   // state level
+            9, 0.30    // county level
+          ],
+        0
+      ],
     }
   });
   mapInstance.addLayer({
     id:'county-border',type:'line',source:'counties',
     paint:{
-      'line-color':['match',['get','status'],3,'#1a5c28',2,'#4a8a54',1,'#a09080','rgba(0,0,0,0)'],
-      'line-width':['match',['get','status'],3,1.5,2,1,1,0.5,0],
-      'line-opacity':0.8,
+      'line-color':['match',['get','status'],3,'#1a5c28',2,'#4a8a54',1,'#6a5a44','rgba(0,0,0,0)'],
+      'line-width':['match',['get','status'],3,1.5,2,1.0,1,0.6,0],
+      'line-opacity':['match',['get','status'],3,0.85,2,0.75,1,0.65,0],
     }
   });
 }
@@ -678,10 +702,16 @@ function highlightCountyInSidebar(fips) {
 async function captureCountyMap() {
   const btn = document.getElementById('map-capture-btn');
   if (!btn||!mapInstance) return;
+  if (!mapLoaded) { alert('Map is still loading — please wait.'); return; }
   btn.disabled=true; btn.textContent='Capturing…';
   try {
+    // Trigger a render to ensure canvas is up to date
+    mapInstance.triggerRepaint();
+    await new Promise(r=>setTimeout(r,200));
+    const canvas = mapInstance.getCanvas();
+    if (canvas.width===0||canvas.height===0) throw new Error('Map canvas has no dimensions.');
     const a=document.createElement('a');
-    a.href=mapInstance.getCanvas().toDataURL('image/png');
+    a.href=canvas.toDataURL('image/png');
     a.download=`routesmith-map-${Date.now()}.png`;
     a.click();
   } catch(e) { alert('Capture failed: '+e.message); }
@@ -760,7 +790,7 @@ function renderPanelContent(catId,sub) {
               <div class="map-legend-rows">
                 <div class="map-legend-row"><div class="map-legend-swatch" style="background:#2d8a3e;"></div>New this trip</div>
                 <div class="map-legend-row"><div class="map-legend-swatch" style="background:#78b882;"></div>Found this trip (prior)</div>
-                <div class="map-legend-row"><div class="map-legend-swatch" style="background:#c8bfaa;"></div>Lifetime find</div>
+                <div class="map-legend-row"><div class="map-legend-swatch" style="background:#8a7a64;"></div>Lifetime find</div>
                 <div class="map-legend-row"><div class="map-legend-swatch" style="background:transparent;border:1px solid #aaa;"></div>Never found</div>
               </div>
             </div>
