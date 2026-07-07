@@ -260,7 +260,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
   </div>
 </div>
 
-<footer>Build 2026.07.05.028</footer>
+<footer>Build 2026.07.05.029</footer>
 
 <script>
 const BASE     = 'https://routesmith-report.gtl6645.workers.dev';
@@ -556,17 +556,19 @@ function rebuildMapLayers() {
   });
   mapInstance.addLayer({
     id:'county-fill', type:'fill', source:'counties',
+    filter:['>', ['get','status'], 0],
     paint:{
-      'fill-color':   ['get','fillColor'],
-      'fill-opacity': ['get','fillOp'],
+      'fill-color':   ['coalesce',['get','fillColor'],'rgba(0,0,0,0)'],
+      'fill-opacity': ['coalesce',['get','fillOp'],0],
     }
   });
   mapInstance.addLayer({
     id:'county-border', type:'line', source:'counties',
+    filter:['>', ['get','status'], 0],
     paint:{
-      'line-color':   ['get','borderColor'],
-      'line-width':   ['get','borderWidth'],
-      'line-opacity': ['get','borderOp'],
+      'line-color':   ['coalesce',['get','borderColor'],'rgba(0,0,0,0)'],
+      'line-width':   ['coalesce',['get','borderWidth'],0],
+      'line-opacity': ['coalesce',['get','borderOp'],0],
     }
   });
 }
