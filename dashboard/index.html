@@ -260,7 +260,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
   </div>
 </div>
 
-<footer>Build 2026.07.05.029</footer>
+<footer>Build 2026.07.05.030</footer>
 
 <script>
 const BASE     = 'https://routesmith-report.gtl6645.workers.dev';
@@ -469,9 +469,15 @@ async function renderCountyMap() {
       }
     }
 
+    const FILL_COLORS   = {3:'#2d8a3e', 2:'#78b882', 1:'#8a7a64', 0:'rgba(0,0,0,0)'};
+    const BORDER_COLORS = {3:'#1a5c28', 2:'#4a8a54', 1:'#6a5a44', 0:'rgba(0,0,0,0)'};
+    const FILL_OPS      = {3:0.75,      2:0.55,      1:0.55,      0:0};
+    const BORDER_OPS    = {3:0.85,      2:0.75,      1:0.65,      0:0};
+    const BORDER_WIDTHS = {3:1.5,       2:1.0,       1:0.6,       0:0};
+
     mapCountyFips = {};
     for (const feat of geojson.features) {
-      const fips      = String(feat.id).padStart(5,'0');
+      const fips        = String(feat.id).padStart(5,'0');
       const stateAbbrev = FIPS_TO_STATE[fips.slice(0,2)]??'';
       let status = 0;
       if      (tripNewFips.has(fips))  status = 3;
@@ -482,15 +488,27 @@ async function renderCountyMap() {
 
     state._lastPaintedGeojson = null; // will be set below
     const paintedGeojson = {
-      ...geojson,
-      features: geojson.features.map(f=>({
-        ...f,
-        properties:{
-          ...f.properties,
-          status:     mapCountyFips[String(f.id).padStart(5,'0')]?.status??0,
-          stateAbbrev:mapCountyFips[String(f.id).padStart(5,'0')]?.stateAbbrev??'',
-        }
-      }))
+      type: 'FeatureCollection',
+      features: geojson.features.map(f=>{
+        const fips   = String(f.id).padStart(5,'0');
+        const meta   = mapCountyFips[fips];
+        const status = meta?.status ?? 0;
+        return {
+          type: 'Feature',
+          id:   f.id,
+          geometry: f.geometry,
+          properties: {
+            NAME:        f.properties.NAME,
+            stateAbbrev: meta?.stateAbbrev ?? '',
+            status,
+            fillColor:   FILL_COLORS[status],
+            fillOp:      FILL_OPS[status],
+            borderColor: BORDER_COLORS[status],
+            borderOp:    BORDER_OPS[status],
+            borderWidth: BORDER_WIDTHS[status],
+          }
+        };
+      })
     };
 
     state._lastPaintedGeojson = paintedGeojson;
