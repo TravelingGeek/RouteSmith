@@ -259,34 +259,6 @@ export async function handleDeleteTrip(
   user: AuthUser,
   env: Env,
 ): Promise<Response> {
-  const existing = await env.DB
-    .prepare(`SELECT trip_id FROM trips WHERE trip_id = ? AND user_id = ?`)
-    .bind(tripId, user.userId)
-    .first();
-  if (!existing) return jsonError('Trip not found', 404);
-
-  try {
-    await env.DB.batch([
-      env.DB.prepare(`DELETE FROM trip_finders WHERE trip_id = ?`).bind(tripId),
-      env.DB.prepare(`DELETE FROM enabled_rules WHERE trip_id = ?`).bind(tripId),
-      env.DB.prepare(`DELETE FROM trip_reports WHERE trip_id = ?`).bind(tripId),
-      env.DB.prepare(`DELETE FROM trips WHERE trip_id = ? AND user_id = ?`).bind(tripId, user.userId),
-    ]);
-    return jsonResponse({ deleted: true });
-  } catch (e) {
-    return jsonError(`Database error: ${(e as Error).message}`, 500);
-  }
-}
-
-// ============================================================================
-// DELETE /api/trips/:id
-// ============================================================================
-
-export async function handleDeleteTrip(
-  tripId: string,
-  user: AuthUser,
-  env: Env,
-): Promise<Response> {
   const trip = await env.DB
     .prepare(`SELECT trip_id FROM trips WHERE trip_id = ? AND user_id = ?`)
     .bind(tripId, user.userId).first();

@@ -28,66 +28,46 @@ export type ReferenceMap = Map<string, ReferenceEntry>;
 // GPX parser for bookmark lists
 // ============================================================================
 
-const NS_GS = 'http://www.groundspeak.com/cache/1/0/1';
-const NS_GPX_10 = 'http://www.topografix.com/GPX/1/0';
-const NS_GPX_11 = 'http://www.topografix.com/GPX/1/1';
-
-function getText(el: Element, ns: string, local: string): string {
-  const found = el.getElementsByTagNameNS(ns, local);
-  return found[0]?.textContent?.trim() ?? '';
-}
-
 /**
  * Parse a bookmark-list GPX text into a ReferenceMap.
+ * Uses regex-based parsing — no DOMParser — compatible with Cloudflare Workers runtime.
  * Returns an empty Map (never throws) on parse failure.
- * Python reference: _load_bookmark_gpx()
  */
 export function parseReferenceGpx(
   xml: string,
   filename: string,
-  parser: DOMParser = new DOMParser(),
 ): { map: ReferenceMap; warning: string | null } {
-  let doc: Document;
+  if (!xml?.trim()) {
+    return { map: new Map(), warning: `${filename} is empty; the rule that depends on it will not fire.` };
+  }
   try {
-    doc = parser.parseFromString(xml, 'application/xml');
-  } catch {
-    return {
-      map: new Map(),
-      warning: `${filename} could not be parsed; the rule that depends on it will not fire.`,
-    };
+    const map: ReferenceMap = new Map();
+    const wptChunks = xml.split('</wpt>');
+
+    function between(str: string, open: string, close: string): string {
+      const s = str.indexOf(open);
+      if (s === -1) return '';
+      const e = str.indexOf(close, s + open.length);
+      if (e === -1) return '';
+      return str.slice(s + open.length, e).trim();
+    }
+
+    for (const chunk of wptChunks) {
+      const gcCode = between(chunk, '<name>', '</name>');
+      if (!gcCode || !gcCode.startsWith('GC')) continue;
+      const cacheStart = chunk.indexOf('<groundspeak:cache');
+      const cacheChunk = cacheStart !== -1 ? chunk.slice(cacheStart) : chunk;
+      map.set(gcCode, {
+        name:    between(cacheChunk, '<groundspeak:name>',    '</groundspeak:name>'),
+        state:   between(cacheChunk, '<groundspeak:state>',   '</groundspeak:state>'),
+        country: between(cacheChunk, '<groundspeak:country>', '</groundspeak:country>'),
+      });
+    }
+
+    return { map, warning: map.size === 0 ? `${filename} contained no valid GC codes.` : null };
+  } catch (e) {
+    return { map: new Map(), warning: `${filename} could not be parsed; the rule that depends on it will not fire.` };
   }
-
-  const parseErr = doc.querySelector('parsererror');
-  if (parseErr) {
-    return {
-      map: new Map(),
-      warning: `${filename} XML parse error; the rule that depends on it will not fire.`,
-    };
-  }
-
-  const root = doc.documentElement;
-  const gpxNs = root.namespaceURI === NS_GPX_11 ? NS_GPX_11 : NS_GPX_10;
-  const wpts = doc.getElementsByTagNameNS(gpxNs, 'wpt');
-  const map: ReferenceMap = new Map();
-
-  for (let i = 0; i < wpts.length; i++) {
-    const wpt = wpts[i];
-    const nameEl = wpt.getElementsByTagNameNS(gpxNs, 'name')[0];
-    const gcCode = nameEl?.textContent?.trim();
-    if (!gcCode) continue;
-
-    const cacheEls = wpt.getElementsByTagNameNS(NS_GS, 'cache');
-    const cacheEl = cacheEls[0];
-    if (!cacheEl) continue;
-
-    map.set(gcCode, {
-      name: getText(cacheEl, NS_GS, 'name'),
-      state: getText(cacheEl, NS_GS, 'state'),
-      country: getText(cacheEl, NS_GS, 'country'),
-    });
-  }
-
-  return { map, warning: null };
 }
 
 // ============================================================================
