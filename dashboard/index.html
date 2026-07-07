@@ -140,6 +140,10 @@ body{font-family:'Source Serif 4',Charter,Georgia,serif;font-size:15px;line-heig
 .trip-item-name{font-family:'Fraunces',serif;font-weight:600;font-size:0.96rem;color:var(--ink);}
 .trip-item-dates{font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:var(--ink-muted);margin-top:2px;}
 .trip-item-status{font-family:'JetBrains Mono',monospace;font-size:0.64rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--brass-deep);margin-top:4px;}
+.flyout-trip-btn{font-family:'JetBrains Mono',monospace;font-size:0.66rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-muted);background:none;border:1px solid var(--rule);padding:3px 10px;border-radius:2px;cursor:pointer;transition:color 0.15s,border-color 0.15s;}
+.flyout-trip-btn:hover{color:var(--ink);border-color:var(--ink-soft);}
+.flyout-trip-btn-danger{color:var(--stamp);}
+.flyout-trip-btn-danger:hover{border-color:var(--stamp);}
 
 /* ── Prefs flyout ── */
 .prefs-flyout{position:fixed;top:var(--header-h);right:-320px;bottom:0;width:300px;background:var(--paper);border-left:1px solid var(--rule);z-index:49;display:flex;flex-direction:column;transition:right 0.22s ease;box-shadow:-4px 0 20px rgba(31,24,16,0.12);}
@@ -256,7 +260,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
   </div>
 </div>
 
-<footer>Build 2026.07.05.032</footer>
+<footer>Build 2026.07.07.001</footer>
 
 <script>
 const BASE     = 'https://routesmith-report.gtl6645.workers.dev';
@@ -654,9 +658,36 @@ function highlightCountyInSidebar(fips) {
   if (!infoEl||!meta) return;
   const label = meta.status===3?'New this trip':meta.status===2?'Found again':meta.status===1?'Lifetime find':'Never found';
   const color = meta.status===3?'var(--forge)':meta.status===2?'#4a7a54':'var(--ink-muted)';
-  // TODO: add more statistics and gc.com link here
-  infoEl.innerHTML=`<strong style="color:var(--ink);font-family:'Fraunces',serif;">${meta.county} County, ${meta.stateAbbrev}</strong><br>
-    <span style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:${color};">${label}</span>`;
+
+  // Trip first found date
+  let tripDate = null;
+  if (state.report && (meta.status===3||meta.status===2)) {
+    const key = `${meta.county}|${meta.stateAbbrev}`;
+    // Look up from report byDay data
+    for (const day of (state.report.byDay??[])) {
+      if (day.countyKeys && day.countyKeys.includes(key)) {
+        tripDate = day.dayDate; break;
+      }
+    }
+  }
+
+  // Lifetime first found date
+  let lifetimeDate = null;
+  if (state.lifetimeCounties) {
+    const lc = state.lifetimeCounties.find(c => {
+      const abbrev = stateToAbbrev(c.state);
+      return c.county === meta.county && abbrev === meta.stateAbbrev;
+    });
+    if (lc) lifetimeDate = lc.first_found;
+  }
+
+  // TODO: add more statistics and gc.com search link
+  infoEl.innerHTML=`
+    <strong style="color:var(--ink);font-family:'Fraunces',serif;">${meta.county} County, ${meta.stateAbbrev}</strong><br>
+    <span style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:${color};display:block;margin-top:2px;">${label}</span>
+    ${tripDate ? `<span style="font-family:'JetBrains Mono',monospace;font-size:0.66rem;color:var(--ink-muted);display:block;margin-top:4px;">This trip: ${tripDate}</span>` : ''}
+    ${lifetimeDate ? `<span style="font-family:'JetBrains Mono',monospace;font-size:0.66rem;color:var(--ink-muted);display:block;margin-top:2px;">First found: ${lifetimeDate}</span>` : ''}
+  `;
 }
 
 async function captureCountyMap() {
@@ -910,14 +941,58 @@ async function loadTripList() {
   const trips=data.trips??[];
   if (!trips.length){el.innerHTML='<p style="color:var(--ink-muted);font-size:0.88rem;">No trips yet.</p>';return;}
   el.innerHTML=trips.map(t=>`
-    <div class="trip-list-item${t.trip_id===state.tripId?' active':''}" onclick="selectTrip('${t.trip_id}')">
-      <div class="trip-item-name">${t.name}</div>
-      <div class="trip-item-dates">${fmtDateRange(t.date_start,t.date_end)}</div>
-      <div class="trip-item-status">${t.status}</div>
+    <div class="trip-list-item${t.trip_id===state.tripId?' active':''}">
+      <div onclick="selectTrip('${t.trip_id}')" style="cursor:pointer;">
+        <div class="trip-item-name">${t.name}</div>
+        <div class="trip-item-dates">${fmtDateRange(t.date_start,t.date_end)}</div>
+        <div class="trip-item-status">${t.status}</div>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+        <button class="flyout-trip-btn" onclick="event.stopPropagation();flyoutRunReport('${t.trip_id}')">Run Report</button>
+        <button class="flyout-trip-btn" onclick="event.stopPropagation();location.href='/report/trip.html?id=${t.trip_id}'">Edit</button>
+        <button class="flyout-trip-btn flyout-trip-btn-danger" onclick="event.stopPropagation();flyoutDeleteTrip('${t.trip_id}','${t.name.replace(/'/g,"\\'")}')">Delete</button>
+      </div>
     </div>`).join('');
 }
 
 async function selectTrip(tripId){closeTripSelector();await loadTrip(tripId);}
+
+async function flyoutRunReport(tripId) {
+  closeTripSelector();
+  if (state.tripId !== tripId) await loadTrip(tripId);
+  // Trigger report run — find or create the run button
+  const btn = document.getElementById('inline-run-btn');
+  if (btn) { inlineRunReport(); }
+  else {
+    // Navigate to counties map which has the run button
+    selectCategory('counties','map');
+    setTimeout(()=>{
+      const b = document.getElementById('inline-run-btn');
+      if (b) inlineRunReport();
+    }, 300);
+  }
+}
+
+async function flyoutDeleteTrip(tripId, tripName) {
+  if (!confirm(`Delete "${tripName}"?\n\nThis cannot be undone.`)) return;
+  try {
+    const token = await getToken();
+    const resp  = await fetch(`${BASE}/api/trips/${tripId}`, {
+      method:'DELETE', headers:{'Authorization':'Bearer '+token}
+    });
+    const result = await resp.json();
+    if (result.error) throw new Error(result.error);
+    if (state.tripId === tripId) {
+      state.tripId = null; state.trip = null; state.report = null;
+      document.getElementById('trip-name-display').textContent = 'Select a trip';
+      document.getElementById('trip-dates-display').textContent = '';
+      updateSummary(null, null);
+      document.getElementById('main-view').innerHTML = '';
+      currentPanelId = null;
+    }
+    await loadTripList(); // refresh list
+  } catch(e) { alert('Delete failed: ' + e.message); }
+}
 function newTrip(){closeTripSelector();location.href='/report/';}
 
 // ── Prefs ─────────────────────────────────────────────────────────
@@ -974,14 +1049,24 @@ async function loadTrip(tripId) {
 }
 
 // ── Inline report run ─────────────────────────────────────────────
+let activeJobId = null;
+let activeJobTripId = null;
+
 async function inlineRunReport() {
   const btn      = document.getElementById('inline-run-btn');
   const statusEl = document.getElementById('inline-run-status');
   if (!btn || !state.tripId) return;
 
-  btn.disabled = true;
-  btn.textContent = 'Queuing…';
-  statusEl.textContent = '';
+  // If already running, cancel
+  if (activeJobId) {
+    await cancelActiveJob();
+    return;
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Cancel';
+  btn.style.background = 'var(--stamp)';
+  if (statusEl) statusEl.textContent = 'Queuing…';
 
   try {
     const token = await getToken();
@@ -992,33 +1077,99 @@ async function inlineRunReport() {
     const enqueued = await enqueueResp.json();
     if (enqueued.error) throw new Error(enqueued.error);
 
-    const jobId = enqueued.job_id;
-    btn.textContent = 'Running…';
+    activeJobId = enqueued.job_id;
+    activeJobTripId = state.tripId;
+    updateRunReportHeaderBtn(true);
 
     for (let i = 0; i < 60; i++) {
       await new Promise(r => setTimeout(r, 3000));
-      statusEl.textContent = `Running… (${(i+1)*3}s)`;
+      if (!activeJobId) { // was cancelled
+        if (btn) { btn.textContent = 'Generate Report'; btn.style.background = ''; }
+        if (statusEl) statusEl.textContent = '✗ Cancelled.';
+        return;
+      }
+      if (statusEl) statusEl.textContent = `Running… (${(i+1)*3}s)`;
       const tok2 = await getToken();
-      const statusResp = await fetch(`${BASE}/api/report/trip/${state.tripId}/status/${jobId}`, {
+      const statusResp = await fetch(`${BASE}/api/report/trip/${state.tripId}/status/${activeJobId}`, {
         headers: { 'Authorization': 'Bearer ' + tok2 },
       });
       const statusData = await statusResp.json();
       if (statusData.error) throw new Error(statusData.error);
       if (statusResp.status === 200) {
+        activeJobId = null;
         state.report = statusData;
         document.getElementById('run-report-header-btn').style.display = 'none';
         updateSummary(state.report, state.trip);
-        // Re-render current panel with report data
         document.getElementById('main-view').innerHTML = '';
         currentPanelId = null;
         showPanel(`${state.activeCat}::${state.activeSub}`);
+        updateRunReportHeaderBtn(false);
         return;
       }
     }
     throw new Error('Timed out after 3 minutes.');
   } catch(e) {
+    activeJobId = null;
     if (statusEl) statusEl.textContent = '✗ ' + e.message;
-    if (btn) { btn.disabled = false; btn.textContent = 'Generate Report'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'Generate Report'; btn.style.background = ''; }
+    updateRunReportHeaderBtn(false);
+    // Show admin jobs link if admin
+    showAdminJobsLink();
+  }
+}
+
+async function showAdminJobsLink() {
+  // Only show if user might be admin — we check by attempting admin endpoint
+  const el = document.getElementById('admin-jobs-link');
+  if (el) { el.style.display = 'inline-block'; return; }
+  try {
+    const token = await getToken();
+    const resp = await fetch('https://routesmith-admin.gtl6645.workers.dev/api/admin/health', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    // If we get 200 and not 403, user might be admin — show link
+    if (resp.ok) {
+      const chk = await fetch('https://routesmith-admin.gtl6645.workers.dev/api/admin/users', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (chk.ok) {
+        const link = document.createElement('a');
+        link.id = 'admin-jobs-link';
+        link.href = '/admin/#jobs';
+        link.textContent = 'View Job Queue →';
+        link.style.cssText = 'font-family:JetBrains Mono,monospace;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,200,100,0.8);margin-left:8px;text-decoration:none;border-bottom:1px dotted rgba(255,200,100,0.4);';
+        document.querySelector('.header-actions').insertBefore(link, document.getElementById('prefs-btn'));
+      }
+    }
+  } catch(e) { /* not admin or network error */ }
+}
+
+async function cancelActiveJob() {
+  if (!activeJobId || !activeJobTripId) return;
+  try {
+    const token = await getToken();
+    await fetch(`${BASE}/api/report/trip/${activeJobTripId}/cancel/${activeJobId}`, {
+      method: 'POST', headers: { 'Authorization': 'Bearer ' + token },
+    });
+  } catch(e) { console.warn('Cancel failed:', e); }
+  activeJobId = null;
+  updateRunReportHeaderBtn(false);
+}
+
+function updateRunReportHeaderBtn(running) {
+  const btn = document.getElementById('run-report-header-btn');
+  if (!btn) return;
+  if (running) {
+    btn.style.display = 'inline-block';
+    btn.textContent = 'Cancel Report';
+    btn.style.borderColor = 'var(--stamp)';
+    btn.style.color = 'rgba(255,100,80,0.9)';
+    btn.onclick = cancelActiveJob;
+  } else {
+    btn.textContent = 'Run Report';
+    btn.style.borderColor = '';
+    btn.style.color = '';
+    btn.onclick = ()=>{ if(state.tripId) location.href=`/report/trip.html?id=${state.tripId}`; };
   }
 }
 

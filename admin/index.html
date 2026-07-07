@@ -3,1029 +3,621 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Routesmith — Account</title>
+<title>Routesmith — Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-
-<script src="https://unpkg.com/fflate@0.8.2/umd/index.js" crossorigin="anonymous"></script>
-
-<script
-  async
-  crossorigin="anonymous"
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script async crossorigin="anonymous"
   data-clerk-publishable-key="pk_test_cmVhZHktcmVkYmlyZC01Ni5jbGVyay5hY2NvdW50cy5kZXYk"
   src="https://ready-redbird-56.clerk.accounts.dev/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"
-  type="text/javascript"
-></script>
-
+  type="text/javascript"></script>
 <style>
-  :root {
-    --paper: #fbf5e6;
-    --paper-deep: #f5edd6;
-    --ink: #1f1810;
-    --ink-soft: #4a3f2e;
-    --ink-muted: #7a6f5a;
-    --brass: #a87832;
-    --brass-deep: #7a5621;
-    --forge: #2d5a2a;
-    --stamp: #a83328;
-    --rule: #c9bda0;
-    --rule-soft: #ddd2b5;
-  }
-
-  * { box-sizing: border-box; }
-  html { -webkit-font-smoothing: antialiased; }
-
-  body {
-    margin: 0;
-    min-height: 100vh;
-    background: var(--paper);
-    background-image:
-      linear-gradient(rgba(168, 120, 50, 0.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(168, 120, 50, 0.05) 1px, transparent 1px),
-      radial-gradient(ellipse at top, rgba(168, 120, 50, 0.08) 0%, transparent 60%);
-    background-size: 28px 28px, 28px 28px, 100% 100%;
-    color: var(--ink);
-    font-family: 'Source Serif 4', Charter, Georgia, serif;
-    line-height: 1.6;
-    font-size: 17px;
-  }
-
-  /* ── Nav ─────────────────────────────────────────────────────── */
-  .site-header {
-    max-width: 920px; margin: 0 auto; padding: 20px 40px;
-    display: flex; justify-content: space-between; align-items: center; gap: 24px;
-  }
-  .site-brand-mark {
-    font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; font-weight: 500;
-    text-transform: uppercase; letter-spacing: 0.14em; color: var(--brass-deep); text-decoration: none;
-  }
-  .site-nav { display: flex; align-items: center; gap: 0; flex: 1; justify-content: flex-end; }
-  .nav-modules {
-    display: flex; align-items: center; border: 1px solid var(--rule);
-    border-radius: 2px; overflow: hidden; margin-right: 16px;
-  }
-  .nav-module {
-    font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 500;
-    text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-muted);
-    text-decoration: none; padding: 6px 14px; border-right: 1px solid var(--rule);
-    transition: color 0.15s, background 0.15s; white-space: nowrap;
-  }
-  .nav-module:last-child { border-right: none; }
-  .nav-module:hover { color: var(--brass-deep); background: rgba(168,120,50,0.06); }
-  .nav-module.disabled { opacity: 0.45; cursor: not-allowed; pointer-events: none; }
-  .nav-user { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 500;
-    text-transform: uppercase; letter-spacing: 0.12em; color: var(--brass-deep);
-    display: none; align-items: center; gap: 12px; }
-  .nav-user-name { color: var(--ink-soft); }
-  .nav-signout {
-    font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 500;
-    text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-muted);
-    background: none; border: 1px solid var(--rule); padding: 6px 12px;
-    border-radius: 2px; cursor: pointer; transition: color 0.15s, border-color 0.15s;
-  }
-  .nav-signout:hover { color: var(--stamp); border-color: var(--stamp); }
-  .nav-signin-link {
-    font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 600;
-    text-transform: uppercase; letter-spacing: 0.12em; color: var(--paper);
-    background: var(--brass-deep); text-decoration: none; padding: 7px 16px;
-    border-radius: 2px; transition: background 0.15s;
-  }
-  .nav-signin-link:hover { background: var(--ink); }
-
-  /* ── Page layout ─────────────────────────────────────────────── */
-  .page { max-width: 640px; margin: 0 auto; padding: 48px 40px 80px; }
-
-  .page-eyebrow {
-    font-family: 'JetBrains Mono', monospace; font-size: 0.74rem; text-transform: uppercase;
-    letter-spacing: 0.18em; color: var(--brass-deep); margin-bottom: 10px; text-align: center;
-  }
-  .page-title {
-    font-family: 'Fraunces', serif; font-variation-settings: "opsz" 60; font-weight: 600;
-    font-size: 2rem; text-align: center; margin: 0 0 8px; color: var(--ink); letter-spacing: -0.01em;
-  }
-  .page-subtitle {
-    font-family: 'Fraunces', serif; font-style: italic; font-size: 1rem;
-    color: var(--ink-soft); text-align: center; margin: 0 0 40px;
-  }
-
-  /* ── Loading ─────────────────────────────────────────────────── */
-  .loading {
-    text-align: center; padding: 48px 0; font-family: 'JetBrains Mono', monospace;
-    font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-muted);
-  }
-
-  /* ── Signed-in panel ─────────────────────────────────────────── */
-  .signed-in-panel { display: none; }
-
-  .signed-in-greeting {
-    font-family: 'Fraunces', serif; font-variation-settings: "opsz" 60; font-weight: 600;
-    font-size: 1.5rem; color: var(--ink); margin: 0 0 4px;
-  }
-  .signed-in-sub { font-size: 0.92rem; color: var(--ink-soft); margin: 0 0 32px; }
-
-  /* ── Module links ────────────────────────────────────────────── */
-  .module-links { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 40px; }
-  .module-link {
-    display: block; text-decoration: none; border: 1px solid var(--rule);
-    border-radius: 2px; padding: 16px 12px; text-align: center;
-    transition: border-color 0.15s, background 0.15s;
-  }
-  .module-link:hover { border-color: var(--brass); background: rgba(168,120,50,0.05); }
-  .module-link.active:hover { border-color: var(--forge); background: rgba(45,90,42,0.05); }
-  .module-link.disabled { opacity: 0.5; pointer-events: none; }
-  .module-link-num { font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--brass-deep); margin-bottom: 4px; }
-  .module-link.active .module-link-num { color: var(--forge); }
-  .module-link-name { font-family: 'Fraunces', serif; font-weight: 600; font-size: 0.95rem; color: var(--ink); }
-  .module-link-status { font-family: 'JetBrains Mono', monospace; font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-muted); margin-top: 4px; }
-  .module-link.active .module-link-status { color: var(--forge); }
-
-  /* ── GPX data panel ──────────────────────────────────────────── */
-  .gpx-panel {
-    border: 1px solid var(--rule); border-top: 3px solid var(--brass);
-    background: rgba(255,252,240,0.6); margin-bottom: 32px;
-  }
-  .gpx-panel-header { padding: 20px 24px 16px; border-bottom: 1px solid var(--rule-soft); }
-  .gpx-panel-kicker {
-    font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; text-transform: uppercase;
-    letter-spacing: 0.14em; color: var(--brass-deep); margin-bottom: 8px;
-  }
-
-  /* Summary row — combined view */
-  .gpx-summary { display: flex; align-items: baseline; gap: 0; flex-wrap: wrap; }
-  .gpx-summary-count {
-    font-family: 'Fraunces', serif; font-weight: 600; font-size: 1.8rem;
-    color: var(--ink); letter-spacing: -0.02em; margin-right: 10px;
-  }
-  .gpx-summary-label { font-size: 0.95rem; color: var(--ink-soft); margin-right: 16px; }
-  .gpx-summary-freshness {
-    font-family: 'JetBrains Mono', monospace; font-size: 0.78rem;
-    color: var(--forge); letter-spacing: 0.04em;
-  }
-  .gpx-summary-freshness.stale { color: var(--brass-deep); }
-  .gpx-summary-freshness.empty { color: var(--ink-muted); }
-  .gpx-summary-none {
-    font-size: 0.95rem; color: var(--ink-muted); font-style: italic;
-  }
-
-  /* Expandable detail */
-  .gpx-detail-toggle {
-    font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; text-transform: uppercase;
-    letter-spacing: 0.1em; color: var(--ink-muted); background: none; border: none;
-    cursor: pointer; padding: 0; margin-top: 10px; display: block;
-    transition: color 0.15s;
-  }
-  .gpx-detail-toggle:hover { color: var(--brass-deep); }
-  .gpx-detail { display: none; padding: 14px 0 0; }
-  .gpx-detail.open { display: block; }
-  .gpx-file-row {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 8px 0; border-bottom: 1px solid var(--rule-soft); gap: 12px;
-    flex-wrap: wrap;
-  }
-  .gpx-file-row:last-child { border-bottom: none; }
-  .gpx-file-scope {
-    font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; text-transform: uppercase;
-    letter-spacing: 0.1em; color: var(--ink-muted); min-width: 90px;
-  }
-  .gpx-file-meta { font-size: 0.88rem; color: var(--ink-soft); flex: 1; }
-  .gpx-file-meta strong { color: var(--ink); font-weight: 600; }
-  .gpx-file-date { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--ink-muted); white-space: nowrap; }
-
-  /* Upload area */
-  .gpx-upload-area { padding: 20px 24px; }
-  .gpx-upload-label {
-    font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; text-transform: uppercase;
-    letter-spacing: 0.14em; color: var(--ink-muted); margin-bottom: 12px; display: block;
-  }
-
-  .drop-zone {
-    border: 2px dashed var(--rule); border-radius: 2px; padding: 28px 24px;
-    text-align: center; cursor: pointer; transition: border-color 0.15s, background 0.15s;
-    position: relative;
-  }
-  .drop-zone:hover, .drop-zone.drag-over {
-    border-color: var(--brass); background: rgba(168,120,50,0.04);
-  }
-  .drop-zone input[type="file"] {
-    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
-  }
-  .drop-zone-icon { font-size: 1.6rem; margin-bottom: 8px; opacity: 0.5; }
-  .drop-zone-text {
-    font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--ink-muted);
-    text-transform: uppercase; letter-spacing: 0.1em;
-  }
-  .drop-zone-hint { font-size: 0.82rem; color: var(--ink-muted); margin-top: 6px; font-style: italic; }
-
-  /* Upload queue */
-  .upload-queue { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
-  .upload-item {
-    border: 1px solid var(--rule); background: white; padding: 12px 16px;
-    border-radius: 2px; display: flex; align-items: center; gap: 12px;
-  }
-  .upload-item-name { font-size: 0.88rem; color: var(--ink); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .upload-item-scope {
-    font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; text-transform: uppercase;
-    letter-spacing: 0.1em; color: var(--ink-muted); white-space: nowrap;
-  }
-  .upload-item-status {
-    font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; text-transform: uppercase;
-    letter-spacing: 0.08em; white-space: nowrap;
-  }
-  .upload-item-status.queued   { color: var(--ink-muted); }
-  .upload-item-status.uploading { color: var(--brass-deep); }
-  .upload-item-status.processing { color: var(--brass); }
-  .upload-item-status.complete  { color: var(--forge); }
-  .upload-item-status.error     { color: var(--stamp); }
-  .upload-item-result { font-size: 0.82rem; color: var(--ink-soft); margin-top: 4px; }
-
-  /* Progress bar */
-  .upload-progress {
-    height: 2px; background: var(--rule-soft); border-radius: 1px; margin-top: 6px; overflow: hidden;
-  }
-  .upload-progress-bar {
-    height: 100%; background: var(--brass); border-radius: 1px;
-    transition: width 0.3s; width: 0%;
-  }
-  .upload-progress-bar.indeterminate {
-    width: 40%; animation: slide 1.2s ease-in-out infinite;
-  }
-  @keyframes slide {
-    0%   { transform: translateX(-100%); }
-    100% { transform: translateX(300%); }
-  }
-
-  .upload-btn {
-    font-family: 'JetBrains Mono', monospace; font-size: 0.74rem; font-weight: 600;
-    text-transform: uppercase; letter-spacing: 0.1em; color: var(--paper);
-    background: var(--brass-deep); border: none; padding: 10px 20px;
-    border-radius: 2px; cursor: pointer; margin-top: 14px;
-    transition: background 0.15s; display: none;
-  }
-  .upload-btn:hover { background: var(--ink); }
-  .upload-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-  /* Sign-out */
-  .signout-btn {
-    font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; text-transform: uppercase;
-    letter-spacing: 0.12em; color: var(--ink-muted); background: none;
-    border: 1px solid var(--rule); padding: 8px 16px; border-radius: 2px;
-    cursor: pointer; transition: color 0.15s, border-color 0.15s; margin-top: 8px;
-  }
-  .signout-btn:hover { color: var(--stamp); border-color: var(--stamp); }
-
-  /* Footer */
-  footer {
-    text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 0.74rem;
-    text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-muted);
-    padding-bottom: 24px; margin-top: 48px;
-  }
-  footer .domain { color: var(--brass-deep); }
-  footer .sep { margin: 0 10px; color: var(--rule); }
-
-  @media (max-width: 560px) {
-    .site-header { padding: 16px 20px; flex-wrap: wrap; gap: 12px; }
-    .site-nav { width: 100%; justify-content: flex-start; flex-wrap: wrap; gap: 8px; }
-    .nav-modules { margin-right: 0; }
-    .page { padding: 32px 20px 60px; }
-    .module-links { grid-template-columns: 1fr; }
-  }
+  :root{--paper:#fbf5e6;--ink:#1f1810;--ink-soft:#4a3f2e;--ink-muted:#7a6f5a;--brass:#a87832;--brass-deep:#7a5621;--forge:#2d5a2a;--stamp:#a83328;--rule:#c9bda0;--rule-soft:#ddd2b5;}
+  *{box-sizing:border-box;}html{-webkit-font-smoothing:antialiased;}
+  body{margin:0;min-height:100vh;background:var(--paper);background-image:linear-gradient(rgba(168,120,50,0.05) 1px,transparent 1px),linear-gradient(90deg,rgba(168,120,50,0.05) 1px,transparent 1px);background-size:28px 28px;color:var(--ink);font-family:'Source Serif 4',Georgia,serif;line-height:1.6;font-size:16px;}
+  .site-header{max-width:1000px;margin:0 auto;padding:18px 40px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--rule-soft);}
+  .site-brand{font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:500;text-transform:uppercase;letter-spacing:0.14em;color:var(--brass-deep);text-decoration:none;}
+  .admin-badge{font-family:'JetBrains Mono',monospace;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--stamp);border:1px solid var(--stamp);padding:2px 10px;border-radius:2px;}
+  .nav-user{font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--ink-soft);display:flex;align-items:center;gap:12px;}
+  .page{max-width:1000px;margin:0 auto;padding:36px 40px 80px;}
+  .page-title{font-family:'Fraunces',serif;font-weight:600;font-size:1.8rem;color:var(--ink);margin:0 0 28px;letter-spacing:-0.02em;}
+  .admin-section{margin-bottom:12px;border:1px solid var(--rule);background:rgba(255,252,240,0.5);}
+  .section-toggle{width:100%;display:flex;justify-content:space-between;align-items:center;padding:14px 20px;background:none;border:none;cursor:pointer;text-align:left;gap:12px;}
+  .section-toggle:hover{background:rgba(168,120,50,0.04);}
+  .section-title{font-family:'JetBrains Mono',monospace;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.16em;color:var(--brass-deep);}
+  .section-chevron{font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--ink-muted);}
+  .section-body{display:none;padding:0 20px 20px;}
+  .section-body.open{display:block;}
+  .section-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;}
+  table{width:100%;border-collapse:collapse;}
+  th{font-family:'JetBrains Mono',monospace;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--ink-muted);text-align:left;padding:6px 12px;border-bottom:1px solid var(--rule);}
+  td{font-size:0.88rem;padding:10px 12px;border-bottom:1px solid var(--rule-soft);vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  .mono{font-family:'JetBrains Mono',monospace;font-size:0.78rem;}
+  .muted{color:var(--ink-muted);font-size:0.82rem;}
+  .present{color:var(--forge);}
+  .missing{color:var(--stamp);}
+  .btn-primary{font-family:'JetBrains Mono',monospace;font-size:0.74rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--paper);background:var(--brass-deep);border:none;padding:7px 16px;border-radius:2px;cursor:pointer;white-space:nowrap;}
+  .btn-primary:hover{background:var(--ink);}
+  .btn-primary:disabled{opacity:0.5;cursor:not-allowed;}
+  .btn-sm{font-family:'JetBrains Mono',monospace;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-muted);background:none;border:1px solid var(--rule);padding:4px 12px;border-radius:2px;cursor:pointer;white-space:nowrap;}
+  .btn-sm:hover{color:var(--ink);border-color:var(--ink-soft);}
+  .btn-danger{font-family:'JetBrains Mono',monospace;font-size:0.7rem;text-transform:uppercase;color:var(--stamp);background:none;border:1px solid transparent;padding:4px 10px;border-radius:2px;cursor:pointer;}
+  .btn-danger:hover{border-color:var(--stamp);}
+  .file-label{font-family:'JetBrains Mono',monospace;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--ink-muted);border:1px solid var(--rule);padding:5px 12px;border-radius:2px;cursor:pointer;white-space:nowrap;}
+  .file-label:hover{color:var(--brass-deep);border-color:var(--brass);}
+  .file-label input{display:none;}
+  .upload-zone{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .status-msg{font-family:'JetBrains Mono',monospace;font-size:0.72rem;padding:8px 14px;border-radius:2px;margin-top:10px;}
+  .status-ok{color:var(--forge);background:rgba(45,90,42,0.08);border:1px solid var(--forge);}
+  .status-err{color:var(--stamp);background:rgba(168,51,40,0.08);border:1px solid var(--stamp);}
+  .job-badge{font-family:'JetBrains Mono',monospace;font-size:0.68rem;padding:2px 8px;border-radius:2px;}
+  .job-badge.complete{color:var(--forge);background:rgba(45,90,42,0.08);}
+  .job-badge.failed{color:var(--stamp);background:rgba(168,51,40,0.08);}
+  .job-badge.pending,.job-badge.processing{color:var(--brass-deep);background:rgba(168,120,50,0.08);}
+  .pagination{display:flex;align-items:center;gap:8px;margin-top:14px;flex-wrap:wrap;}
+  /* Edit modal */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(31,24,16,0.5);z-index:100;align-items:center;justify-content:center;padding:20px;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:var(--paper);border:1px solid var(--rule);border-top:3px solid var(--brass-deep);width:100%;max-width:420px;padding:28px 32px;}
+  .modal-title{font-family:'Fraunces',serif;font-weight:600;font-size:1.3rem;color:var(--ink);margin:0 0 20px;}
+  .form-group{margin-bottom:16px;}
+  .form-label{display:block;font-family:'JetBrains Mono',monospace;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--ink-muted);margin-bottom:5px;}
+  .form-input{width:100%;font-family:'Source Serif 4',serif;font-size:0.96rem;color:var(--ink);background:white;border:1px solid var(--rule);padding:7px 10px;border-radius:2px;outline:none;}
+  .form-input:focus{border-color:var(--brass);}
+  .form-check{display:flex;align-items:center;gap:8px;font-size:0.92rem;}
+  .form-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;}
+  .loading{text-align:center;padding:60px 0;font-family:'JetBrains Mono',monospace;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.14em;color:var(--ink-muted);}
+  .access-denied{text-align:center;padding:80px 40px;border:1px solid var(--rule);border-top:3px solid var(--stamp);background:rgba(255,252,240,0.6);}
+  .access-denied-title{font-family:'Fraunces',serif;font-weight:600;font-size:1.5rem;color:var(--stamp);margin:0 0 12px;}
+  footer{text-align:center;font-family:'JetBrains Mono',monospace;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.14em;color:var(--ink-muted);padding-bottom:24px;margin-top:48px;}
+  footer .domain{color:var(--brass-deep);}footer .sep{margin:0 10px;color:var(--rule);}
 </style>
 </head>
 <body>
 
 <header class="site-header">
-  <a href="/" class="site-brand-mark">routesmithing.com</a>
-  <nav class="site-nav" aria-label="Site navigation">
-    <div class="nav-modules">
-      <a href="/plan/" class="nav-module disabled" aria-disabled="true">Plan</a>
-      <a href="/navigate/" class="nav-module disabled" aria-disabled="true">Navigate</a>
-      <a href="/report/" class="nav-module disabled" aria-disabled="true">Report</a>
-    </div>
-    <div class="nav-user" id="nav-user">
-      <span class="nav-user-name" id="nav-user-name"></span>
-      <button class="nav-signout" id="nav-signout-btn">Sign out</button>
-    </div>
-    <a href="/account/" class="nav-signin-link" id="nav-signin-link">Sign in</a>
-  </nav>
+  <div style="display:flex;align-items:center;gap:14px;">
+    <a href="/" class="site-brand">routesmithing.com</a>
+    <span class="admin-badge">Admin</span>
+  </div>
+  <div class="nav-user" id="nav-user" style="display:none;">
+    <span id="nav-user-name"></span>
+    <button class="btn-sm" id="signout-btn">Sign out</button>
+  </div>
 </header>
 
 <div class="page">
-
-  <div class="page-eyebrow">Your account</div>
-  <h1 class="page-title">Sign in to Routesmith</h1>
-  <p class="page-subtitle">Built for cachers who take the long way.</p>
-
-  <div class="loading" id="loading-state">Loading…</div>
-  <div id="clerk-sign-in" style="display:none;"></div>
-
-  <div class="signed-in-panel" id="signed-in-panel">
-    <div class="signed-in-greeting" id="signed-in-greeting">Welcome back.</div>
-    <p class="signed-in-sub" id="signed-in-sub"></p>
-
-    <div class="module-links">
-      <a href="/plan/" class="module-link disabled" aria-disabled="true">
-        <div class="module-link-num">01</div>
-        <div class="module-link-name">Plan</div>
-        <div class="module-link-status">Coming soon</div>
-      </a>
-      <a href="/navigate/" class="module-link disabled" aria-disabled="true">
-        <div class="module-link-num">02</div>
-        <div class="module-link-name">Navigate</div>
-        <div class="module-link-status">Coming soon</div>
-      </a>
-      <a href="/report/" class="module-link active">
-        <div class="module-link-num">03</div>
-        <div class="module-link-name">Report</div>
-        <div class="module-link-status">Open →</div>
-      </a>
-    </div>
-
-    <!-- Lifetime GPX data panel -->
-    <div class="gpx-panel">
-      <div class="gpx-panel-header">
-        <div class="gpx-panel-kicker">Lifetime find data</div>
-        <div id="gpx-summary-area">
-          <div class="gpx-summary-none">Loading your data…</div>
-        </div>
-        <button class="gpx-detail-toggle" id="gpx-detail-toggle" style="display:none;">
-          ▸ Show file details
-        </button>
-        <div class="gpx-detail" id="gpx-detail"></div>
-      </div>
-      <div class="gpx-upload-area">
-        <span class="gpx-upload-label">Upload My Finds GPX</span>
-        <div class="drop-zone" id="drop-zone">
-          <input type="file" id="gpx-file-input" accept=".gpx,.zip" multiple>
-          <div class="drop-zone-icon">📂</div>
-          <div class="drop-zone-text">Drop files here or click to browse</div>
-          <div class="drop-zone-hint">Accepts .gpx and .zip · PGC or gc.com format · multiple files OK</div>
-        <div class="drop-zone-hint" style="margin-top:10px;">
-          Don't have your file? Download from Project-GC:
-          <a href="https://project-gc.com/User/Queue?download=myFinds" target="_blank" rel="noopener" style="color:var(--brass-deep);border-bottom:1px dotted var(--brass);">Full export</a>
-          &nbsp;·&nbsp;
-          <a href="https://project-gc.com/User/Queue?download=myFindsTiny" target="_blank" rel="noopener" style="color:var(--brass-deep);border-bottom:1px dotted var(--brass);">Daily incremental</a>
-          — then drag here.
-        </div>
-        </div>
-        <div class="upload-queue" id="upload-queue"></div>
-        <button class="upload-btn" id="upload-btn">Upload selected files</button>
-      </div>
-    </div>
-
-    <button class="signout-btn" id="signout-btn">Sign out</button>
+  <div id="loading-state" class="loading">Loading…</div>
+  <div id="access-denied" class="access-denied" style="display:none;">
+    <div class="access-denied-title">Access Denied</div>
+    <p style="color:var(--ink-soft);margin:0;">You don't have admin access to Routesmith.</p>
   </div>
 
+  <div id="main-content" style="display:none;">
+    <h1 class="page-title">Admin</h1>
+
+    <!-- System Health -->
+    <div class="admin-section">
+      <button class="section-toggle" onclick="toggleSection('health')">
+        <span class="section-title">System Health</span>
+        <span class="section-chevron" id="chevron-health">▶</span>
+      </button>
+      <div class="section-body" id="body-health">
+        <div class="section-actions"><button class="btn-sm" onclick="loadHealth()">Refresh</button></div>
+        <table>
+          <thead><tr><th>Worker</th><th>Status</th><th>Build</th><th>Checked</th></tr></thead>
+          <tbody id="health-tbody"><tr><td colspan="4" class="muted">—</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Users -->
+    <div class="admin-section">
+      <button class="section-toggle" onclick="toggleSection('users')">
+        <span class="section-title">Users</span>
+        <span class="section-chevron" id="chevron-users">▶</span>
+      </button>
+      <div class="section-body" id="body-users">
+        <div class="section-actions"><button class="btn-sm" onclick="loadUsers()">Refresh</button></div>
+        <table>
+          <thead><tr><th>Email</th><th>Display name</th><th>Username</th><th>Admin</th><th>Actions</th></tr></thead>
+          <tbody id="users-tbody"><tr><td colspan="5" class="muted">—</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Reference Lists -->
+    <div class="admin-section">
+      <button class="section-toggle" onclick="toggleSection('refs')">
+        <span class="section-title">Reference Lists</span>
+        <span class="section-chevron" id="chevron-refs">▶</span>
+      </button>
+      <div class="section-body" id="body-refs">
+        <div class="section-actions"><button class="btn-sm" onclick="loadReferenceLists()">Refresh</button></div>
+        <table>
+          <thead><tr><th>Description</th><th>Status</th><th>Caches</th><th>Uploaded</th><th>Action</th></tr></thead>
+          <tbody id="ref-tbody"><tr><td colspan="5" class="muted">—</td></tr></tbody>
+        </table>
+        <div id="ref-status"></div>
+      </div>
+    </div>
+
+    <!-- Rules -->
+    <div class="admin-section">
+      <button class="section-toggle" onclick="toggleSection('rules')">
+        <span class="section-title">Rules</span>
+        <span class="section-chevron" id="chevron-rules">▶</span>
+      </button>
+      <div class="section-body" id="body-rules">
+        <div class="section-actions"><button class="btn-sm" onclick="loadRules()">Refresh</button></div>
+        <table>
+          <thead><tr><th>Rule</th><th>Severity</th><th>Status</th><th>Description</th><th>Reference File</th></tr></thead>
+          <tbody id="rules-tbody"><tr><td colspan="5" class="muted">—</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Jobs -->
+    <div class="admin-section">
+      <button class="section-toggle" onclick="toggleSection('jobs')">
+        <span class="section-title">Recent Jobs</span>
+        <span class="section-chevron" id="chevron-jobs">▶</span>
+      </button>
+      <div class="section-body" id="body-jobs">
+        <div class="section-actions">
+          <select id="job-status-filter" style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;border:1px solid var(--rule);padding:5px 10px;border-radius:2px;background:white;color:var(--ink);">
+            <option value="">All</option>
+            <option value="pending">Pending</option>
+            <option value="processing">Processing</option>
+            <option value="complete">Complete</option>
+            <option value="failed">Failed</option>
+          </select>
+          <button class="btn-sm" onclick="loadJobs(0)">Refresh</button>
+          <button class="btn-danger" onclick="purgeOldJobs()">Purge completed</button>
+        </div>
+        <table>
+          <thead><tr><th>Job ID</th><th>Type</th><th>Status</th><th>Attempts</th><th>Created</th><th>Error</th></tr></thead>
+          <tbody id="jobs-tbody"><tr><td colspan="6" class="muted">—</td></tr></tbody>
+        </table>
+        <div class="pagination" id="jobs-pagination"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit User Modal -->
+<div class="modal-overlay" id="edit-user-modal">
+  <div class="modal">
+    <div class="modal-title">Edit User</div>
+    <input type="hidden" id="edit-user-id">
+    <div class="form-group">
+      <label class="form-label">Display name</label>
+      <input class="form-input" type="text" id="edit-user-display">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Username</label>
+      <input class="form-input" type="text" id="edit-user-username">
+    </div>
+    <div class="form-group">
+      <label class="form-check">
+        <input type="checkbox" id="edit-user-admin">
+        <span>Admin access</span>
+      </label>
+    </div>
+    <div class="form-actions">
+      <button class="btn-sm" onclick="closeEditUser()">Cancel</button>
+      <button class="btn-primary" onclick="saveUser()">Save</button>
+    </div>
+  </div>
 </div>
 
 <footer>
   <span class="domain">routesmithing.com</span>
   <span class="sep">·</span>
-  <span>Forged 2026</span>
+  <span>Admin</span>
   <span class="sep">·</span>
-  <span>Build 2026.07.05.031</span>
+  <span>Build 2026.07.07.001</span>
 </footer>
 
 <script>
-const BASE = 'https://routesmith-report.gtl6645.workers.dev';
+const ADMIN_BASE = 'https://routesmith-admin.gtl6645.workers.dev';
 const getToken = () => window.Clerk.session.getToken({ template: 'routesmith' });
+const PAGE_SIZE = 25;
+let jobsOffset = 0;
+const pendingFiles = {};
+const refCacheCounts = {}; // name -> count from browser parse
 
-// ── Date formatting ───────────────────────────────────────────────
-function fmtDate(isoStr) {
-  if (!isoStr) return null;
-  const d = new Date(isoStr + 'T00:00:00Z');
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  return `${months[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`;
+// ── Sections ──────────────────────────────────────────────────────
+function toggleSection(id) {
+  const body    = document.getElementById('body-' + id);
+  const chevron = document.getElementById('chevron-' + id);
+  const isOpen  = body.classList.toggle('open');
+  chevron.textContent = isOpen ? '▼' : '▶';
+  if (isOpen) {
+    if (id === 'users') loadUsers();
+    if (id === 'refs')  loadReferenceLists();
+    if (id === 'jobs')  loadJobs(0);
+    if (id === 'rules') loadRules();
+    if (id === 'health') loadHealth();
+  }
 }
 
-function fmtUploadedAt(epochSecs) {
-  if (!epochSecs) return null;
-  const d = new Date(epochSecs * 1000);
-  const now = new Date();
-  const diffDays = Math.floor((now - d) / 86400000);
-  if (diffDays === 0) return 'today';
-  if (diffDays === 1) return 'yesterday';
-  if (diffDays < 7) return `${diffDays} days ago`;
-  return fmtDate(d.toISOString().slice(0, 10));
+// ── Helpers ───────────────────────────────────────────────────────
+function fmtDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+function fmtEpoch(n) { return n ? fmtDate(new Date(n*1000).toISOString()) : '—'; }
+function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function showStatus(msg, isErr) {
+  const el = document.getElementById('ref-status');
+  el.textContent = msg;
+  el.className = 'status-msg ' + (isErr ? 'status-err' : 'status-ok');
+  setTimeout(() => { el.textContent=''; el.className=''; }, 6000);
 }
 
-function freshnessClass(dataThrough) {
-  if (!dataThrough) return 'empty';
-  const days = Math.floor((Date.now() - new Date(dataThrough + 'T00:00:00Z')) / 86400000);
-  if (days <= 3) return '';       // fresh — forge green (default)
-  if (days <= 14) return 'stale'; // warn — brass
-  return 'stale';
+// ── Browser GPX parser (count wpt elements) ───────────────────────
+function countGpxCaches(text) {
+  // Count <wpt> elements — works for both PGC and gc.com format reference files
+  let count = 0;
+  let pos = 0;
+  while ((pos = text.indexOf('<wpt', pos)) !== -1) { count++; pos += 4; }
+  return count;
 }
 
-// ── GPX summary panel ─────────────────────────────────────────────
-async function loadGpxSummary() {
+async function parseRefFile(file) {
+  const text = await file.text();
+  return countGpxCaches(text);
+}
+
+// ── Reference Lists ───────────────────────────────────────────────
+const REF_FILES = [
+  { name:'oldest_active_per_state.gpx',   label:'Oldest Active Caches per State' },
+  { name:'oldest_active_per_country.gpx', label:'Oldest Active Caches per Country' },
+  { name:'cache_across_america.gpx',      label:'Cache Across America' },
+  { name:'cache_odyssey.gpx',             label:'Cache Odyssey' },
+];
+
+async function loadReferenceLists() {
+  const tbody = document.getElementById('ref-tbody');
+  tbody.innerHTML = '<tr><td colspan="5" class="muted">Loading…</td></tr>';
   const token = await getToken();
-  let profile;
+  const resp  = await fetch(`${ADMIN_BASE}/api/admin/reference-lists`, {headers:{'Authorization':'Bearer '+token}});
+  const data  = await resp.json();
+  if (data.error) { tbody.innerHTML=`<tr><td colspan="5" style="color:var(--stamp);">${esc(data.error)}</td></tr>`; return; }
+  const presentMap = new Map((data.files||[]).map(f=>[f.name,f]));
+  tbody.innerHTML = REF_FILES.map(({name,label}) => {
+    const f   = presentMap.get(name);
+    const sid = name.replace(/[^a-z0-9]/g,'_');
+    const cachedCount = refCacheCounts[name];
+    const countDisplay = f
+      ? (cachedCount != null ? cachedCount.toLocaleString() + ' caches' : (f.cacheCount != null ? f.cacheCount.toLocaleString() + ' caches' : '—'))
+      : '—';
+    return `<tr>
+      <td><strong>${esc(label)}</strong></td>
+      <td>${f ? '<span class="present">✓ Present</span>' : '<span class="missing">✗ Missing</span>'}</td>
+      <td class="mono muted">${countDisplay}</td>
+      <td class="muted">${f ? fmtDate(f.uploaded) : '—'}</td>
+      <td>
+        <div class="upload-zone" id="uz_${sid}">
+          <label class="file-label">Select File<input type="file" accept=".gpx" data-refname="${esc(name)}" onchange="onRefFileSelected(this)"></label>
+          ${f ? `<button class="btn-danger" onclick="deleteRefFile('${esc(name)}')">Delete</button>` : ''}
+        </div>
+        <div id="us_${sid}" style="margin-top:4px;font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--ink-muted);"></div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function onRefFileSelected(input) {
+  const name = input.dataset.refname;
+  const file = input.files[0];
+  if (!file) return;
+  pendingFiles[name] = file;
+
+  const sid = name.replace(/[^a-z0-9]/g,'_');
+  const uz  = document.getElementById('uz_' + sid);
+  const us  = document.getElementById('us_' + sid);
+
+  uz.innerHTML = `<span class="muted" style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;">Analyzing…</span>`;
+  if (us) us.textContent = file.name;
+
+  // Parse cache count in browser
+  const count = await parseRefFile(file);
+  refCacheCounts[name] = count;
+
+  uz.innerHTML = `<button class="btn-primary" onclick="uploadRefFile('${esc(name)}')">Upload</button>
+    <button class="btn-sm" onclick="cancelRefUpload('${esc(name)}')">Cancel</button>`;
+  if (us) us.textContent = `${file.name} · ${count.toLocaleString()} caches`;
+}
+
+function cancelRefUpload(name) {
+  delete pendingFiles[name];
+  loadReferenceLists();
+}
+
+async function uploadRefFile(name) {
+  const file = pendingFiles[name];
+  if (!file) { showStatus('No file selected', true); return; }
+  const sid = name.replace(/[^a-z0-9]/g,'_');
+  const uz  = document.getElementById('uz_' + sid);
+  const us  = document.getElementById('us_' + sid);
+  if (uz) uz.innerHTML = '<span class="muted" style="font-family:\'JetBrains Mono\',monospace;font-size:0.72rem;">Uploading…</span>';
+  if (us) us.textContent = '';
   try {
-    const resp = await fetch(`${BASE}/api/account/me`, {
-      headers: { 'Authorization': 'Bearer ' + token }
+    const token = await getToken();
+    const count = refCacheCounts[name] ?? 0;
+    const resp  = await fetch(`${ADMIN_BASE}/api/admin/reference-lists/${encodeURIComponent(name)}?cache_count=${count}`, {
+      method:'POST',
+      headers:{'Authorization':'Bearer '+token,'Content-Type':'application/gpx+xml'},
+      body: file,
     });
-    profile = await resp.json();
-  } catch { return; }
+    const result = await resp.json();
+    if (result.error) throw new Error(result.error);
+    delete pendingFiles[name];
+    showStatus(`✓ ${name} uploaded · ${count.toLocaleString()} caches`, false);
+    await loadReferenceLists();
+  } catch(e) {
+    showStatus(`✗ Upload failed: ${e.message}`, true);
+    await loadReferenceLists();
+  }
+}
 
-  const finder = profile.finder;
-  const summaryEl  = document.getElementById('gpx-summary-area');
-  const toggleBtn  = document.getElementById('gpx-detail-toggle');
-  const detailEl   = document.getElementById('gpx-detail');
+async function deleteRefFile(name) {
+  if (!confirm(`Delete ${name}?\n\nRules depending on this file will not fire.`)) return;
+  const token = await getToken();
+  const resp  = await fetch(`${ADMIN_BASE}/api/admin/reference-lists/${encodeURIComponent(name)}`, {
+    method:'DELETE', headers:{'Authorization':'Bearer '+token}
+  });
+  const result = await resp.json();
+  if (result.error) { showStatus(`✗ ${result.error}`, true); return; }
+  showStatus(`${name} deleted.`, false);
+  await loadReferenceLists();
+}
 
-  if (!finder || (!finder.lifetimeFindCount && !finder.lifetimeUploadedAt)) {
-    summaryEl.innerHTML = '<div class="gpx-summary-none">No lifetime data uploaded yet.</div>';
+// ── Jobs ──────────────────────────────────────────────────────────
+async function loadJobs(offset) {
+  if (offset !== undefined) jobsOffset = offset;
+  const tbody = document.getElementById('jobs-tbody');
+  tbody.innerHTML = '<tr><td colspan="6" class="muted">Loading…</td></tr>';
+  const status = document.getElementById('job-status-filter').value;
+  const token  = await getToken();
+  const params = new URLSearchParams({limit:PAGE_SIZE, offset:jobsOffset});
+  if (status) params.set('status', status);
+  const resp = await fetch(`${ADMIN_BASE}/api/admin/jobs?${params}`, {headers:{'Authorization':'Bearer '+token}});
+  const data = await resp.json();
+  if (!data.jobs?.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="muted" style="padding:16px 10px;">No jobs found.</td></tr>';
+    document.getElementById('jobs-pagination').innerHTML = '';
+    return;
+  }
+  tbody.innerHTML = data.jobs.map(j=>`
+    <tr>
+      <td class="mono" style="font-size:0.68rem;color:var(--ink-muted);">${j.job_id.slice(0,8)}…</td>
+      <td class="mono">${esc(j.job_type)}</td>
+      <td><span class="job-badge ${j.status}">${j.status}</span></td>
+      <td style="text-align:center;">${j.attempt_count??0}</td>
+      <td class="muted">${fmtEpoch(j.created_at)}</td>
+      <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--stamp);font-size:0.78rem;" title="${esc(j.error??'')}">${esc(j.error??'—')}</td>
+    </tr>`).join('');
+  const pg = document.getElementById('jobs-pagination');
+  const btns = [];
+  if (jobsOffset > 0) btns.push(`<button class="btn-sm" onclick="loadJobs(${jobsOffset-PAGE_SIZE})">← Prev</button>`);
+  if (data.jobs.length === PAGE_SIZE) btns.push(`<button class="btn-sm" onclick="loadJobs(${jobsOffset+PAGE_SIZE})">Next →</button>`);
+  pg.innerHTML = btns.join('') + (btns.length ? `<span class="muted" style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;">Rows ${jobsOffset+1}–${jobsOffset+data.jobs.length}</span>` : '');
+}
+
+async function purgeOldJobs() {
+  if (!confirm('Delete all complete and failed jobs older than 7 days?')) return;
+  const token  = await getToken();
+  const cutoff = Math.floor(Date.now()/1000) - 7*86400;
+  const resp   = await fetch(`${ADMIN_BASE}/api/admin/jobs/purge`, {
+    method:'POST', headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+    body: JSON.stringify({cutoff_ts:cutoff}),
+  });
+  const result = await resp.json();
+  if (result.error) { alert(result.error); return; }
+  showStatus('✓ Old jobs purged.', false);
+  await loadJobs(0);
+}
+document.getElementById('job-status-filter').addEventListener('change', () => loadJobs(0));
+
+// ── Users ─────────────────────────────────────────────────────────
+async function loadUsers() {
+  const tbody = document.getElementById('users-tbody');
+  const token = await getToken();
+  const resp  = await fetch(`${ADMIN_BASE}/api/admin/users`, {headers:{'Authorization':'Bearer '+token}});
+  const data  = await resp.json();
+  if (!data.users?.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="muted" style="padding:12px;">No users.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.users.map(u=>`
+    <tr>
+      <td>${esc(u.email)}</td>
+      <td>${esc(u.display_name??'—')}</td>
+      <td class="mono">${esc(u.username??'—')}</td>
+      <td>${u.is_admin?'<span style="color:var(--stamp);font-family:\'JetBrains Mono\',monospace;font-size:0.72rem;font-weight:600;">ADMIN</span>':'—'}</td>
+      <td style="display:flex;gap:6px;">
+        <button class="btn-sm" onclick="openEditUser(${JSON.stringify(u)})">Edit</button>
+        <button class="btn-danger" onclick="deleteUser('${esc(u.user_id)}')" title="Not yet implemented" disabled style="opacity:0.4;cursor:not-allowed;">Delete</button>
+      </td>
+    </tr>`).join('');
+}
+
+function openEditUser(u) {
+  document.getElementById('edit-user-id').value      = u.user_id;
+  document.getElementById('edit-user-display').value = u.display_name ?? '';
+  document.getElementById('edit-user-username').value = u.username ?? '';
+  document.getElementById('edit-user-admin').checked  = !!u.is_admin;
+  document.getElementById('edit-user-modal').classList.add('open');
+}
+
+function closeEditUser() {
+  document.getElementById('edit-user-modal').classList.remove('open');
+}
+
+async function saveUser() {
+  const userId = document.getElementById('edit-user-id').value;
+  const token  = await getToken();
+  const resp   = await fetch(`${ADMIN_BASE}/api/admin/users/${encodeURIComponent(userId)}`, {
+    method:'PATCH',
+    headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+    body: JSON.stringify({
+      display_name: document.getElementById('edit-user-display').value.trim() || null,
+      username:     document.getElementById('edit-user-username').value.trim() || null,
+      is_admin:     document.getElementById('edit-user-admin').checked ? 1 : 0,
+    }),
+  });
+  const result = await resp.json();
+  if (result.error) { alert(result.error); return; }
+  closeEditUser();
+  await loadUsers();
+}
+
+function deleteUser(userId) {
+  alert('User deletion is not yet implemented.\n\nSee admin todo list.');
+}
+
+document.getElementById('edit-user-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('edit-user-modal')) closeEditUser();
+});
+
+// ── Health ────────────────────────────────────────────────────────
+const WORKERS = [
+  { name:'routesmith-report', url:'https://routesmith-report.gtl6645.workers.dev/api/health' },
+  { name:'routesmith-jobs',   url:'https://routesmith-jobs.gtl6645.workers.dev/api/health' },
+  { name:'routesmith-admin',  url:'https://routesmith-admin.gtl6645.workers.dev/api/admin/health' },
+];
+
+async function loadHealth() {
+  const tbody = document.getElementById('health-tbody');
+  tbody.innerHTML = '<tr><td colspan="4" class="muted">Checking…</td></tr>';
+  const token = await getToken();
+  const results = await Promise.allSettled(
+    WORKERS.map(w => fetch(w.url, {
+      headers: { 'Authorization': 'Bearer ' + token },
+      signal: AbortSignal.timeout(5000),
+    }).then(r => r.json().then(d => ({ ...w, ok: r.ok, ...d }))))
+  );
+  tbody.innerHTML = results.map((r, i) => {
+    const w = WORKERS[i];
+    if (r.status === 'rejected') {
+      return `<tr>
+        <td class="mono">${esc(w.name)}</td>
+        <td><span style="color:var(--stamp);font-family:'JetBrains Mono',monospace;font-size:0.72rem;">✗ Unreachable</span></td>
+        <td class="muted">—</td>
+        <td class="muted">${new Date().toLocaleTimeString()}</td>
+      </tr>`;
+    }
+    const d = r.value;
+    const okBadge = d.ok
+      ? '<span style="color:var(--forge);font-family:'JetBrains Mono',monospace;font-size:0.72rem;">✓ OK</span>'
+      : '<span style="color:var(--stamp);font-family:'JetBrains Mono',monospace;font-size:0.72rem;">✗ Error</span>';
+    return `<tr>
+      <td class="mono">${esc(d.worker||w.name)}</td>
+      <td>${okBadge}</td>
+      <td class="mono muted" style="font-size:0.72rem;">${esc(d.build||'—')}</td>
+      <td class="muted">${new Date().toLocaleTimeString()}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Rules ─────────────────────────────────────────────────────────
+let refListStatus = {}; // name -> present/missing
+
+async function loadRules() {
+  const tbody = document.getElementById('rules-tbody');
+  tbody.innerHTML = '<tr><td colspan="5" class="muted">Loading…</td></tr>';
+
+  const token = await getToken();
+  const [rulesResp, refResp] = await Promise.all([
+    fetch(`${ADMIN_BASE}/api/admin/rules`,           {headers:{'Authorization':'Bearer '+token}}),
+    fetch(`${ADMIN_BASE}/api/admin/reference-lists`, {headers:{'Authorization':'Bearer '+token}}),
+  ]);
+  const rulesData = await rulesResp.json();
+  const refData   = await refResp.json();
+
+  const presentFiles = new Set((refData.files||[]).map(f=>f.name));
+  const refMeta = new Map((refData.files||[]).map(f=>[f.name,f]));
+
+  if (!rulesData.rules?.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="muted">No rules found.</td></tr>';
     return;
   }
 
-  // Fetch active files for detail view
-  const token2 = await getToken();
-  let files = [];
-  try {
-    const resp = await fetch(`${BASE}/api/account/gpx-files`, {
-      headers: { 'Authorization': 'Bearer ' + token2 }
-    });
-    const data = await resp.json();
-    files = data.files ?? [];
-  } catch {}
+  const severityColor = { marquee:'var(--forge)', featured:'var(--brass-deep)', note:'var(--ink-muted)' };
 
-  // Combined summary
-  const effectiveCount = Math.max(...files.map(f => f.find_count || 0).concat([finder.lifetimeFindCount || 0]));
-  const latestThrough  = files.reduce((best, f) => {
-    if (!f.data_through) return best;
-    return (!best || f.data_through > best) ? f.data_through : best;
-  }, finder.lifetimeDataThrough);
+  tbody.innerHTML = rulesData.rules.map(r => {
+    const hasRef  = !r.requiresReferenceFile;
+    const refReady = r.requiresReferenceFile ? presentFiles.has(r.requiresReferenceFile) : true;
+    const status  = hasRef
+      ? '<span class="present">✓ Active</span>'
+      : refReady
+        ? '<span class="present">✓ Active</span>'
+        : '<span class="missing">✗ Needs reference file</span>';
 
-  const cls = freshnessClass(latestThrough);
-  const freshnessLabel = latestThrough
-    ? `Current through ${fmtDate(latestThrough)}`
-    : 'Data date unknown';
-
-  summaryEl.innerHTML = `
-    <div class="gpx-summary">
-      <span class="gpx-summary-count">${effectiveCount.toLocaleString()}</span>
-      <span class="gpx-summary-label">lifetime finds</span>
-      <span class="gpx-summary-freshness ${cls}">${freshnessLabel}</span>
-    </div>`;
-
-  // Detail rows
-  if (files.length > 0) {
-    toggleBtn.style.display = 'block';
-    detailEl.innerHTML = files.map(f => `
-      <div class="gpx-file-row">
-        <span class="gpx-file-scope">${f.scope}</span>
-        <span class="gpx-file-meta">
-          <strong>${(f.find_count || 0).toLocaleString()} finds</strong>
-          ${f.data_through ? '· through ' + fmtDate(f.data_through) : ''}
-          · ${f.format?.toUpperCase() ?? 'unknown'}
-        </span>
-        <span class="gpx-file-date">uploaded ${fmtUploadedAt(f.uploaded_at)}</span>
-      </div>`).join('');
-
-    toggleBtn.addEventListener('click', () => {
-      const open = detailEl.classList.toggle('open');
-      toggleBtn.textContent = open ? '▾ Hide file details' : '▸ Show file details';
-    });
-  }
-}
-
-// ── Browser-side GPX metadata extraction ─────────────────────────
-async function extractGpxMetadataBrowser(file) {
-  const FOUND_TYPES = new Set(['Found it', 'Attended', 'Webcam Photo Taken']);
-  const t0 = performance.now();
-  console.log(`[gpx-meta] Starting extraction for ${file.name} (${(file.size/1024/1024).toFixed(1)}MB)`);
-
-  async function processGpxText(text) {
-    const tp0 = performance.now();
-    console.log(`[gpx-meta] Processing GPX text (${(text.length/1024/1024).toFixed(1)}MB chars)`);
-
-    const header = text.slice(0, 10000);
-    let format = 'unknown';
-    if (header.includes('gsak.net') || header.includes('Project-GC') || header.includes('project-gc.com')) {
-      format = 'pgc';
-    } else if (header.includes('geocaching.com') || header.includes('Groundspeak')) {
-      format = 'gccom';
-    }
-
-    let findCount = 0;
-    let latestDate = null;
-    let detectedUsername = null;
-    const finderCounts = new Map();
-    const countyData = new Map();
-    const finds = []; // full find records for finder_finds table
-
-    // Extract a text value between two tags
-    function between(str, open, close, start = 0) {
-      const s = str.indexOf(open, start);
-      if (s === -1) return null;
-      const e = str.indexOf(close, s + open.length);
-      if (e === -1) return null;
-      return str.slice(s + open.length, e).trim() || null;
-    }
-
-    // Extract content of a tag that may have attributes: <tag attr="x">content</tag>
-    function betweenTag(str, tagName, start = 0) {
-      const openStart = str.indexOf(`<${tagName}`, start);
-      if (openStart === -1) return null;
-      const openEnd = str.indexOf('>', openStart);
-      if (openEnd === -1) return null;
-      const closeTag = `</${tagName}>`;
-      const closeStart = str.indexOf(closeTag, openEnd);
-      if (closeStart === -1) return null;
-      return str.slice(openEnd + 1, closeStart).trim() || null;
-    }
-
-    function extractWptGeo(chunk) {
-      let county = null, state = null, country = null;
-      const ctyRaw = between(chunk, '<gsak:County>', '</gsak:County>');
-      if (ctyRaw) county = ctyRaw.replace(/\s*\([A-Z]{2}\)\s*$/, '').trim() || null;
-      state   = between(chunk, '<groundspeak:state>',   '</groundspeak:state>');
-      country = between(chunk, '<groundspeak:country>', '</groundspeak:country>');
-      return { county, state, country };
-    }
-
-    if (format === 'pgc') {
-      const wptChunks = text.split('</wpt>');
-      for (const chunk of wptChunks) {
-        // Extract cache-level fields
-        const gcCode  = between(chunk, '<name>', '</name>');
-        if (!gcCode || !gcCode.startsWith('GC')) continue;
-
-        const logsStart = chunk.indexOf('<groundspeak:logs>');
-        if (logsStart === -1) continue;
-
-        // Cache metadata
-        const cacheName     = between(chunk, '<groundspeak:name>', '</groundspeak:name>');
-        const cacheOwner    = betweenTag(chunk, 'groundspeak:owner');
-        const cacheType     = between(chunk, '<groundspeak:type>', '</groundspeak:type>');
-        const diffStr       = between(chunk, '<groundspeak:difficulty>', '</groundspeak:difficulty>');
-        const terrStr       = between(chunk, '<groundspeak:terrain>', '</groundspeak:terrain>');
-        const placedTimeRaw = chunk.slice(0, logsStart).indexOf('<time>') !== -1
-          ? between(chunk.slice(0, logsStart), '<time>', '</time>') : null;
-        const placementDate = placedTimeRaw ? placedTimeRaw.slice(0, 10) : null;
-
-        // Lat/lon from wpt attributes
-        const latMatch = chunk.match(/lat="([^"]+)"/);
-        const lonMatch = chunk.match(/lon="([^"]+)"/);
-        const lat = latMatch ? parseFloat(latMatch[1]) : null;
-        const lon = lonMatch ? parseFloat(lonMatch[1]) : null;
-
-        // FP from gsak extension
-        const fpStr = between(chunk, '<gsak:FavPoints>', '</gsak:FavPoints>');
-        const favPoints = fpStr ? parseInt(fpStr, 10) : 0;
-
-        const { county, state, country } = extractWptGeo(chunk);
-
-        // Find log
-        const logsSection = chunk.slice(logsStart);
-        const logChunks = logsSection.split('</groundspeak:log>');
-        let counted = false;
-        let findDate = null;
-
-        for (const log of logChunks) {
-          if (counted) break;
-          const logType = between(log, '<groundspeak:type>', '</groundspeak:type>');
-          if (!logType || !FOUND_TYPES.has(logType)) continue;
-
-          const dateRaw = between(log, '<groundspeak:date>', '</groundspeak:date>');
-          findDate = dateRaw ? dateRaw.slice(0, 10) : null;
-          if (!findDate) continue; // skip if no date — can't place in trip window
-
-          // Track finder username
-          const finderTagStart = log.indexOf('<groundspeak:finder');
-          const finderTagEnd   = log.indexOf('</groundspeak:finder>');
-          if (finderTagStart !== -1 && finderTagEnd !== -1) {
-            const tagClose = log.indexOf('>', finderTagStart);
-            if (tagClose !== -1 && tagClose < finderTagEnd) {
-              const fname = log.slice(tagClose + 1, finderTagEnd).trim();
-              if (fname) finderCounts.set(fname, (finderCounts.get(fname) ?? 0) + 1);
-            }
-          }
-
-          findCount++;
-          counted = true;
-          if (!latestDate || findDate > latestDate) latestDate = findDate;
-
-          // Full find record
-          finds.push({
-            gc_code:        gcCode,
-            cache_name:     cacheName,
-            cache_owner:    cacheOwner,
-            find_date:      findDate,
-            county:         county,
-            state:          state,
-            country:        country ?? 'United States',
-            cache_type:     cacheType,
-            difficulty:     diffStr ? parseFloat(diffStr) : null,
-            terrain:        terrStr ? parseFloat(terrStr) : null,
-            fav_points:     isNaN(favPoints) ? 0 : favPoints,
-            lat:            lat,
-            lon:            lon,
-            placement_date: placementDate,
-          });
-
-          // County data — keep earliest firstFound
-          if (county && state) {
-            const key = `${county}|${state}`;
-            const existing = countyData.get(key);
-            if (!existing || findDate < existing.firstFound) {
-              countyData.set(key, { county, state, country: country ?? 'United States', firstFound: findDate });
-            }
-          }
-        }
-      }
-    } else {
-      // gc.com format — limited data available
-      const wptChunks = text.split('</wpt>');
-      for (const chunk of wptChunks) {
-        const symOpen  = chunk.indexOf('<sym>');
-        const symClose = chunk.indexOf('</sym>');
-        if (symOpen === -1 || symClose === -1) continue;
-        const sym = chunk.slice(symOpen + 5, symClose).trim();
-        if (!sym.includes('Found')) continue;
-
-        const gcCode    = between(chunk, '<name>', '</name>');
-        if (!gcCode || !gcCode.startsWith('GC')) continue;
-
-        const timeRaw = between(chunk, '<time>', '</time>');
-        const findDate = timeRaw ? timeRaw.slice(0, 10) : null;
-        if (!findDate) continue;
-
-        findCount++;
-        if (!latestDate || findDate > latestDate) latestDate = findDate;
-
-        finds.push({
-          gc_code: gcCode,
-          cache_name: between(chunk, '<desc>', '</desc>'),
-          cache_owner: null,
-          find_date: findDate,
-          county: null, state: null, country: null,
-          cache_type: null, difficulty: null, terrain: null,
-          fav_points: 0, lat: null, lon: null, placement_date: null,
-        });
-      }
-    }
-
-    if (finderCounts.size > 0) {
-      detectedUsername = [...finderCounts.entries()].sort((a,b) => b[1]-a[1])[0][0];
-    }
-    const counties = [...countyData.values()];
-    console.log(`[gpx-meta] Text parse done in ${(performance.now()-tp0).toFixed(0)}ms — ${findCount} finds, ${counties.length} counties, format=${format}, username=${detectedUsername}`);
-    return { findCount, dataThrough: latestDate, format, detectedUsername, counties, finds };
-  }
-
-  const tb0 = performance.now();
-  const buffer = await file.arrayBuffer();
-  console.log(`[gpx-meta] ArrayBuffer read in ${(performance.now()-tb0).toFixed(0)}ms`);
-
-  if (file.name.toLowerCase().endsWith('.zip')) {
-    if (!window.fflate) throw new Error('fflate not loaded');
-    const files = window.fflate.unzipSync(new Uint8Array(buffer));
-    const gpxEntries = Object.entries(files).filter(([n]) =>
-      n.toLowerCase().endsWith('.gpx') && !n.toLowerCase().includes('wpts')
-    );
-    if (!gpxEntries.length) return null;
-    const decoder = new TextDecoder('utf-8');
-    let totalFinds = 0, latestDate = null, format = 'unknown', detectedUsername = null;
-    const mergedCounties = new Map();
-    const mergedFinds = new Map(); // gc_code+find_date -> find (handles re-finds)
-    for (const [, data] of gpxEntries) {
-      const text = decoder.decode(data);
-      const meta = await processGpxText(text);
-      totalFinds += meta.findCount;
-      if (meta.format !== 'unknown') format = meta.format;
-      if (meta.dataThrough && (!latestDate || meta.dataThrough > latestDate)) latestDate = meta.dataThrough;
-      if (meta.detectedUsername && !detectedUsername) detectedUsername = meta.detectedUsername;
-      for (const c of (meta.counties ?? [])) {
-        const key = `${c.county}|${c.state}`;
-        const existing = mergedCounties.get(key);
-        if (!existing || c.firstFound < existing.firstFound) mergedCounties.set(key, c);
-      }
-      for (const f of (meta.finds ?? [])) {
-        const key = `${f.gc_code}|${f.find_date}`;
-        if (!mergedFinds.has(key)) mergedFinds.set(key, f);
-      }
-    }
-    console.log(`[gpx-meta] Total ZIP extraction time: ${(performance.now()-t0).toFixed(0)}ms`);
-    return { findCount: totalFinds, dataThrough: latestDate, format, detectedUsername, counties: [...mergedCounties.values()], finds: [...mergedFinds.values()] };
-  } else {
-    const text = new TextDecoder('utf-8').decode(buffer);
-    const result = await processGpxText(text);
-    console.log(`[gpx-meta] Total GPX extraction time: ${(performance.now()-t0).toFixed(0)}ms — ${result.counties?.length ?? 0} counties`);
-    return result;
-  }
-}
-
-// ── File selection ────────────────────────────────────────────────
-let selectedFiles = []; // { file, scope, status, jobId, itemEl }
-
-function detectScope(filename) {
-  return filename.toLowerCase().includes('tiny') ? 'incremental' : 'full';
-}
-
-function addFilesToQueue(fileList) {
-  const queueEl  = document.getElementById('upload-queue');
-  const uploadBtn = document.getElementById('upload-btn');
-
-  for (const file of fileList) {
-    // Avoid duplicates
-    if (selectedFiles.find(f => f.file.name === file.name && f.file.size === file.size)) continue;
-
-    const scope = detectScope(file.name);
-    const itemEl = document.createElement('div');
-    itemEl.className = 'upload-item';
-    itemEl.innerHTML = `
-      <span class="upload-item-name" title="${file.name}">${file.name}</span>
-      <span class="upload-item-scope">${scope}</span>
-      <span class="upload-item-status queued">Analyzing…</span>
-      <div class="upload-progress" style="display:none;">
-        <div class="upload-progress-bar"></div>
-      </div>`;
-    queueEl.appendChild(itemEl);
-
-    const entry = { file, scope, status: 'queued', jobId: null, itemEl, metadata: null };
-    selectedFiles.push(entry);
-
-    // Extract metadata in background while user reviews file list
-    const metaPromise = extractGpxMetadataBrowser(file);
-    entry.metaPromise = metaPromise;
-    metaPromise.then(meta => {
-      entry.metadata = meta;
-      const statusEl = itemEl.querySelector('.upload-item-status');
-      if (meta) {
-        statusEl.className = 'upload-item-status queued';
-        statusEl.textContent = 'Queued';
-        let hint = '';
-        if (meta.findCount) hint += meta.findCount.toLocaleString() + ' finds';
-        if (meta.dataThrough) hint += ' · through ' + fmtDate(meta.dataThrough);
-        if (hint) {
-          let result = itemEl.querySelector('.upload-item-result');
-          if (!result) { result = document.createElement('div'); result.className = 'upload-item-result'; itemEl.appendChild(result); }
-          result.textContent = hint;
-        }
+    const refCell = r.requiresReferenceFile ? (() => {
+      const f = refMeta.get(r.requiresReferenceFile);
+      const sid = r.requiresReferenceFile.replace(/[^a-z0-9]/g,'_');
+      if (f) {
+        return `<span class="present mono" style="font-size:0.72rem;">✓ ${esc(r.requiresReferenceFile)}</span>
+          <br><span class="muted" style="font-size:0.72rem;">${f.cacheCount!=null?f.cacheCount.toLocaleString()+' caches':''}</span>`;
       } else {
-        statusEl.className = 'upload-item-status queued';
-        statusEl.textContent = 'Queued';
+        return `<span class="missing mono" style="font-size:0.72rem;">✗ ${esc(r.requiresReferenceFile)}</span><br>
+          <label class="file-label" style="margin-top:4px;display:inline-block;">Upload
+            <input type="file" accept=".gpx" data-refname="${esc(r.requiresReferenceFile)}" onchange="onRefFileSelected(this)">
+          </label>`;
       }
-    }).catch(() => {
-      const statusEl = itemEl.querySelector('.upload-item-status');
-      statusEl.className = 'upload-item-status queued';
-      statusEl.textContent = 'Queued';
-    });
-  }
+    })() : '<span class="muted">—</span>';
 
-  if (selectedFiles.length > 0) {
-    uploadBtn.style.display = 'block';
-  }
+    return `<tr>
+      <td><strong>${esc(r.displayName)}</strong><br><span class="mono muted" style="font-size:0.68rem;">${esc(r.id)}</span></td>
+      <td><span style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:${severityColor[r.severity]||'var(--ink-muted)'};">${r.severity}</span></td>
+      <td>${status}</td>
+      <td class="muted" style="font-size:0.84rem;">${esc(r.description)}</td>
+      <td>${refCell}</td>
+    </tr>`;
+  }).join('');
 }
-
-// Drop zone
-const dropZone = document.getElementById('drop-zone');
-const fileInput = document.getElementById('gpx-file-input');
-
-dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
-dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
-dropZone.addEventListener('drop', e => {
-  e.preventDefault();
-  dropZone.classList.remove('drag-over');
-  addFilesToQueue(e.dataTransfer.files);
-});
-fileInput.addEventListener('change', () => {
-  addFilesToQueue(fileInput.files);
-  fileInput.value = ''; // reset so same file can be re-selected
-});
-
-// ── Upload pipeline ───────────────────────────────────────────────
-function setItemStatus(entry, status, text) {
-  entry.status = status;
-  const statusEl = entry.itemEl.querySelector('.upload-item-status');
-  statusEl.className = `upload-item-status ${status}`;
-  statusEl.textContent = text;
-}
-
-function setItemProgress(entry, indeterminate, pct) {
-  const bar = entry.itemEl.querySelector('.upload-progress');
-  const fill = entry.itemEl.querySelector('.upload-progress-bar');
-  bar.style.display = 'block';
-  if (indeterminate) {
-    fill.classList.add('indeterminate');
-  } else {
-    fill.classList.remove('indeterminate');
-    fill.style.width = pct + '%';
-  }
-}
-
-function addItemResult(entry, text) {
-  let result = entry.itemEl.querySelector('.upload-item-result');
-  if (!result) {
-    result = document.createElement('div');
-    result.className = 'upload-item-result';
-    entry.itemEl.appendChild(result);
-  }
-  result.textContent = text;
-}
-
-async function uploadFile(entry) {
-  const { file, scope } = entry;
-  const token = await getToken();
-
-  // Step 1: Presign
-  setItemStatus(entry, 'uploading', 'Uploading…');
-  setItemProgress(entry, false, 10);
-
-  let presign;
-  try {
-    const resp = await fetch(`${BASE}/api/upload/presign`, {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ filename: file.name, file_size_bytes: file.size, scope, file_role: 'lifetime' })
-    });
-    presign = await resp.json();
-    if (presign.error) throw new Error(presign.error);
-  } catch (e) {
-    setItemStatus(entry, 'error', 'Failed');
-    addItemResult(entry, e.message);
-    return;
-  }
-
-  setItemProgress(entry, false, 40);
-
-  // Step 2: Upload bytes
-  try {
-    const tok2 = await getToken();
-    const resp = await fetch(`${BASE}${presign.upload_url}`, {
-      method: 'PUT',
-      headers: { 'Authorization': 'Bearer ' + tok2, 'Content-Type': 'application/octet-stream' },
-      body: file
-    });
-    const result = await resp.json();
-    if (result.error) throw new Error(result.error);
-  } catch (e) {
-    setItemStatus(entry, 'error', 'Upload failed');
-    addItemResult(entry, e.message);
-    return;
-  }
-
-  setItemProgress(entry, false, 70);
-
-  // Step 3: Confirm — wait for metadata if still extracting
-  setItemStatus(entry, 'uploading', 'Finalizing…');
-  if (entry.metaPromise && !entry.metadata) {
-    try { entry.metadata = await entry.metaPromise; } catch { /* use null */ }
-  }
-  let jobId;
-  try {
-    const tok3 = await getToken();
-    const resp = await fetch(`${BASE}/api/upload/confirm/${presign.gpx_file_id}`, {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + tok3, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        find_count: entry.metadata?.findCount ?? null,
-        data_through: entry.metadata?.dataThrough ?? null,
-        format: entry.metadata?.format ?? 'unknown',
-        detected_username: entry.metadata?.detectedUsername ?? null,
-        counties: entry.metadata?.counties ?? [],
-        finds: entry.metadata?.finds ?? [],
-      })
-    });
-    const result = await resp.json();
-    if (result.error) throw new Error(result.error);
-    jobId = result.job_id;
-    entry.jobId = jobId;
-  } catch (e) {
-    setItemStatus(entry, 'error', 'Confirm failed');
-    addItemResult(entry, e.message);
-    return;
-  }
-
-  // Step 4: Mark complete using browser-extracted metadata
-  // No polling needed — metadata was extracted during file selection.
-  setItemStatus(entry, 'complete', 'Complete');
-  setItemProgress(entry, false, 100);
-  const meta = entry.metadata;
-  if (meta?.findCount) {
-    let msg = `${meta.findCount.toLocaleString()} finds · through ${fmtDate(meta.dataThrough)} · ${(meta.format || 'unknown').toUpperCase()}`;
-    if (meta.counties?.length) msg += ` · ${meta.counties.length.toLocaleString()} counties`;
-    addItemResult(entry, msg);
-  } else {
-    addItemResult(entry, 'Uploaded successfully');
-  }
-}
-
-document.getElementById('upload-btn').addEventListener('click', async () => {
-  const btn = document.getElementById('upload-btn');
-  btn.disabled = true;
-  btn.textContent = 'Uploading…';
-
-  const queued = selectedFiles.filter(f => f.status === 'queued');
-  // Upload all files in parallel — queue handles parse concurrency
-  await Promise.all(queued.map(entry => uploadFile(entry)));
-
-  btn.disabled = false;
-  btn.textContent = 'Upload selected files';
-
-  // Refresh the summary panel
-  await loadGpxSummary();
-  selectedFiles = selectedFiles.filter(f => f.status !== 'complete');
-  if (selectedFiles.length === 0) btn.style.display = 'none';
-});
 
 // ── Auth ──────────────────────────────────────────────────────────
 window.addEventListener('load', async () => {
-  await window.Clerk.load({
-    appearance: {
-      variables: {
-        colorPrimary: '#7a5621', colorBackground: '#fdfaf0',
-        colorInputBackground: '#ffffff', colorInputText: '#1f1810',
-        colorText: '#1f1810', colorTextSecondary: '#4a3f2e',
-        colorNeutral: '#c9bda0', colorDanger: '#a83328',
-        borderRadius: '2px',
-        fontFamily: "'Source Serif 4', Charter, Georgia, serif",
-        fontFamilyButtons: "'JetBrains Mono', monospace",
-        fontSize: '16px',
-      },
-      elements: {
-        card: {
-          background: 'rgba(255,252,240,0.7)', border: '1px solid #c9bda0',
-          borderTop: '3px solid #a87832', borderRadius: '0',
-          boxShadow: '0 1px 0 rgba(31,24,16,0.04), 0 8px 24px -16px rgba(31,24,16,0.15)',
-        },
-        headerTitle: { fontFamily: "'Fraunces', serif", fontWeight: '600', fontSize: '1.4rem', color: '#1f1810' },
-        formButtonPrimary: {
-          background: '#7a5621', fontFamily: "'JetBrains Mono', monospace",
-          fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.1em', borderRadius: '2px',
-        },
-        footerActionLink: { color: '#7a5621' },
-      },
-    },
+  await window.Clerk.load();
+  const loadingEl    = document.getElementById('loading-state');
+  const accessDenied = document.getElementById('access-denied');
+  const mainContent  = document.getElementById('main-content');
+  const navUser      = document.getElementById('nav-user');
+  const navUserName  = document.getElementById('nav-user-name');
+
+  document.getElementById('signout-btn').addEventListener('click', async () => {
+    await window.Clerk.signOut(); location.href='/account/';
   });
-
-  const loadingEl     = document.getElementById('loading-state');
-  const signInEl      = document.getElementById('clerk-sign-in');
-  const signedInPanel = document.getElementById('signed-in-panel');
-  const greetingEl    = document.getElementById('signed-in-greeting');
-  const subEl         = document.getElementById('signed-in-sub');
-  const navUser       = document.getElementById('nav-user');
-  const navUserName   = document.getElementById('nav-user-name');
-  const navSigninLink = document.getElementById('nav-signin-link');
-  const navSignoutBtn = document.getElementById('nav-signout-btn');
-  const signoutBtn    = document.getElementById('signout-btn');
-
-  async function showSignedIn(user) {
-    const name = user.firstName || user.fullName || user.primaryEmailAddress?.emailAddress || 'Cacher';
-    loadingEl.style.display    = 'none';
-    signInEl.style.display     = 'none';
-    signedInPanel.style.display = 'block';
-    greetingEl.textContent = `Welcome back, ${name}.`;
-    subEl.textContent = user.primaryEmailAddress?.emailAddress ?? '';
-    navSigninLink.style.display = 'none';
-    navUser.style.display = 'flex';
-    navUserName.textContent = name;
-    await loadGpxSummary();
-  }
-
-  function showSignedOut() {
-    loadingEl.style.display     = 'none';
-    signedInPanel.style.display = 'none';
-    signInEl.style.display      = 'block';
-    navUser.style.display       = 'none';
-    navSigninLink.style.display = 'inline-block';
-    window.Clerk.mountSignIn(signInEl, {
-      routing: 'hash', afterSignInUrl: '/account/', afterSignUpUrl: '/account/',
-    });
-  }
-
-  async function syncUser() {
-    try {
-      const token = await getToken();
-      await fetch(`${BASE}/api/account/sync`, {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-      });
-    } catch (e) { console.warn('Sync failed:', e); }
-  }
-
-  async function handleSignOut() {
-    await window.Clerk.signOut();
-    showSignedOut();
-  }
-
-  signoutBtn.addEventListener('click', handleSignOut);
-  navSignoutBtn.addEventListener('click', handleSignOut);
 
   const user = window.Clerk.user;
-  if (user) {
-    showSignedIn(user);
-    syncUser();
-  } else {
-    showSignedOut();
-  }
+  if (!user) { location.href='/account/'; return; }
 
-  window.Clerk.addListener(async ({ user }) => {
-    if (user) { showSignedIn(user); await syncUser(); }
-  });
+  const name = user.firstName || user.fullName || user.primaryEmailAddress?.emailAddress || 'Admin';
+  navUser.style.display = 'flex';
+  navUserName.textContent = name;
+
+  try {
+    const token = await getToken();
+    const resp  = await fetch(`${ADMIN_BASE}/api/admin/reference-lists`, {headers:{'Authorization':'Bearer '+token}});
+    if (resp.status === 403) {
+      loadingEl.style.display = 'none';
+      accessDenied.style.display = 'block';
+      return;
+    }
+    loadingEl.style.display = 'none';
+    mainContent.style.display = 'block';
+    // Sections start collapsed
+  } catch(e) {
+    loadingEl.textContent = 'Error loading admin panel.';
+  }
 });
 </script>
-
 </body>
 </html>

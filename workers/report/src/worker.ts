@@ -19,7 +19,7 @@ import { requireAuth, unauthorizedResponse, AuthError } from './auth.js';
 import { handleAccountSync, handleAccountMe, handleGpxFiles } from './account.js';
 import { handlePresign, handleUploadData, handleConfirm, handleJobStatus } from './upload.js';
 import { handleReportRunFromR2, handleReportStatus } from './reportRun.js';
-import { handleTripRun, handleTripStatus, handleTripResult } from './tripPipeline.js';
+import { handleTripRun, handleTripStatus, handleTripResult, handleTripCancel } from './tripPipeline.js';
 import { handleGetPreferences, handleGetPreference, handleSetPreference, handleDeletePreference } from './preferences.js';
 import { handleListTrips, handleCreateTrip, handleGetTrip, handleUpdateTrip, handleDeleteTrip, handleListCompanions, handleAddCompanion, handleRemoveCompanion, handleListFinders, handleUpdateFinder } from './trips.js';
 import type { TripInput } from './types.js';
@@ -173,6 +173,11 @@ export default {
     const tripRunMatch = url.pathname.match(/^\/api\/report\/trip\/([\w-]+)\/run$/);
     if (tripRunMatch && request.method === 'POST') {
       return addCors(await handleTripRun(tripRunMatch[1], user, env), request);
+    }
+
+    const tripCancelMatch = url.pathname.match(/^\/api\/report\/trip\/([\w-]+)\/cancel\/([\w-]+)$/);
+    if (tripCancelMatch && request.method === 'POST') {
+      return addCors(await handleTripCancel(tripCancelMatch[1], tripCancelMatch[2], user, env), request);
     }
 
     const tripStatusMatch = url.pathname.match(/^\/api\/report\/trip\/([\w-]+)\/status\/([\w-]+)$/);

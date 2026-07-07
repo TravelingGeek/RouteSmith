@@ -61,9 +61,12 @@ export default {
 
     // Health check (no auth)
     if (url.pathname === '/api/admin/health') {
-      return addCors(new Response(JSON.stringify({ ok: true }), {
-        headers: { 'Content-Type': 'application/json' },
-      }), request);
+      return addCors(new Response(JSON.stringify({
+        ok: true,
+        worker: 'routesmith-admin',
+        build: '2026.07.07.001',
+        timestamp: new Date().toISOString(),
+      }), { headers: { 'Content-Type': 'application/json' } }), request);
     }
 
     // ── Auth: verify Clerk JWT ────────────────────────────────────────────────

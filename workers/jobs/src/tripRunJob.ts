@@ -18,6 +18,16 @@ export async function handleTripRunJob(
 ): Promise<TripRunResult> {
   const ts = Math.floor(Date.now() / 1000);
 
+  // Check if job was cancelled before processing
+  const jobCheck = await env.DB
+    .prepare(`SELECT status FROM jobs WHERE job_id = ?`)
+    .bind(jobId)
+    .first<{ status: string }>();
+  if (jobCheck?.status === 'cancelled') {
+    console.log(`[trip_run] job_id=${jobId} cancelled before processing`);
+    return { result_r2_key: '', trip_find_count: 0, lifetime_find_count: 0 };
+  }
+
   await env.DB.prepare(
     `UPDATE jobs SET status = 'processing', attempt_count = ?, updated_at = ? WHERE job_id = ?`
   ).bind(attemptNumber, ts, jobId).run();
@@ -273,12 +283,7 @@ export async function handleTripRunJob(
       hasFp: tripFinds.filter(w => w.favoritePoints > 0).length / Math.max(tripFinds.length, 1) >= 0.1,
     },
   };
-
-  // Per-day size breakdown
-  mappedByDay.forEach((d: any, i: number) => {
-    console.log(`[trip_run] day ${i} sizes: byCacheType=${JSON.stringify(d.byCacheType).length} bestFind=${JSON.stringify(d.bestFind).length} total=${JSON.stringify(d).length}`);
-  });
-  // Diagnose which fields are large
+// Diagnose which fields are large
   console.log('[trip_run] size breakdown:',
     'ruleResults:', JSON.stringify(result.ruleResults).length,
     'byDay (raw):', JSON.stringify(byDay).length,
@@ -288,8 +293,7 @@ export async function handleTripRunJob(
     'aggregate:', JSON.stringify(result.aggregate).length,
   );
   const serialized = JSON.stringify(result);
-  console.log(`[trip_run] result JSON size: ${serialized.length} bytes (${(serialized.length/1024).toFixed(1)}KB)`);
-  const encoded = new TextEncoder().encode(serialized);
+const encoded = new TextEncoder().encode(serialized);
   await env.REPORT_BUCKET.put(result_r2_key, encoded.buffer as ArrayBuffer, {
     httpMetadata: { contentType: 'application/json' },
   });

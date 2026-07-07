@@ -161,3 +161,38 @@ export async function handleTripResult(
 
   return new Response(await obj.text(), { headers: { 'Content-Type': 'application/json' } });
 }
+
+// ============================================================================
+// POST /api/report/trip/:id/cancel/:job_id
+// ============================================================================
+
+export async function handleTripCancel(
+  tripId: string,
+  jobId: string,
+  user: AuthUser,
+  env: Env,
+): Promise<Response> {
+  const job = await env.DB
+    .prepare(`SELECT job_id, status FROM jobs WHERE job_id = ? AND user_id = ?`)
+    .bind(jobId, user.userId)
+    .first<{ job_id: string; status: string }>();
+
+  if (!job) return new Response(JSON.stringify({ error: 'Job not found' }), {
+    status: 404, headers: { 'Content-Type': 'application/json' }
+  });
+
+  if (job.status === 'complete' || job.status === 'failed' || job.status === 'cancelled') {
+    return new Response(JSON.stringify({ error: `Job already ${job.status}` }), {
+      status: 400, headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
+  const ts = Math.floor(Date.now() / 1000);
+  await env.DB.prepare(
+    `UPDATE jobs SET status = 'cancelled', error = 'Cancelled by user', updated_at = ?, completed_at = ? WHERE job_id = ?`
+  ).bind(ts, ts, jobId).run();
+
+  return new Response(JSON.stringify({ cancelled: true, job_id: jobId }), {
+    headers: { 'Content-Type': 'application/json' }
+  });
+}
