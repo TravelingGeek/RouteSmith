@@ -263,7 +263,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
   </div>
 </div>
 
-<footer>Build 2026.07.05.023</footer>
+<footer>Build 2026.07.05.024</footer>
 
 <script>
 const BASE     = 'https://routesmith-report.gtl6645.workers.dev';
@@ -398,6 +398,15 @@ function toggleMapSection(id) {
   chev.classList.toggle('open',!isOpen);
 }
 
+function setVizMode(mode) {
+  ['fill','pins','arcs','rings'].forEach(m=>{
+    const btn=document.getElementById('vbtn-'+m);
+    if(btn&&!btn.disabled) btn.classList.toggle('active',m===mode);
+  });
+  // Fill and Pins implemented; Arcs/Rings deferred to multi-finder
+  // TODO: implement pin markers layer for 'pins' mode
+}
+
 function setBaseMap(mode) {
   if (currentBaseMap===mode) return;
   currentBaseMap = mode;
@@ -409,7 +418,16 @@ function setBaseMap(mode) {
   mapInstance.setStyle(BASE_STYLES[mode],{diff:false});
   mapInstance.once('style.load',()=>{
     if (currentBaseMap==='topo') addTopoOverlay();
-    if (mapLoaded) rebuildMapLayers();
+    if (mapLoaded && mapInstance.getSource('counties') === undefined) {
+      // Source was lost on style reload — re-add it with current data
+      const src = state._lastPaintedGeojson;
+      if (src) {
+        mapInstance.addSource('counties',{type:'geojson',data:src});
+        rebuildMapLayers();
+      }
+    } else if (mapLoaded) {
+      rebuildMapLayers();
+    }
   });
 }
 
@@ -464,6 +482,7 @@ async function renderCountyMap() {
       mapCountyFips[fips] = {county:feat.properties.NAME, stateAbbrev, status};
     }
 
+    state._lastPaintedGeojson = null; // will be set below
     const paintedGeojson = {
       ...geojson,
       features: geojson.features.map(f=>({
@@ -475,6 +494,8 @@ async function renderCountyMap() {
         }
       }))
     };
+
+    state._lastPaintedGeojson = paintedGeojson;
 
     if (!mapInstance) {
       mapboxgl.accessToken = MAPBOX_TOKEN;
@@ -715,6 +736,13 @@ function renderPanelContent(catId,sub) {
               <span class="map-sidebar-chev open" id="mschev-viz">▼</span>
             </div>
             <div class="map-sidebar-body open" id="msbody-viz">
+              <div class="map-sidebar-lbl" style="margin-bottom:5px;">Style</div>
+              <div class="viz-toggle">
+                <button class="viz-btn active" id="vbtn-fill" onclick="setVizMode('fill')">Fill</button>
+                <button class="viz-btn" id="vbtn-pins" onclick="setVizMode('pins')">Pins</button>
+                <button class="viz-btn" id="vbtn-arcs" onclick="setVizMode('arcs')" title="Multi-finder only" style="opacity:0.5;cursor:not-allowed;" disabled>Arcs</button>
+                <button class="viz-btn" id="vbtn-rings" onclick="setVizMode('rings')" title="Multi-finder only" style="opacity:0.5;cursor:not-allowed;" disabled>Rings</button>
+              </div>
               <div class="map-sidebar-lbl" style="margin-bottom:5px;">Base Map</div>
               <div class="viz-toggle">
                 <button class="viz-btn active" id="bmap-road" onclick="setBaseMap('road')">Road</button>
