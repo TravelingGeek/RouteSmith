@@ -107,14 +107,7 @@ body{font-family:'Source Serif 4',Charter,Georgia,serif;font-size:15px;line-heig
 .map-legend-swatch{width:18px;height:11px;border-radius:2px;border:1px solid rgba(0,0,0,0.12);flex-shrink:0;}
 .finder-row{display:flex;align-items:center;gap:6px;font-size:0.74rem;color:var(--ink-soft);}
 .finder-dot-sm{width:10px;height:10px;border-radius:50%;flex-shrink:0;border:1.5px solid rgba(0,0,0,0.12);}
-.county-list-items{overflow-y:auto;max-height:300px;}
-.county-list-item{padding:5px 12px;border-bottom:1px solid var(--rule-soft);cursor:pointer;transition:background 0.12s;}
-.county-list-item:hover{background:var(--paper-mid);}
-.county-list-item.active{background:rgba(45,90,42,0.08);border-left:2px solid var(--forge);padding-left:12px;}
-.county-list-name{font-size:0.80rem;font-weight:600;color:var(--ink);}
-.county-list-state{font-family:'JetBrains Mono',monospace;font-size:0.62rem;color:var(--ink-muted);}
-.county-list-chips{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;}
-.county-chip{font-size:0.64rem;padding:1px 6px;border-radius:2px;font-family:'JetBrains Mono',monospace;border:1px solid currentColor;}
+
 .map-info-box{padding:8px 12px;font-size:0.76rem;color:var(--ink-muted);line-height:1.5;flex-shrink:0;border-top:1px solid var(--rule-soft);}
 
 
@@ -260,7 +253,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
   </div>
 </div>
 
-<footer>Build 2026.07.05.030</footer>
+<footer>Build 2026.07.05.031</footer>
 
 <script>
 const BASE     = 'https://routesmith-report.gtl6645.workers.dev';
@@ -532,6 +525,8 @@ async function renderCountyMap() {
         buildMapLayers(paintedGeojson);
         fitMapToBounds(tripNewFips,tripPrevFips,geojson);
         if (loadingEl) loadingEl.style.display='none';
+        // Force resize to ensure canvas fills container
+        setTimeout(()=>mapInstance.resize(), 100);
       };
       mapInstance.once('style.load', onMapReady);
       mapInstance.once('load', onMapReady);
@@ -592,34 +587,17 @@ function rebuildMapLayers() {
 }
 
 function wireMapEvents() {
-  const popup = new mapboxgl.Popup({closeButton:false,closeOnClick:false});
-  mapInstance.on('mousemove','county-fill',e=>{
-    if (!e.features.length) return;
-    const f  = e.features[0];
-    const st = f.properties.status ?? 0;
-    if (st===0) { popup.remove(); return; }
-    const countyName  = f.properties.NAME;
-    const stateAbbrev = f.properties.stateAbbrev||FIPS_TO_STATE[String(f.id).padStart(5,'0').slice(0,2)]||'';
-    const label = st===3?'New this trip':st===2?'Found this trip (prior)':'Lifetime find';
-    const lc    = st===3?'#1a5c28':st===2?'#4a7a54':'#7a6f5a';
-    mapInstance.getCanvas().style.cursor='pointer';
-    popup.setLngLat(e.lngLat)
-      .setHTML(`<div style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;line-height:1.5;">
-        <strong style="font-family:'Source Serif 4',serif;font-size:0.88rem;">${countyName} County</strong><br>
-        <span style="color:#666;">${stateAbbrev}</span><br>
-        <span style="color:${lc};font-weight:600;">${label}</span>
-      </div>`)
-      .addTo(mapInstance);
-  });
-  mapInstance.on('mouseleave','county-fill',()=>{
-    mapInstance.getCanvas().style.cursor='';
-    popup.remove();
-  });
+  // Click to show county detail
   mapInstance.on('click','county-fill',e=>{
     if (!e.features.length) return;
-    const fips = String(e.features[0].id).padStart(5,'0');
+    const f   = e.features[0];
+    const st  = f.properties.status ?? 0;
+    if (st===0) return;
+    const fips = String(f.id).padStart(5,'0');
     highlightCountyInSidebar(fips);
   });
+  mapInstance.on('mouseenter','county-fill',()=>{ mapInstance.getCanvas().style.cursor='pointer'; });
+  mapInstance.on('mouseleave','county-fill',()=>{ mapInstance.getCanvas().style.cursor=''; });
 }
 
 function fitMapToBounds(tripNewFips,tripPrevFips,geojson) {
@@ -651,30 +629,7 @@ function buildMapSidebar(tripNewFips,tripPrevFips) {
     ownerNameEl.textContent = state.report.owner.gc_username||state.report.owner.display_name||'—';
   }
 
-  const tripFips = [...tripNewFips,...tripPrevFips];
-  const listEl   = document.getElementById('map-county-list');
-  const countEl  = document.getElementById('map-county-count');
-  if (!listEl) return;
-
-  if (!tripFips.length) {
-    listEl.innerHTML='<div style="padding:10px 14px;font-size:0.82rem;color:var(--ink-muted);">No trip counties found.</div>';
-    if (countEl) countEl.textContent='0';
-    return;
-  }
-  if (countEl) countEl.textContent=tripFips.length;
-
-  const items = tripFips.map(fips=>{
-    const meta = mapCountyFips[fips];
-    if (!meta) return null;
-    return {fips, county:meta.county, stateAbbrev:meta.stateAbbrev, isNew:tripNewFips.has(fips)};
-  }).filter(Boolean).sort((a,b)=>a.stateAbbrev.localeCompare(b.stateAbbrev)||a.county.localeCompare(b.county));
-
-  listEl.innerHTML = items.map(item=>`
-    <div class="county-list-item" data-fips="${item.fips}" onclick="flyToCounty('${item.fips}')">
-      <div class="county-list-name">${item.county}</div>
-      <div class="county-list-state">${item.stateAbbrev}</div>
-      ${item.isNew?'<div class="county-list-chips"><span class="county-chip" style="color:var(--forge);border-color:var(--forge);background:rgba(45,90,42,0.08);">★ New</span></div>':''}
-    </div>`).join('');
+  // County list removed — stats and gc.com link coming in next iteration (see todo)
 }
 
 function flyToCounty(fips) {
@@ -691,14 +646,12 @@ function flyToCounty(fips) {
 }
 
 function highlightCountyInSidebar(fips) {
-  document.querySelectorAll('.county-list-item.active').forEach(el=>el.classList.remove('active'));
-  const item = document.querySelector(`.county-list-item[data-fips="${fips}"]`);
-  if (item) { item.classList.add('active'); item.scrollIntoView({block:'nearest',behavior:'smooth'}); }
   const meta   = mapCountyFips[fips];
   const infoEl = document.getElementById('map-info-box');
   if (!infoEl||!meta) return;
-  const label = meta.status===3?'New this trip':meta.status===2?'Found this trip (prior)':meta.status===1?'Lifetime find':'Never found';
+  const label = meta.status===3?'New this trip':meta.status===2?'Found again':meta.status===1?'Lifetime find':'Never found';
   const color = meta.status===3?'var(--forge)':meta.status===2?'#4a7a54':'var(--ink-muted)';
+  // TODO: add more statistics and gc.com link here
   infoEl.innerHTML=`<strong style="color:var(--ink);font-family:'Fraunces',serif;">${meta.county} County, ${meta.stateAbbrev}</strong><br>
     <span style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:${color};">${label}</span>`;
 }
@@ -772,7 +725,7 @@ function renderPanelContent(catId,sub) {
             <div class="map-sidebar-body open" id="msbody-viz">
               <div class="map-sidebar-lbl" style="margin-bottom:5px;">Style</div>
               <div class="viz-toggle">
-                <button class="viz-btn active" id="vbtn-pins" onclick="setVizMode('pins')">Pins</button>
+                <button class="viz-btn" id="vbtn-pins" onclick="setVizMode('pins')" title="Multi-finder only" style="opacity:0.5;cursor:not-allowed;" disabled>Pins</button>
                 <button class="viz-btn" id="vbtn-arcs" onclick="setVizMode('arcs')" title="Multi-finder only" style="opacity:0.5;cursor:not-allowed;" disabled>Arcs</button>
                 <button class="viz-btn" id="vbtn-rings" onclick="setVizMode('rings')" title="Multi-finder only" style="opacity:0.5;cursor:not-allowed;" disabled>Rings</button>
               </div>
@@ -792,7 +745,7 @@ function renderPanelContent(catId,sub) {
             <div class="map-sidebar-body open" id="msbody-legend">
               <div class="map-legend-rows">
                 <div class="map-legend-row"><div class="map-legend-swatch" style="background:#2d8a3e;"></div>New this trip</div>
-                <div class="map-legend-row"><div class="map-legend-swatch" style="background:#78b882;"></div>Found this trip (prior)</div>
+                <div class="map-legend-row"><div class="map-legend-swatch" style="background:#78b882;"></div>Found again</div>
                 <div class="map-legend-row"><div class="map-legend-swatch" style="background:#8a7a64;"></div>Lifetime find</div>
                 <div class="map-legend-row"><div class="map-legend-swatch" style="background:transparent;border:1px solid #aaa;"></div>Never found</div>
               </div>
@@ -810,16 +763,7 @@ function renderPanelContent(catId,sub) {
               </div>
             </div>
           </div>
-          <div class="map-sidebar-section" style="flex:1;display:flex;flex-direction:column;min-height:0;">
-            <div class="map-sidebar-hdr" onclick="toggleMapSection('counties')">
-              <span class="map-sidebar-lbl">Counties (<span id="map-county-count">0</span>)</span>
-              <span class="map-sidebar-chev open" id="mschev-counties">▼</span>
-            </div>
-            <div class="map-sidebar-body open" id="msbody-counties" style="max-height:none;flex:1;padding:0;overflow-y:auto;">
-              <div class="county-list-items" id="map-county-list"></div>
-            </div>
-          </div>
-          <div class="map-info-box" id="map-info-box">Click a county on the map or in the list.</div>
+          <div class="map-info-box" id="map-info-box">Click a county on the map for details.</div>
 
         </aside>
       </div>`;
