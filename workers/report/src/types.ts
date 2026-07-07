@@ -302,4 +302,5 @@ export interface Env {
   DB: D1Database;
   CLERK_SECRET_KEY: string;
   JOBS_QUEUE: Queue<JobMessage>;
+  MAPBOX_TOKEN: string;
 }

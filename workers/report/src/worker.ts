@@ -125,6 +125,13 @@ export default {
       return addCors(await handleRemoveCompanion(companionItem[1], companionItem[2], user, env), request);
     }
 
+    // Mapbox token — authenticated users only, token never in client source
+    if (url.pathname === '/api/config/mapbox-token' && request.method === 'GET') {
+      return addCors(new Response(JSON.stringify({ token: env.MAPBOX_TOKEN ?? '' }), {
+        headers: { 'Content-Type': 'application/json' },
+      }), request);
+    }
+
     // County map lifetime data
     if (url.pathname === '/api/county-map/lifetime' && request.method === 'GET') {
       const ownerFinder = await env.DB

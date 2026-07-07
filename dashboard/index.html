@@ -277,11 +277,11 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
   </div>
 </div>
 
-<footer>Build 2026.07.05.021</footer>
+<footer>Build 2026.07.05.022</footer>
 
 <script>
 const BASE     = 'https://routesmith-report.gtl6645.workers.dev';
-const MAPBOX_TOKEN = 'pk.eyJ1IjoidHJhdmVsaW5nZ2VlayIsImEiOiJjbXIyejAycXMwYWY0MnpweGFocHYwYjR1In0.3oZ5NSxcUTgfqcftNVpahg';
+const MAPBOX_TOKEN = 'pk.eyJ1IjoiZ3RsNjY0NSIsImEiOiJjbTFrN3JkZnUwMGNpMmpwejdoY3lhcnN2In0.oMBGYUB8R9sk3h1rb1Ie1A';
 const getToken = () => window.Clerk.session.getToken({ template: 'routesmith' });
 
 // ── State ─────────────────────────────────────────────────────────
@@ -1097,6 +1097,18 @@ window.addEventListener('load', async () => {
     state.pinnedCats  = state.prefs['dashboard.pinned_categories'] ?? ['counties','highlights'];
     state.animEnabled = state.prefs['dashboard.animations_enabled'] !== false;
   } catch { /* use defaults */ }
+
+  // Fetch Mapbox token from Worker (never hardcoded in client source)
+  try {
+    const tok = await getToken();
+    const tkResp = await fetch(`${BASE}/api/config/mapbox-token`, {
+      headers: { 'Authorization': 'Bearer ' + tok }
+    });
+    const tkData = await tkResp.json();
+    MAPBOX_TOKEN = tkData.token ?? '';
+  } catch(e) {
+    console.warn('Failed to load Mapbox token:', e);
+  }
 
   setAnimEnabled(state.animEnabled);
 
