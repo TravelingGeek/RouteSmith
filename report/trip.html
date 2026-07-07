@@ -325,6 +325,8 @@
       <a href="/report/">Your Trips</a>
       <span class="sep">›</span>
       <span id="breadcrumb-name">Trip</span>
+      <span id="breadcrumb-dashboard-sep" class="sep" style="display:none;">›</span>
+      <a href="#" id="breadcrumb-dashboard-link" style="display:none;">← Dashboard</a>
     </div>
 
     <!-- Trip header -->
@@ -337,6 +339,7 @@
         <div class="trip-header-actions">
           <span class="status-badge draft" id="trip-status-badge">draft</span>
           <button class="btn-secondary" id="edit-trip-btn">Edit</button>
+          <button class="btn-secondary" id="delete-trip-btn" style="color:var(--stamp);border-color:var(--stamp);">Delete</button>
         </div>
       </div>
       <div class="trip-meta-grid" id="trip-meta-grid"></div>
@@ -443,7 +446,7 @@
   <span class="sep">·</span>
   <span>Forged 2026</span>
   <span class="sep">·</span>
-  <span>Build 2026.07.05.018</span>
+  <span>Build 2026.07.05.031</span>
 </footer>
 
 <script>
@@ -744,6 +747,41 @@ document.getElementById('companion-save').addEventListener('click', async () => 
 
 // ── Run Report ────────────────────────────────────────────────────
 function initRunReport() {
+  // Show dashboard link if we came from there
+  const ref = document.referrer;
+  const dashLink = document.getElementById('breadcrumb-dashboard-link');
+  const dashSep  = document.getElementById('breadcrumb-dashboard-sep');
+  if (dashLink && (ref.includes('/dashboard/') || sessionStorage.getItem('fromDashboard'))) {
+    dashLink.href = `/dashboard/?id=${TRIP_ID}`;
+    dashLink.style.display = 'inline';
+    dashSep.style.display = 'inline';
+    sessionStorage.setItem('fromDashboard', '1');
+  }
+
+  // Delete trip
+  const deleteBtn = document.getElementById('delete-trip-btn');
+  if (deleteBtn) {
+    deleteBtn.addEventListener('click', async () => {
+      if (!confirm(`Delete "${trip?.name}"?\n\nThis cannot be undone.`)) return;
+      deleteBtn.disabled = true;
+      deleteBtn.textContent = 'Deleting…';
+      try {
+        const token = await getToken();
+        const resp  = await fetch(\`\${BASE}/api/trips/\${TRIP_ID}\`, {
+          method: 'DELETE',
+          headers: { 'Authorization': 'Bearer ' + token },
+        });
+        const result = await resp.json();
+        if (result.error) throw new Error(result.error);
+        location.href = '/report/';
+      } catch(e) {
+        alert('Delete failed: ' + e.message);
+        deleteBtn.disabled = false;
+        deleteBtn.textContent = 'Delete';
+      }
+    });
+  }
+
   const btn      = document.getElementById('run-report-btn');
   const statusEl = document.getElementById('report-status');
   if (!btn) return;

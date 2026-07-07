@@ -279,6 +279,35 @@ export async function handleDeleteTrip(
 }
 
 // ============================================================================
+// DELETE /api/trips/:id
+// ============================================================================
+
+export async function handleDeleteTrip(
+  tripId: string,
+  user: AuthUser,
+  env: Env,
+): Promise<Response> {
+  const trip = await env.DB
+    .prepare(`SELECT trip_id FROM trips WHERE trip_id = ? AND user_id = ?`)
+    .bind(tripId, user.userId).first();
+  if (!trip) return jsonError('Trip not found', 404);
+
+  const ts = now();
+  try {
+    // Delete in dependency order
+    await env.DB.batch([
+      env.DB.prepare(`DELETE FROM trip_finders  WHERE trip_id = ?`).bind(tripId),
+      env.DB.prepare(`DELETE FROM trip_reports  WHERE trip_id = ?`).bind(tripId),
+      env.DB.prepare(`DELETE FROM enabled_rules WHERE trip_id = ?`).bind(tripId),
+      env.DB.prepare(`DELETE FROM trips         WHERE trip_id = ? AND user_id = ?`).bind(tripId, user.userId),
+    ]);
+    return jsonResponse({ deleted: true, trip_id: tripId });
+  } catch (e) {
+    return jsonError(`Delete failed: ${(e as Error).message}`, 500);
+  }
+}
+
+// ============================================================================
 // GET /api/trips/:id/companions — List companions on a trip
 // ============================================================================
 

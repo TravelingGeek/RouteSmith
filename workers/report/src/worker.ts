@@ -98,6 +98,9 @@ export default {
       return addCors(await handleCreateTrip(request, user, env), request);
     }
     const tripMatch = url.pathname.match(/^\/api\/trips\/([\w-]+)$/);
+    if (tripMatch && request.method === 'DELETE') {
+      return addCors(await handleDeleteTrip(tripMatch[1], user, env), request);
+    }
     if (tripMatch) {
       const tripId = tripMatch[1];
       if (request.method === 'GET')    return addCors(await handleGetTrip(tripId, user, env), request);
