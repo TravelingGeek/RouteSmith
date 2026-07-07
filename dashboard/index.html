@@ -98,6 +98,45 @@ body{font-family:'Source Serif 4',Charter,Georgia,serif;font-size:15px;line-heig
 .legend-swatch{width:16px;height:16px;border-radius:2px;flex-shrink:0;}
 .map-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:var(--paper);z-index:3;font-family:'JetBrains Mono',monospace;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.14em;color:var(--ink-muted);}
 
+/* Map panel with sidebar */
+.map-panel{position:absolute;inset:0;display:flex;}
+.map-area{flex:1;position:relative;}
+#county-map{position:absolute;inset:0;}
+.map-sidebar{width:260px;flex-shrink:0;background:var(--paper);border-left:1px solid var(--rule);display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;}
+.map-sidebar-section{border-bottom:1px solid var(--rule-soft);}
+.map-sidebar-hdr{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;cursor:pointer;user-select:none;}
+.map-sidebar-hdr:hover{background:rgba(168,120,50,0.04);}
+.map-sidebar-lbl{font-family:'JetBrains Mono',monospace;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--ink-muted);}
+.map-sidebar-chev{font-size:0.68rem;color:var(--ink-muted);transition:transform 0.2s;}
+.map-sidebar-chev.open{transform:rotate(180deg);}
+.map-sidebar-body{overflow:hidden;transition:max-height 0.25s ease,padding 0.25s ease;}
+.map-sidebar-body.open{max-height:600px;padding:10px 14px;}
+.map-sidebar-body.closed{max-height:0;padding:0 14px;}
+.viz-toggle{display:flex;background:var(--paper-mid);border:1px solid var(--rule);border-radius:2px;overflow:hidden;margin-bottom:8px;}
+.viz-btn{flex:1;padding:6px 0;border:none;background:transparent;font-family:'JetBrains Mono',monospace;font-size:0.68rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-muted);cursor:pointer;transition:background 0.15s,color 0.15s;border-right:1px solid var(--rule);}
+.viz-btn:last-child{border-right:none;}
+.viz-btn:hover{background:var(--rule-soft);color:var(--ink);}
+.viz-btn.active{background:var(--forge);color:white;font-weight:600;}
+.map-legend-rows{display:flex;flex-direction:column;gap:5px;}
+.map-legend-row{display:flex;align-items:center;gap:8px;font-size:0.76rem;color:var(--ink-muted);}
+.map-legend-swatch{width:18px;height:11px;border-radius:2px;border:1px solid rgba(0,0,0,0.12);flex-shrink:0;}
+.finder-row{display:flex;align-items:center;gap:8px;font-size:0.78rem;color:var(--ink-soft);}
+.finder-dot-sm{width:10px;height:10px;border-radius:50%;flex-shrink:0;border:1.5px solid rgba(0,0,0,0.12);}
+.county-list-items{overflow-y:auto;max-height:300px;}
+.county-list-item{padding:7px 14px;border-bottom:1px solid var(--rule-soft);cursor:pointer;transition:background 0.12s;}
+.county-list-item:hover{background:var(--paper-mid);}
+.county-list-item.active{background:rgba(45,90,42,0.08);border-left:2px solid var(--forge);padding-left:12px;}
+.county-list-name{font-size:0.86rem;font-weight:600;color:var(--ink);}
+.county-list-state{font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:var(--ink-muted);margin-top:1px;}
+.county-list-chips{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;}
+.county-chip{font-size:0.64rem;padding:1px 6px;border-radius:2px;font-family:'JetBrains Mono',monospace;border:1px solid currentColor;}
+.map-info-box{padding:12px 14px;border-top:1px solid var(--rule-soft);font-size:0.82rem;color:var(--ink-muted);line-height:1.6;flex-shrink:0;}
+.map-capture-row{padding:10px 14px;border-top:1px solid var(--rule-soft);flex-shrink:0;}
+.capture-btn{width:100%;font-family:'JetBrains Mono',monospace;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--paper);background:var(--brass-deep);border:none;padding:8px;border-radius:2px;cursor:pointer;transition:background 0.15s;}
+.capture-btn:hover{background:var(--ink);}
+.capture-btn:disabled{opacity:0.5;cursor:not-allowed;}
+.map-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:var(--paper);z-index:3;font-family:'JetBrains Mono',monospace;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.14em;color:var(--ink-muted);}
+
 /* County list panel */
 .county-list-panel{position:absolute;inset:0;overflow-y:auto;padding:20px;}
 .county-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;}
@@ -242,7 +281,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
 
 <script>
 const BASE     = 'https://routesmith-report.gtl6645.workers.dev';
-const MAPBOX_TOKEN = 'pk.eyJ1IjoidHJhdmVsaW5nZ2VlayIsImEiOiJjbXIyejAycXMwYWY0MnpweGFocHYwYjR1In0.3oZ5NSxcUTgfqcftNVpahg';
+const MAPBOX_TOKEN = 'pk.eyJ1IjoiZ3RsNjY0NSIsImEiOiJjbTFrN3JkZnUwMGNpMmpwejdoY3lhcnN2In0.oMBGYUB8R9sk3h1rb1Ie1A';
 const getToken = () => window.Clerk.session.getToken({ template: 'routesmith' });
 
 // ── State ─────────────────────────────────────────────────────────
@@ -357,32 +396,86 @@ async function loadLifetimeCounties() {
   return state.lifetimeCounties;
 }
 
-// ── Map ───────────────────────────────────────────────────────────
-let mapInstance = null;
-let mapLoaded   = false;
+// ── FIPS → abbrev reverse lookup ─────────────────────────────────
+const FIPS_TO_STATE = Object.fromEntries(Object.entries(STATE_FIPS).map(([a,f])=>[f,a]));
 
+// ── Map state ─────────────────────────────────────────────────────
+let mapInstance   = null;
+let mapLoaded     = false;
+let currentBaseMap = 'road';
+let currentVizMode = 'fill';
+let mapCountyFips  = {}; // fips -> {county, state, stateAbbrev, status}
+let currentPopup   = null;
+
+const BASE_STYLES = {
+  road:    'mapbox://styles/mapbox/navigation-day-v1',
+  terrain: 'mapbox://styles/mapbox/outdoors-v12',
+  topo:    'mapbox://styles/mapbox/light-v11',
+};
+
+// ── Map sidebar helpers ───────────────────────────────────────────
+function toggleMapSection(id) {
+  const body = document.getElementById('msbody-' + id);
+  const chev = document.getElementById('mschev-' + id);
+  if (!body || !chev) return;
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  body.classList.toggle('closed', isOpen);
+  chev.classList.toggle('open', !isOpen);
+}
+
+function setVizMode(mode) {
+  currentVizMode = mode;
+  ['pins','fill'].forEach(m => {
+    const btn = document.getElementById('vbtn-' + m);
+    if (btn) btn.classList.toggle('active', m === mode);
+  });
+  if (mapLoaded) updateMapLayers();
+}
+
+function setBaseMap(mode) {
+  if (currentBaseMap === mode) return;
+  currentBaseMap = mode;
+  ['road','terrain','topo'].forEach(m => {
+    const btn = document.getElementById('bmap-' + m);
+    if (btn) btn.classList.toggle('active', m === mode);
+  });
+  if (!mapInstance) return;
+  mapInstance.setStyle(BASE_STYLES[mode], { diff: false });
+  mapInstance.once('style.load', () => {
+    if (currentBaseMap === 'topo') addTopoOverlay();
+    if (mapLoaded) rebuildMapLayers();
+  });
+}
+
+function addTopoOverlay() {
+  if (mapInstance.getSource('usgs-topo-src')) return;
+  mapInstance.addSource('usgs-topo-src', {
+    type:'raster',
+    tiles:['https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}'],
+    tileSize:256, maxzoom:16
+  });
+  mapInstance.addLayer({id:'usgs-topo',type:'raster',source:'usgs-topo-src',paint:{'raster-opacity':1.0}},'waterway-label');
+}
+
+// ── County map render ─────────────────────────────────────────────
 async function renderCountyMap() {
-  const panel = document.getElementById('panel-counties::map');
-  if (!panel) return;
-
-  // Show loading
-  let loadingEl = panel.querySelector('.map-loading');
+  const loadingEl = document.getElementById('map-loading-indicator');
   if (loadingEl) loadingEl.style.display = 'flex';
 
   try {
     const [geojson, lifetime] = await Promise.all([loadGeoJson(), loadLifetimeCounties()]);
     buildFipsCache(geojson);
 
-    // Build FIPS sets
-    const lifetimeFips  = new Set();
-    const tripNewFips   = new Set();
-    const tripPrevFips  = new Set();
+    // Build FIPS status map
+    const lifetimeFips = new Set();
+    const tripNewFips  = new Set();
+    const tripPrevFips = new Set();
 
     for (const c of lifetime) {
       const fips = fipsForCounty(c.county, c.state);
       if (fips) lifetimeFips.add(fips);
     }
-
     if (state.report?.countiesData) {
       for (const key of (state.report.countiesData.firstTime ?? [])) {
         const [county, st] = key.split('|');
@@ -396,52 +489,64 @@ async function renderCountyMap() {
       }
     }
 
-    // Assign status to each feature
-    const statusMap = {};
+    // Build fips metadata map
+    mapCountyFips = {};
     for (const feat of geojson.features) {
       const fips = String(feat.id).padStart(5,'0');
-      if (tripNewFips.has(fips))   statusMap[fips] = 3; // new this trip
-      else if (tripPrevFips.has(fips)) statusMap[fips] = 2; // prev found this trip
-      else if (lifetimeFips.has(fips)) statusMap[fips] = 1; // lifetime only
-      else statusMap[fips] = 0; // never
+      const stateAbbrev = FIPS_TO_STATE[fips.slice(0,2)] ?? '';
+      let status = 0;
+      if (tripNewFips.has(fips))       status = 3;
+      else if (tripPrevFips.has(fips)) status = 2;
+      else if (lifetimeFips.has(fips)) status = 1;
+      mapCountyFips[fips] = {
+        county: feat.properties.NAME,
+        stateAbbrev,
+        status,
+      };
     }
 
-    // Add status property to features
+    // Build GeoJSON with status property
     const paintedGeojson = {
       ...geojson,
       features: geojson.features.map(f => ({
         ...f,
-        properties: { ...f.properties, status: statusMap[String(f.id).padStart(5,'0')] ?? 0 }
+        properties: {
+          ...f.properties,
+          status: mapCountyFips[String(f.id).padStart(5,'0')]?.status ?? 0,
+          stateAbbrev: mapCountyFips[String(f.id).padStart(5,'0')]?.stateAbbrev ?? '',
+        }
       }))
     };
 
-    // Initialize or update map
     if (!mapInstance) {
       mapboxgl.accessToken = MAPBOX_TOKEN;
       mapInstance = new mapboxgl.Map({
         container: 'county-map',
-        style: 'mapbox://styles/mapbox/light-v11',
+        style: BASE_STYLES[currentBaseMap],
         center: [-96, 38],
         zoom: 3.5,
         preserveDrawingBuffer: true,
       });
+      mapInstance.addControl(new mapboxgl.NavigationControl(), 'bottom-left');
 
       mapInstance.on('load', () => {
         mapLoaded = true;
-        addMapLayers(paintedGeojson, tripNewFips, tripPrevFips);
+        buildMapLayers(paintedGeojson);
         fitMapToBounds(tripNewFips, tripPrevFips, geojson);
         if (loadingEl) loadingEl.style.display = 'none';
       });
     } else if (mapLoaded) {
-      // Update existing layers
       if (mapInstance.getSource('counties')) {
         mapInstance.getSource('counties').setData(paintedGeojson);
+      } else {
+        buildMapLayers(paintedGeojson);
       }
       fitMapToBounds(tripNewFips, tripPrevFips, geojson);
       if (loadingEl) loadingEl.style.display = 'none';
     }
 
     mapInstance.resize();
+    buildMapSidebar(tripNewFips, tripPrevFips, geojson);
 
   } catch(e) {
     console.error('Map error:', e);
@@ -449,94 +554,188 @@ async function renderCountyMap() {
   }
 }
 
-function addMapLayers(geojson, tripNewFips, tripPrevFips) {
-  mapInstance.addSource('counties', { type:'geojson', data:geojson });
+function buildMapLayers(paintedGeojson) {
+  if (mapInstance.getSource('counties')) {
+    mapInstance.getSource('counties').setData(paintedGeojson);
+    return;
+  }
+  mapInstance.addSource('counties', { type:'geojson', data:paintedGeojson });
+  rebuildMapLayers();
+  wireMapEvents();
+}
 
+function rebuildMapLayers() {
+  ['county-fill','county-border','county-pins'].forEach(id => {
+    try { if (mapInstance.getLayer(id)) mapInstance.removeLayer(id); } catch(e) {}
+  });
+  updateMapLayers();
+}
+
+function updateMapLayers() {
   // Fill layer
-  mapInstance.addLayer({
-    id: 'county-fill',
-    type: 'fill',
-    source: 'counties',
-    paint: {
-      'fill-color': [
-        'match', ['get','status'],
-        3, '#2d8a3e',   // new this trip — bright green
-        2, '#78b882',   // prev found this trip — muted green
-        1, '#c8bfaa',   // lifetime — warm gray
-        'rgba(0,0,0,0)' // never — transparent
-      ],
-      'fill-opacity': [
-        'match', ['get','status'],
-        3, 0.75,
-        2, 0.55,
-        1, 0.40,
-        0
-      ],
-    }
-  });
+  if (!mapInstance.getLayer('county-fill')) {
+    mapInstance.addLayer({
+      id:'county-fill', type:'fill', source:'counties',
+      paint:{
+        'fill-color':['match',['get','status'],3,'#2d8a3e',2,'#78b882',1,'#c8bfaa','rgba(0,0,0,0)'],
+        'fill-opacity':['match',['get','status'],3,0.75,2,0.55,1,0.40,0],
+      }
+    });
+  }
+  // Border
+  if (!mapInstance.getLayer('county-border')) {
+    mapInstance.addLayer({
+      id:'county-border', type:'line', source:'counties',
+      paint:{
+        'line-color':['match',['get','status'],3,'#1a5c28',2,'#4a8a54',1,'#a09080','rgba(0,0,0,0)'],
+        'line-width':['match',['get','status'],3,1.5,2,1,1,0.5,0],
+        'line-opacity':0.8,
+      }
+    });
+  }
+}
 
-  // Border layer
-  mapInstance.addLayer({
-    id: 'county-border',
-    type: 'line',
-    source: 'counties',
-    paint: {
-      'line-color': [
-        'match', ['get','status'],
-        3, '#1a5c28',
-        2, '#4a8a54',
-        1, '#a09080',
-        'rgba(0,0,0,0)'
-      ],
-      'line-width': ['match',['get','status'],3,1.5,2,1,1,0.5,0],
-      'line-opacity': 0.8,
-    }
-  });
-
-  // Hover popup
+function wireMapEvents() {
   const popup = new mapboxgl.Popup({closeButton:false, closeOnClick:false});
+
   mapInstance.on('mousemove','county-fill', e => {
     if (!e.features.length) return;
-    const f = e.features[0];
-    const status = f.properties.status;
-    if (status === 0) { popup.remove(); return; }
-    const label = status===3?'New this trip':status===2?'Found this trip (prior)':'Lifetime find';
+    const f  = e.features[0];
+    const st = f.properties.status;
+    if (st === 0) { popup.remove(); return; }
+    const countyName  = f.properties.NAME;
+    const stateAbbrev = f.properties.stateAbbrev || FIPS_TO_STATE[String(f.id).padStart(5,'0').slice(0,2)] || '';
+    const label = st===3?'New this trip':st===2?'Found this trip (prior)':'Lifetime find';
+    const labelColor = st===3?'#1a5c28':st===2?'#4a7a54':'#7a6f5a';
     mapInstance.getCanvas().style.cursor = 'pointer';
     popup.setLngLat(e.lngLat)
-      .setHTML(`<div style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;line-height:1.4;">
-        <strong>${f.properties.NAME}</strong><br>
-        <span style="color:#666;">${label}</span>
+      .setHTML(`<div style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;line-height:1.5;">
+        <strong style="font-family:'Source Serif 4',serif;font-size:0.88rem;">${countyName} County</strong><br>
+        <span style="color:#666;">${stateAbbrev}</span><br>
+        <span style="color:${labelColor};font-weight:600;">${label}</span>
       </div>`)
       .addTo(mapInstance);
   });
+
   mapInstance.on('mouseleave','county-fill', () => {
     mapInstance.getCanvas().style.cursor = '';
     popup.remove();
   });
+
+  mapInstance.on('click','county-fill', e => {
+    if (!e.features.length) return;
+    const fips = String(e.features[0].id).padStart(5,'0');
+    highlightCountyInSidebar(fips);
+  });
 }
 
 function fitMapToBounds(tripNewFips, tripPrevFips, geojson) {
-  // Fit to trip counties if we have any, else show full US
   const tripFips = new Set([...tripNewFips, ...tripPrevFips]);
   if (!tripFips.size) return;
-
   let minLng=180, maxLng=-180, minLat=90, maxLat=-90;
   for (const feat of geojson.features) {
     const fips = String(feat.id).padStart(5,'0');
     if (!tripFips.has(fips)) continue;
-    // Rough centroid from bbox
-    const coords = feat.geometry.type === 'Polygon'
+    const coords = feat.geometry.type==='Polygon'
       ? feat.geometry.coordinates[0]
       : feat.geometry.coordinates.flat(2);
-    for (const [lng, lat] of coords) {
-      if (lng < minLng) minLng = lng;
-      if (lng > maxLng) maxLng = lng;
-      if (lat < minLat) minLat = lat;
-      if (lat > maxLat) maxLat = lat;
+    for (const [lng,lat] of coords) {
+      if (lng<minLng) minLng=lng; if (lng>maxLng) maxLng=lng;
+      if (lat<minLat) minLat=lat; if (lat>maxLat) maxLat=lat;
     }
   }
   if (minLng < maxLng) {
-    mapInstance.fitBounds([[minLng, minLat],[maxLng, maxLat]], {padding:60, maxZoom:8, duration:800});
+    mapInstance.fitBounds([[minLng,minLat],[maxLng,maxLat]], {
+      padding:{top:40,bottom:40,left:40,right:40}, maxZoom:8, duration:800
+    });
+  }
+}
+
+// ── Map sidebar ───────────────────────────────────────────────────
+function buildMapSidebar(tripNewFips, tripPrevFips, geojson) {
+  // Owner name
+  const ownerNameEl = document.getElementById('map-owner-name');
+  if (ownerNameEl && state.report?.owner) {
+    ownerNameEl.textContent = state.report.owner.gc_username || state.report.owner.display_name || '—';
+  }
+
+  // County list — trip counties first (new, then prev), sorted by state then name
+  const tripFips = [...tripNewFips, ...tripPrevFips];
+  const listEl = document.getElementById('map-county-list');
+  const countEl = document.getElementById('map-county-count');
+  if (!listEl) return;
+
+  if (!tripFips.length) {
+    listEl.innerHTML = '<div style="padding:10px 14px;font-size:0.82rem;color:var(--ink-muted);">No trip counties found.</div>';
+    if (countEl) countEl.textContent = '0';
+    return;
+  }
+
+  if (countEl) countEl.textContent = tripFips.length;
+
+  const items = tripFips.map(fips => {
+    const meta = mapCountyFips[fips];
+    if (!meta) return '';
+    const isNew = tripNewFips.has(fips);
+    return { fips, county: meta.county, stateAbbrev: meta.stateAbbrev, isNew };
+  }).filter(Boolean).sort((a,b) => a.stateAbbrev.localeCompare(b.stateAbbrev) || a.county.localeCompare(b.county));
+
+  listEl.innerHTML = items.map(item => `
+    <div class="county-list-item" data-fips="${item.fips}" onclick="flyToCounty('${item.fips}')">
+      <div class="county-list-name">${item.county}</div>
+      <div class="county-list-state">${item.stateAbbrev}</div>
+      ${item.isNew ? '<div class="county-list-chips"><span class="county-chip" style="color:var(--forge);border-color:var(--forge);background:rgba(45,90,42,0.08);">★ New</span></div>' : ''}
+    </div>`).join('');
+}
+
+function flyToCounty(fips) {
+  if (!mapLoaded || !state.geojson) return;
+  const feat = state.geojson.features.find(f => String(f.id).padStart(5,'0') === fips);
+  if (!feat) return;
+
+  // Compute centroid
+  const coords = feat.geometry.type === 'Polygon'
+    ? feat.geometry.coordinates[0]
+    : feat.geometry.coordinates[0][0];
+  const lng = coords.reduce((s,p)=>s+p[0],0)/coords.length;
+  const lat = coords.reduce((s,p)=>s+p[1],0)/coords.length;
+
+  mapInstance.flyTo({center:[lng,lat], zoom:9, speed:1.2});
+  highlightCountyInSidebar(fips);
+}
+
+function highlightCountyInSidebar(fips) {
+  document.querySelectorAll('.county-list-item.active').forEach(el => el.classList.remove('active'));
+  const item = document.querySelector(`.county-list-item[data-fips="${fips}"]`);
+  if (item) {
+    item.classList.add('active');
+    item.scrollIntoView({block:'nearest', behavior:'smooth'});
+  }
+
+  const meta = mapCountyFips[fips];
+  const infoEl = document.getElementById('map-info-box');
+  if (!infoEl || !meta) return;
+  const label = meta.status===3?'New this trip':meta.status===2?'Found this trip (prior)':meta.status===1?'Lifetime find':'Never found';
+  const color = meta.status===3?'var(--forge)':meta.status===2?'#4a7a54':'var(--ink-muted)';
+  infoEl.innerHTML = `<strong style="color:var(--ink);font-family:'Fraunces',serif;">${meta.county} County, ${meta.stateAbbrev}</strong><br>
+    <span style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:${color};">${label}</span>`;
+}
+
+// ── Capture ───────────────────────────────────────────────────────
+async function captureCountyMap() {
+  const btn = document.getElementById('map-capture-btn');
+  if (!btn || !mapInstance) return;
+  btn.disabled = true; btn.textContent = 'Capturing…';
+  try {
+    const mapCanvas = mapInstance.getCanvas();
+    const a = document.createElement('a');
+    a.href = mapCanvas.toDataURL('image/png');
+    a.download = `routesmith-map-${Date.now()}.png`;
+    a.click();
+  } catch(e) {
+    alert('Capture failed: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Capture Map PNG';
   }
 }
 
@@ -586,13 +785,78 @@ function renderPanelContent(catId, sub) {
   if (catId === 'counties') {
     if (sub === 'map') {
       return `<div class="map-panel">
-        <div id="county-map"></div>
-        <div class="map-loading" id="map-loading-indicator">Loading map…</div>
-        <div class="map-legend">
-          <div class="legend-row"><div class="legend-swatch" style="background:#2d8a3e;"></div>New this trip</div>
-          <div class="legend-row"><div class="legend-swatch" style="background:#78b882;"></div>Found this trip (prior)</div>
-          <div class="legend-row"><div class="legend-swatch" style="background:#c8bfaa;"></div>Lifetime find</div>
+        <div class="map-area">
+          <div id="county-map"></div>
+          <div class="map-loading" id="map-loading-indicator">Loading map data…</div>
         </div>
+        <aside class="map-sidebar" id="map-sidebar">
+          <!-- Visualization -->
+          <div class="map-sidebar-section">
+            <div class="map-sidebar-hdr" onclick="toggleMapSection('viz')">
+              <span class="map-sidebar-lbl">Visualization</span>
+              <span class="map-sidebar-chev open" id="mschev-viz">▼</span>
+            </div>
+            <div class="map-sidebar-body open" id="msbody-viz">
+              <div class="map-sidebar-lbl" style="margin-bottom:5px;">Style</div>
+              <div class="viz-toggle" style="margin-bottom:10px;">
+                <button class="viz-btn active" id="vbtn-pins" onclick="setVizMode('pins')">Pins</button>
+                <button class="viz-btn" id="vbtn-fill" onclick="setVizMode('fill')">Fill</button>
+              </div>
+              <div class="map-sidebar-lbl" style="margin-bottom:5px;">Base Map</div>
+              <div class="viz-toggle">
+                <button class="viz-btn active" id="bmap-road" onclick="setBaseMap('road')">Road</button>
+                <button class="viz-btn" id="bmap-terrain" onclick="setBaseMap('terrain')">Terrain</button>
+                <button class="viz-btn" id="bmap-topo" onclick="setBaseMap('topo')">Topo</button>
+              </div>
+            </div>
+          </div>
+          <!-- County Status Legend -->
+          <div class="map-sidebar-section">
+            <div class="map-sidebar-hdr" onclick="toggleMapSection('legend')">
+              <span class="map-sidebar-lbl">County Status</span>
+              <span class="map-sidebar-chev open" id="mschev-legend">▼</span>
+            </div>
+            <div class="map-sidebar-body open" id="msbody-legend">
+              <div class="map-legend-rows">
+                <div class="map-legend-row"><div class="map-legend-swatch" style="background:#2d8a3e;"></div>New this trip</div>
+                <div class="map-legend-row"><div class="map-legend-swatch" style="background:#78b882;"></div>Found this trip (prior)</div>
+                <div class="map-legend-row"><div class="map-legend-swatch" style="background:#c8bfaa;"></div>Lifetime find</div>
+                <div class="map-legend-row"><div class="map-legend-swatch" style="background:transparent;border:1px solid #aaa;"></div>Never found</div>
+              </div>
+            </div>
+          </div>
+          <!-- Finders -->
+          <div class="map-sidebar-section">
+            <div class="map-sidebar-hdr" onclick="toggleMapSection('finders')">
+              <span class="map-sidebar-lbl">Finders</span>
+              <span class="map-sidebar-chev open" id="mschev-finders">▼</span>
+            </div>
+            <div class="map-sidebar-body open" id="msbody-finders">
+              <div id="map-finder-legend">
+                <div class="finder-row">
+                  <div class="finder-dot-sm" style="background:var(--forge);"></div>
+                  <span id="map-owner-name">—</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Counties list -->
+          <div class="map-sidebar-section" style="flex:1;display:flex;flex-direction:column;">
+            <div class="map-sidebar-hdr" onclick="toggleMapSection('counties')">
+              <span class="map-sidebar-lbl">Counties (<span id="map-county-count">0</span>)</span>
+              <span class="map-sidebar-chev open" id="mschev-counties">▼</span>
+            </div>
+            <div class="map-sidebar-body open" id="msbody-counties" style="max-height:none;flex:1;padding:0;">
+              <div class="county-list-items" id="map-county-list"></div>
+            </div>
+          </div>
+          <!-- Info box -->
+          <div class="map-info-box" id="map-info-box">Click a county on the map or in the list.</div>
+          <!-- Capture -->
+          <div class="map-capture-row">
+            <button class="capture-btn" id="map-capture-btn" onclick="captureCountyMap()">Capture Map PNG</button>
+          </div>
+        </aside>
       </div>`;
     }
     if (sub === 'new') {
