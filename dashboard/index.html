@@ -189,6 +189,13 @@ body{font-family:'Source Serif 4',Charter,Georgia,serif;font-size:15px;line-heig
 .rule-match a{color:inherit;text-decoration:none;border-bottom:1px dotted var(--rule);}
 .rule-match a:hover{color:var(--brass-deep);border-bottom-color:var(--brass);}
 .rules-notfired-title{font-family:'JetBrains Mono',monospace;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--ink-muted);margin:20px 0 8px;}
+.rules-collapsible{margin-bottom:14px;border:1px solid var(--rule);border-radius:3px;background:rgba(255,252,240,0.4);}
+.rules-collapsible-hdr{padding:10px 14px;cursor:pointer;user-select:none;display:flex;align-items:center;gap:10px;font-family:'JetBrains Mono',monospace;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--ink-muted);background:var(--paper-mid);border-bottom:1px solid transparent;}
+.rules-collapsible-hdr.open{border-bottom-color:var(--rule-soft);color:var(--ink-soft);}
+.rules-collapsible-hdr:hover{background:rgba(168,120,50,0.06);}
+.rules-collapsible-chev{font-size:0.68rem;color:var(--ink-muted);width:14px;}
+.rules-collapsible-body{padding:14px;display:none;}
+.rules-collapsible-body.open{display:block;}
 
 /* Day by day chart */
 .chart-container{background:rgba(255,252,240,0.6);border:1px solid var(--rule);border-radius:3px;padding:20px;margin-bottom:20px;}
@@ -238,7 +245,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
 </style>
 </head>
 <body>
-<script>console.log('Routesmith | dashboard | Build 2026.07.08.002');</script>
+<script>console.log('Routesmith | dashboard | Build 2026.07.08.004');</script>
 
 
 
@@ -340,7 +347,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
   </div>
 </div>
 
-<footer>Build 2026.07.08.002</footer>
+<footer>Build 2026.07.08.004</footer>
 
 <script>
 const BASE     = 'https://routesmith-report.gtl6645.workers.dev';
@@ -362,11 +369,11 @@ const state = {
 const CATEGORIES = [
   { id:'counties',   label:'Counties',      subs:['Map','New','Previously Found','Progress'] },
   { id:'highlights', label:'Highlights',    subs:['Marquee','Featured','Notes'] },
-  { id:'rules',      label:'Rules',         subs:['All','Marquee','Featured','Notes'] },
   { id:'dayByDay',   label:'Day by Day',    subs:['Chart','List'] },
   { id:'jasmer',     label:'Jasmer Grid',   subs:['Trip Fills','Full Grid'] },
   { id:'dtGrid',     label:'D/T Grid',      subs:['Trip Fills','Full Grid'] },
   { id:'oldest',     label:'Oldest Active', subs:['By State','By Country'], requiresRef:true },
+  { id:'rules',      label:'Rules',         subs:['Marquee','Featured','Notes','All'] },
   { id:'lifetime',   label:'Lifetime',      subs:['County Map','All Finds'] },
 ];
 
@@ -955,31 +962,83 @@ function renderHighlights(sub) {
 }
 
 function renderRules(sub) {
-  const results = state.report?.ruleResults ?? [];
-  const allRules = state.report?.allRules ?? []; // pipeline-provided full list or fall back to fired only
+  const results  = state.report?.ruleResults ?? [];
+  const allRules = state.report?.allRules ?? [];
   const firedIds = new Set(results.map(r => r.id));
 
+  // All tab — show all fired grouped by severity, plus collapsible not-fired
+  if (sub === 'all') {
+    const notFired  = allRules.filter(r => !firedIds.has(r.id));
+    const marqueeF  = results.filter(r => r.severity === 'marquee');
+    const featuredF = results.filter(r => r.severity === 'featured');
+    const noteF     = results.filter(r => r.severity === 'note');
+
+    const firedCards =
+      (marqueeF.length  ? marqueeF.map(r => renderRuleCard(r, false)).join('')  : '') +
+      (featuredF.length ? featuredF.map(r => renderRuleCard(r, false)).join('') : '') +
+      (noteF.length     ? noteF.map(r => renderRuleCard(r, false)).join('')     : '');
+    const firedBody = firedCards ||
+      '<p style="color:var(--ink-muted);font-style:italic;margin:8px 0;">No rules fired.</p>';
+
+    return `<div class="data-panel">
+      <div class="data-section">
+        <div class="data-section-title">All Rules</div>
+        <div class="data-section-sub">${results.length} fired · ${notFired.length} did not fire</div>
+
+        <div class="rules-collapsible">
+          <div class="rules-collapsible-hdr open" onclick="toggleRulesSection(this)">
+            <span class="rules-collapsible-chev">▼</span>
+            <span class="rules-collapsible-lbl">Fired (${results.length})</span>
+          </div>
+          <div class="rules-collapsible-body open">${firedBody}</div>
+        </div>
+
+        ${notFired.length ? `
+        <div class="rules-collapsible">
+          <div class="rules-collapsible-hdr" onclick="toggleRulesSection(this)">
+            <span class="rules-collapsible-chev">▶</span>
+            <span class="rules-collapsible-lbl">Did not fire (${notFired.length})</span>
+          </div>
+          <div class="rules-collapsible-body">${notFired.map(r => renderRuleCard(r, true)).join('')}</div>
+        </div>` : ''}
+      </div>
+    </div>`;
+  }
+
+  // Severity tabs — show only fired matching that severity
   const severityMap = {'marquee':'marquee','featured':'featured','note':'note','notes':'note'};
   const filterSev = severityMap[sub] ?? null;
+  if (!filterSev) return placeholder('Unknown filter','','?');
 
-  const fired = filterSev ? results.filter(r => r.severity === filterSev) : results;
-  const notFired = filterSev
-    ? allRules.filter(r => r.severity === filterSev && !firedIds.has(r.id))
-    : allRules.filter(r => !firedIds.has(r.id));
+  const fired = results.filter(r => r.severity === filterSev);
 
-  const firedCards = fired.map(r => renderRuleCard(r, false)).join('') ||
-    '<p style="color:var(--ink-muted);font-style:italic;margin:8px 0;">No rules fired.</p>';
+  if (!fired.length) {
+    return `<div class="data-panel">
+      <div class="data-section">
+        <div class="data-section-title">${sub.charAt(0).toUpperCase()+sub.slice(1)}</div>
+        <div class="data-section-sub">0 fired</div>
+        <p style="color:var(--ink-muted);font-style:italic;margin:8px 0;">No rules of this severity fired.</p>
+      </div>
+    </div>`;
+  }
 
-  const notFiredCards = notFired.map(r => renderRuleCard(r, true)).join('');
-
+  const cards = fired.map(r => renderRuleCard(r, false)).join('');
   return `<div class="data-panel">
     <div class="data-section">
-      <div class="data-section-title">${filterSev ? sub.charAt(0).toUpperCase()+sub.slice(1) : 'All Rules'}</div>
-      <div class="data-section-sub">${fired.length} fired · ${notFired.length} did not fire</div>
-      ${firedCards}
-      ${notFired.length ? `<div class="rules-notfired-title">Did not fire</div>${notFiredCards}` : ''}
+      <div class="data-section-title">${sub.charAt(0).toUpperCase()+sub.slice(1)}</div>
+      <div class="data-section-sub">${fired.length} fired</div>
+      ${cards}
     </div>
   </div>`;
+}
+
+function toggleRulesSection(hdrEl) {
+  const body = hdrEl.nextElementSibling;
+  const chev = hdrEl.querySelector('.rules-collapsible-chev');
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  hdrEl.classList.toggle('open', !isOpen);
+  if (chev) chev.textContent = isOpen ? '▶' : '▼';
 }
 
 function renderRuleCard(rule, notFired) {
@@ -1100,6 +1159,7 @@ function renderJasmer(sub) {
       const count = jasmer.cellCounts?.[key] ?? 0;
       const isNewThisTrip = newFillsSet.has(key);
       const cls = isNewThisTrip ? 'filled-trip' : (count >= jasmer.loopNumber ? 'filled-lifetime' : 'empty');
+      // Cell within jasmer needs loopNumber; keep as-is
       return `<div class="jasmer-cell ${cls}" title="${MONTHS[mi]} ${y}: ${count} find${count===1?'':'s'}">
         ${count>0?count:''}
       </div>`;
@@ -1117,7 +1177,7 @@ function renderJasmer(sub) {
           <div class="data-section-sub">Placement month × year (May 2000 → present)</div>
         </div>
         <div class="grid-stats">
-          <strong>${jasmer.completedCells}</strong> / ${jasmer.totalCells} filled this loop ·
+          <strong>${jasmer.completedCellsInLoop}</strong> / ${jasmer.totalCellsInLoop} filled this loop ·
           <strong>${newFillsMap.size}</strong> new this trip
         </div>
       </div>
@@ -1160,7 +1220,7 @@ function renderDtGrid(sub) {
           <div class="data-section-sub">Difficulty × Terrain (1.0–5.0)</div>
         </div>
         <div class="grid-stats">
-          <strong>${dt.completedCells}</strong> / ${dt.totalCells} filled this loop ·
+          <strong>${dt.completedCellsInLoop}</strong> / ${dt.totalCellsInLoop} filled this loop ·
           <strong>${newFillsMap.size}</strong> new this trip
         </div>
       </div>

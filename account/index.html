@@ -293,7 +293,7 @@
 </style>
 </head>
 <body>
-<script>console.log('Routesmith | account | Build 2026.07.08.002');</script>
+<script>console.log('Routesmith | account | Build 2026.07.08.004');</script>
 
 
 
@@ -301,9 +301,9 @@
   <a href="/" class="site-brand-mark">routesmithing.com</a>
   <nav class="site-nav" aria-label="Site navigation">
     <div class="nav-modules">
-      <a href="/plan/" class="nav-module disabled" aria-disabled="true">Plan</a>
-      <a href="/navigate/" class="nav-module disabled" aria-disabled="true">Navigate</a>
-      <a href="/report/" class="nav-module disabled" aria-disabled="true">Report</a>
+      <a href="/dashboard/" class="nav-module" id="nav-dashboard">Dashboard</a>
+      <a href="/report/" class="nav-module" id="nav-report">Trips</a>
+      <a href="/admin/" class="nav-module" id="nav-admin" style="display:none;">Admin</a>
     </div>
     <div class="nav-user" id="nav-user">
       <span class="nav-user-name" id="nav-user-name"></span>
@@ -315,9 +315,9 @@
 
 <div class="page">
 
-  <div class="page-eyebrow">Your account</div>
-  <h1 class="page-title">Sign in to Routesmith</h1>
-  <p class="page-subtitle">Built for cachers who take the long way.</p>
+  <div class="page-eyebrow" id="page-eyebrow">Your account</div>
+  <h1 class="page-title" id="page-title">Sign in to Routesmith</h1>
+  <p class="page-subtitle" id="page-subtitle">Built for cachers who take the long way.</p>
 
   <div class="loading" id="loading-state">Loading…</div>
   <div id="clerk-sign-in" style="display:none;"></div>
@@ -325,24 +325,6 @@
   <div class="signed-in-panel" id="signed-in-panel">
     <div class="signed-in-greeting" id="signed-in-greeting">Welcome back.</div>
     <p class="signed-in-sub" id="signed-in-sub"></p>
-
-    <div class="module-links">
-      <a href="/plan/" class="module-link disabled" aria-disabled="true">
-        <div class="module-link-num">01</div>
-        <div class="module-link-name">Plan</div>
-        <div class="module-link-status">Coming soon</div>
-      </a>
-      <a href="/navigate/" class="module-link disabled" aria-disabled="true">
-        <div class="module-link-num">02</div>
-        <div class="module-link-name">Navigate</div>
-        <div class="module-link-status">Coming soon</div>
-      </a>
-      <a href="/report/" class="module-link active">
-        <div class="module-link-num">03</div>
-        <div class="module-link-name">Report</div>
-        <div class="module-link-status">Open →</div>
-      </a>
-    </div>
 
     <!-- Lifetime GPX data panel -->
     <div class="gpx-panel">
@@ -375,8 +357,6 @@
         <button class="upload-btn" id="upload-btn">Upload selected files</button>
       </div>
     </div>
-
-    <button class="signout-btn" id="signout-btn">Sign out</button>
   </div>
 
 </div>
@@ -386,7 +366,7 @@
   <span class="sep">·</span>
   <span>Forged 2026</span>
   <span class="sep">·</span>
-  <span>Build 2026.07.08.002</span>
+  <span>Build 2026.07.08.004</span>
 </footer>
 
 <script>
@@ -968,22 +948,39 @@ window.addEventListener('load', async () => {
   const signedInPanel = document.getElementById('signed-in-panel');
   const greetingEl    = document.getElementById('signed-in-greeting');
   const subEl         = document.getElementById('signed-in-sub');
+  const pageTitle     = document.getElementById('page-title');
+  const pageSubtitle  = document.getElementById('page-subtitle');
+  const pageEyebrow   = document.getElementById('page-eyebrow');
   const navUser       = document.getElementById('nav-user');
   const navUserName   = document.getElementById('nav-user-name');
   const navSigninLink = document.getElementById('nav-signin-link');
   const navSignoutBtn = document.getElementById('nav-signout-btn');
-  const signoutBtn    = document.getElementById('signout-btn');
+  const navAdmin      = document.getElementById('nav-admin');
 
   async function showSignedIn(user) {
     const name = user.firstName || user.fullName || user.primaryEmailAddress?.emailAddress || 'Cacher';
-    loadingEl.style.display    = 'none';
-    signInEl.style.display     = 'none';
+    loadingEl.style.display     = 'none';
+    signInEl.style.display      = 'none';
     signedInPanel.style.display = 'block';
-    greetingEl.textContent = `Welcome back, ${name}.`;
-    subEl.textContent = user.primaryEmailAddress?.emailAddress ?? '';
+    pageTitle.textContent       = 'Your account';
+    pageSubtitle.textContent    = 'Manage your finder data and settings.';
+    pageEyebrow.style.display   = 'none';
+    greetingEl.textContent      = `Welcome back, ${name}.`;
+    subEl.textContent           = user.primaryEmailAddress?.emailAddress ?? '';
     navSigninLink.style.display = 'none';
-    navUser.style.display = 'flex';
-    navUserName.textContent = name;
+    navUser.style.display       = 'flex';
+    navUserName.textContent     = name;
+
+    // Check admin status — show admin nav link if user has admin access
+    try {
+      const atok = await getToken();
+      const achk = await fetch('https://routesmith-admin.gtl6645.workers.dev/api/admin/users', {
+        headers: { 'Authorization': 'Bearer ' + atok },
+        signal: AbortSignal.timeout(3000),
+      });
+      if (achk.ok) navAdmin.style.display = 'inline-flex';
+    } catch(e) { /* not admin */ }
+
     await loadGpxSummary();
   }
 
@@ -991,8 +988,12 @@ window.addEventListener('load', async () => {
     loadingEl.style.display     = 'none';
     signedInPanel.style.display = 'none';
     signInEl.style.display      = 'block';
+    pageTitle.textContent       = 'Sign in to Routesmith';
+    pageSubtitle.textContent    = 'Built for cachers who take the long way.';
+    pageEyebrow.style.display   = 'block';
     navUser.style.display       = 'none';
     navSigninLink.style.display = 'inline-block';
+    navAdmin.style.display      = 'none';
     window.Clerk.mountSignIn(signInEl, {
       routing: 'hash', afterSignInUrl: '/account/', afterSignUpUrl: '/account/',
     });
@@ -1013,7 +1014,6 @@ window.addEventListener('load', async () => {
     showSignedOut();
   }
 
-  signoutBtn.addEventListener('click', handleSignOut);
   navSignoutBtn.addEventListener('click', handleSignOut);
 
   const user = window.Clerk.user;

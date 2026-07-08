@@ -75,7 +75,7 @@
 </style>
 </head>
 <body>
-<script>console.log('Routesmith | admin | Build 2026.07.08.002');</script>
+<script>console.log('Routesmith | admin | Build 2026.07.08.004');</script>
 
 
 
@@ -99,21 +99,6 @@
 
   <div id="main-content" style="display:none;">
     <h1 class="page-title">Admin</h1>
-
-    <!-- System Health -->
-    <div class="admin-section">
-      <button class="section-toggle" onclick="toggleSection('health')">
-        <span class="section-title">System Health</span>
-        <span class="section-chevron" id="chevron-health">▶</span>
-      </button>
-      <div class="section-body" id="body-health">
-        <div class="section-actions"><button class="btn-sm" onclick="loadHealth()">Refresh</button></div>
-        <table>
-          <thead><tr><th>Worker</th><th>Status</th><th>Build</th><th>Checked</th></tr></thead>
-          <tbody id="health-tbody"><tr><td colspan="4" class="muted">—</td></tr></tbody>
-        </table>
-      </div>
-    </div>
 
     <!-- Users -->
     <div class="admin-section">
@@ -186,6 +171,21 @@
         <div class="pagination" id="jobs-pagination"></div>
       </div>
     </div>
+    <!-- System Health -->
+    <div class="admin-section">
+      <button class="section-toggle" onclick="toggleSection('health')">
+        <span class="section-title">System Health</span>
+        <span class="section-chevron" id="chevron-health">▶</span>
+      </button>
+      <div class="section-body" id="body-health">
+        <div class="section-actions"><button class="btn-sm" onclick="loadHealth()">Refresh</button></div>
+        <table>
+          <thead><tr><th>Worker</th><th>Status</th><th>Build</th><th>Checked</th></tr></thead>
+          <tbody id="health-tbody"><tr><td colspan="4" class="muted">—</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
   </div>
 </div>
 
