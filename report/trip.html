@@ -830,7 +830,7 @@ function initRunReport() {
             finds: result.trip_find_count,
             newCounties: result.aggregate?.newCounties,
             fp: result.aggregate?.favoritePointsEarned,
-            rules: result.ruleResults?.map(r => r.rule.id + '(' + r.matches.length + ')').join(', '),
+            rules: result.ruleResults?.map(r => r.id + '(' + r.matches.length + ')').join(', '),
             byDay: result.byDay?.map(d => d.dayDate + ':' + d.finds).join(', '),
           });
           return;

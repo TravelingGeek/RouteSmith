@@ -168,7 +168,6 @@ export async function handleTripRunJob(
   // ── Import pipeline modules ───────────────────────────────────────────────
   const {
     computeAggregateStats, computeDailyStats, computeMilestones,
-    computeJasmerFills, computeJasmerGridState, computeDtFills,
     computeStateCompletions,
   } = await import('./statistics.js');
   const { buildDefaultRules, evaluateAllRules } = await import('./rules.js');
@@ -197,23 +196,13 @@ export async function handleTripRunJob(
     attributes: new Set(), finderLogText: null, sym: null, archived: false,
   }));
 
-  // Legacy lifetimeMinimal — kept for other functions that still expect it
+  // Legacy lifetimeMinimal — kept for milestone computation (needs waypoint list)
   const lifetimeMinimal: WaypointLike[] = jasmerCountRows.map(r => ({
-    gcCode: r.gc_code, name: r.gc_code, cacheType: null,
+    gcCode: 'prior', name: 'prior', cacheType: null,
     lat: 0, lon: 0, container: null, difficulty: null, terrain: null,
     country: null, state: null, county: null,
     placementTime: new Date(r.placement_month + '-01T00:00:00Z'),
-    findDate: new Date(r.find_date + 'T12:00:00Z'),
-    favoritePoints: 0, cacheOwner: null,
-    attributes: new Set(), finderLogText: null, sym: null, archived: false,
-  }));
-
-  const priorDtWaypoints: WaypointLike[] = dtRows.map(r => ({
-    gcCode: 'prior', name: 'prior', cacheType: null,
-    lat: 0, lon: 0, container: null,
-    difficulty: r.difficulty, terrain: r.terrain,
-    country: null, state: null, county: null,
-    placementTime: null, findDate: new Date('2000-01-01T00:00:00Z'),
+    findDate: new Date('2000-01-01T00:00:00Z'),
     favoritePoints: 0, cacheOwner: null,
     attributes: new Set(), finderLogText: null, sym: null, archived: false,
   }));
@@ -224,14 +213,35 @@ export async function handleTripRunJob(
   // ── Statistics ────────────────────────────────────────────────────────────
   console.log('[trip_run] computing statistics');
 
-  const aggregate   = computeAggregateStats(tripFinds as any, priorCounties, priorStates, priorCountries, priorTypes);
-  const byDay       = computeDailyStats(tripFinds as any, priorCounties, tripStartDate, tripEndDate);
-  const milestones  = computeMilestones([...lifetimeMinimal, ...tripFinds] as any, tripStartDate, tripEndDate);
-  const jasmerFills = computeJasmerFills(lifetimeMinimal as any, tripStartDate, tripEndDate);
-  const dtFills     = computeDtFills([...priorDtWaypoints, ...tripFinds] as any, tripStartDate, tripEndDate);
-  const stateComps  = computeStateCompletions(tripFinds as any, priorCounties);
-  const jasmerGrid  = computeJasmerGridState(lifetimeMinimal as any, tripStartDate, tripEndDate);
+  const aggregate    = computeAggregateStats(tripFinds as any, priorCounties, priorStates, priorCountries, priorTypes);
+  const byDay        = computeDailyStats(tripFinds as any, priorCounties, tripStartDate, tripEndDate);
+  const milestones   = computeMilestones([...lifetimeMinimal, ...tripFinds] as any, tripStartDate, tripEndDate);
+  const stateComps   = computeStateCompletions(tripFinds as any, priorCounties);
   const countiesData = buildCountiesData(tripFinds as any, priorCounties);
+
+  // ── Loop state for Jasmer + DT ────────────────────────────────────────────
+  const { computeJasmerLoopState, computeDtLoopState } = await import('./statistics.js');
+  const jasmerLoopState = computeJasmerLoopState(
+    jasmerCountRows.map(r => ({ month: r.placement_month, priorCount: r.prior_count })),
+    jasmerTripRows.map(r  => ({ gcCode: r.gc_code, month: r.placement_month, findDate: r.find_date }))
+  );
+  const dtLoopState = computeDtLoopState(
+    dtCountRows.map(r => ({ difficulty: r.difficulty, terrain: r.terrain, priorCount: r.prior_count })),
+    dtTripRows.map(r  => ({ gcCode: r.gc_code, difficulty: r.difficulty, terrain: r.terrain, findDate: r.find_date }))
+  );
+
+  // Fills maps used by rule evaluation (backwards-compatible shape)
+  const jasmerFills = new Map<string, string>();
+  const MONTHS = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  for (const [gc, cell] of jasmerLoopState.newFillsThisTrip) {
+    const [y, m] = cell.split('-');
+    jasmerFills.set(gc, `${MONTHS[parseInt(m)]} ${y}`);
+  }
+  const dtFills = new Map<string, [number, number]>();
+  for (const [gc, cell] of dtLoopState.newFillsThisTrip) {
+    const [d, t] = cell.split('|').map(Number);
+    dtFills.set(gc, [d, t]);
+  }
 
   // ── Rules ─────────────────────────────────────────────────────────────────
   console.log('[trip_run] evaluating rules');
