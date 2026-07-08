@@ -118,26 +118,52 @@ export async function handleTripRunJob(
     .first<{ cnt: number }>();
   const priorFindCount = priorCountResult?.cnt ?? 0;
 
-  // Q6b: Jasmer — DISTINCT placement months
-  const { results: jasmerRows } = await env.DB
+  // Q6b: Jasmer — count finds per placement month (for loop detection)
+  const { results: jasmerCountRows } = await env.DB
     .prepare(`
-      SELECT MIN(gc_code) as gc_code, MIN(find_date) as find_date,
-             SUBSTR(placement_date, 1, 7) as placement_month
+      SELECT SUBSTR(placement_date, 1, 7) as placement_month,
+             COUNT(*) as prior_count
       FROM finder_finds
-      WHERE finder_id = ? AND placement_date IS NOT NULL
+      WHERE finder_id = ? AND placement_date IS NOT NULL AND find_date < ?
       GROUP BY SUBSTR(placement_date, 1, 7)
-      ORDER BY MIN(find_date) ASC
     `)
-    .bind(finderId)
+    .bind(finderId, tripStart)
+    .all<{ placement_month: string; prior_count: number }>();
+
+  // Trip Jasmer fills — placement months hit by trip finds
+  const { results: jasmerTripRows } = await env.DB
+    .prepare(`
+      SELECT gc_code, find_date, SUBSTR(placement_date, 1, 7) as placement_month
+      FROM finder_finds
+      WHERE finder_id = ? AND placement_date IS NOT NULL AND find_date BETWEEN ? AND ?
+      ORDER BY find_date ASC
+    `)
+    .bind(finderId, tripStart, tripEnd)
     .all<{ gc_code: string; find_date: string; placement_month: string }>();
 
-  // Q6c: DT pairs
-  const { results: dtRows } = await env.DB
-    .prepare(`SELECT DISTINCT difficulty, terrain FROM finder_finds WHERE finder_id = ? AND difficulty IS NOT NULL AND terrain IS NOT NULL AND find_date < ?`)
+  // Q6c: DT — count finds per (D,T) cell for loop detection
+  const { results: dtCountRows } = await env.DB
+    .prepare(`
+      SELECT difficulty, terrain, COUNT(*) as prior_count
+      FROM finder_finds
+      WHERE finder_id = ? AND difficulty IS NOT NULL AND terrain IS NOT NULL AND find_date < ?
+      GROUP BY difficulty, terrain
+    `)
     .bind(finderId, tripStart)
-    .all<{ difficulty: number; terrain: number }>();
+    .all<{ difficulty: number; terrain: number; prior_count: number }>();
 
-  console.log(`[trip_run] Q6b jasmer: ${jasmerRows.length}, Q6c DT: ${dtRows.length}`);
+  // Trip DT fills — (D,T) hit by trip finds
+  const { results: dtTripRows } = await env.DB
+    .prepare(`
+      SELECT gc_code, find_date, difficulty, terrain
+      FROM finder_finds
+      WHERE finder_id = ? AND difficulty IS NOT NULL AND terrain IS NOT NULL AND find_date BETWEEN ? AND ?
+      ORDER BY find_date ASC
+    `)
+    .bind(finderId, tripStart, tripEnd)
+    .all<{ gc_code: string; find_date: string; difficulty: number; terrain: number }>();
+
+  console.log(`[trip_run] jasmer months (prior): ${jasmerCountRows.length}, trip: ${jasmerTripRows.length}, DT cells (prior): ${dtCountRows.length}, trip: ${dtTripRows.length}`);
 
   // ── Import pipeline modules ───────────────────────────────────────────────
   const {
@@ -171,7 +197,8 @@ export async function handleTripRunJob(
     attributes: new Set(), finderLogText: null, sym: null, archived: false,
   }));
 
-  const lifetimeMinimal: WaypointLike[] = jasmerRows.map(r => ({
+  // Legacy lifetimeMinimal — kept for other functions that still expect it
+  const lifetimeMinimal: WaypointLike[] = jasmerCountRows.map(r => ({
     gcCode: r.gc_code, name: r.gc_code, cacheType: null,
     lat: 0, lon: 0, container: null, difficulty: null, terrain: null,
     country: null, state: null, county: null,
@@ -228,15 +255,15 @@ export async function handleTripRunJob(
   // Pre-map byDay to avoid circular reference issues and reduce result size
   const mappedByDay = byDay.map((ds: any) => ({
     dayDate: ds.dayDate.toISOString().slice(0, 10),
-    finds: ds.finds,
+    findCount: ds.finds,
     favoritePoints: ds.favoritePoints,
     newCounties: ds.newCounties,
     byCacheType: ds.byCacheType,
     bestFind: ds.bestFind ? {
-      gcCode: ds.bestFind.gcCode,
-      name: ds.bestFind.name,
-      favoritePoints: ds.bestFind.favoritePoints,
-      cacheType: ds.bestFind.cacheType,
+      gc_code: ds.bestFind.gcCode,
+      cache_name: ds.bestFind.name,
+      fav_points: ds.bestFind.favoritePoints,
+      cache_type: ds.bestFind.cacheType,
     } : null,
   }));
 
@@ -256,26 +283,51 @@ export async function handleTripRunJob(
     aggregate,
     byDay: mappedByDay,
     ruleResults: ruleResults.map((rr: any) => ({
-      rule: { id: rr.rule.id, displayName: rr.rule.displayName, severity: rr.rule.severity },
+      id:          rr.rule.id,
+      displayName: rr.rule.displayName,
+      severity:    rr.rule.severity,
+      description: rr.rule.description ?? null,
       matches: rr.matches.map((m: any) => ({
-        gcCode: m.waypoint.gcCode,
-        name: m.waypoint.name,
-        note: m.note,
-        favoritePoints: m.waypoint.favoritePoints,
-        cacheType: m.waypoint.cacheType,
+        gc_code:    m.waypoint.gcCode,
+        cache_name: m.waypoint.name,
+        note:       m.note,
+        fav_points: m.waypoint.favoritePoints,
+        cache_type: m.waypoint.cacheType,
         difficulty: m.waypoint.difficulty,
-        terrain: m.waypoint.terrain,
-        lat: m.waypoint.lat,
-        lon: m.waypoint.lon,
-        findDate: m.waypoint.findDate?.toISOString().slice(0, 10) ?? null,
+        terrain:    m.waypoint.terrain,
+        lat:        m.waypoint.lat,
+        lon:        m.waypoint.lon,
+        find_date:  m.waypoint.findDate?.toISOString().slice(0, 10) ?? null,
       })),
+    })),
+    allRules: rules.map((r: any) => ({
+      id:          r.id,
+      displayName: r.displayName,
+      severity:    r.severity,
+      description: r.description ?? null,
     })),
     countiesData: {
       firstTimeCount: (countiesData as any).firstTime.size,
       previouslyFoundCount: (countiesData as any).previouslyFound.size,
       firstTime: [...(countiesData as any).firstTime].slice(0, 500),
     },
-    jasmerNewCells: [...jasmerGrid.entries()]
+    jasmer: {
+      loopNumber: jasmerLoopState.loopNumber,
+      totalCellsInLoop: jasmerLoopState.totalCells,
+      completedCellsInLoop: jasmerLoopState.completedCells,
+      cellCounts: jasmerLoopState.cellCounts,      // {month: count}
+      newFillsThisTrip: [...jasmerLoopState.newFillsThisTrip.entries()],
+      tripAdditionsPerCell: jasmerLoopState.tripAdditionsPerCell,
+    },
+    dtGrid: {
+      loopNumber: dtLoopState.loopNumber,
+      totalCellsInLoop: dtLoopState.totalCells,
+      completedCellsInLoop: dtLoopState.completedCells,
+      cellCounts: dtLoopState.cellCounts,          // {"d|t": count}
+      newFillsThisTrip: [...dtLoopState.newFillsThisTrip.entries()],
+      tripAdditionsPerCell: dtLoopState.tripAdditionsPerCell,
+    },
+    jasmerNewCells: [...jasmerLoopState.newFillsThisTrip.entries()]
       .filter(([gc]) => tripFinds.some(w => w.gcCode === gc))
       .map(([gc, cell]) => ({ gcCode: gc, cell })),
     fieldAvailability: {

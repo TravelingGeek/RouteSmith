@@ -160,6 +160,76 @@ body{font-family:'Source Serif 4',Charter,Georgia,serif;font-size:15px;line-heig
 .toggle.on::after{transform:translateX(16px);}
 .toggle-label{font-size:0.86rem;color:var(--ink-soft);}
 
+
+/* ── Data views ── */
+.data-panel{position:absolute;inset:0;overflow-y:auto;padding:24px 32px;}
+.data-section{margin-bottom:32px;}
+.data-section-title{font-family:'Fraunces',serif;font-weight:600;font-size:1.4rem;color:var(--ink);margin-bottom:6px;letter-spacing:-0.01em;}
+.data-section-sub{font-family:'JetBrains Mono',monospace;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--ink-muted);margin-bottom:16px;}
+
+/* Rule cards */
+.rule-card{background:rgba(255,252,240,0.6);border:1px solid var(--rule);border-radius:3px;padding:16px 20px;margin-bottom:12px;}
+.rule-card.marquee{border-left:3px solid var(--forge);}
+.rule-card.featured{border-left:3px solid var(--brass);}
+.rule-card.note{border-left:3px solid var(--rule);}
+.rule-card.notfired{opacity:0.5;background:transparent;}
+.rule-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;}
+.rule-name{font-family:'Fraunces',serif;font-weight:600;font-size:1.05rem;color:var(--ink);}
+.rule-badge{font-family:'JetBrains Mono',monospace;font-size:0.62rem;text-transform:uppercase;letter-spacing:0.1em;padding:2px 8px;border-radius:2px;}
+.rule-badge.marquee{color:var(--forge);background:rgba(45,90,42,0.1);}
+.rule-badge.featured{color:var(--brass-deep);background:rgba(168,120,50,0.1);}
+.rule-badge.note{color:var(--ink-muted);background:rgba(122,111,90,0.1);}
+.rule-badge.notfired{color:var(--ink-muted);background:transparent;border:1px dashed var(--rule);}
+.rule-desc{font-size:0.88rem;color:var(--ink-soft);line-height:1.5;}
+.rule-matches{margin-top:10px;padding-top:10px;border-top:1px solid var(--rule-soft);}
+.rule-match{display:flex;gap:10px;padding:4px 0;font-size:0.86rem;color:var(--ink-soft);align-items:baseline;}
+.rule-match-gc{font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--brass-deep);}
+.rule-match-name{flex:1;}
+.rule-match-date{font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:var(--ink-muted);}
+.rule-match a{color:inherit;text-decoration:none;border-bottom:1px dotted var(--rule);}
+.rule-match a:hover{color:var(--brass-deep);border-bottom-color:var(--brass);}
+.rules-notfired-title{font-family:'JetBrains Mono',monospace;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--ink-muted);margin:20px 0 8px;}
+
+/* Day by day chart */
+.chart-container{background:rgba(255,252,240,0.6);border:1px solid var(--rule);border-radius:3px;padding:20px;margin-bottom:20px;}
+.chart-svg{width:100%;height:280px;display:block;}
+.chart-bar{fill:var(--forge);transition:fill 0.15s;cursor:pointer;}
+.chart-bar:hover{fill:var(--brass-deep);}
+.chart-axis{stroke:var(--rule);stroke-width:1;}
+.chart-label{font-family:'JetBrains Mono',monospace;font-size:0.62rem;fill:var(--ink-muted);}
+.chart-value{font-family:'JetBrains Mono',monospace;font-size:0.68rem;fill:var(--ink-soft);font-weight:600;}
+
+/* Day list */
+.day-item{background:rgba(255,252,240,0.6);border:1px solid var(--rule);border-radius:3px;padding:14px 18px;margin-bottom:8px;}
+.day-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.day-date{font-family:'Fraunces',serif;font-weight:600;font-size:1rem;color:var(--ink);}
+.day-count{font-family:'JetBrains Mono',monospace;font-size:0.86rem;color:var(--brass-deep);font-weight:600;}
+.day-types{font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--ink-muted);}
+
+/* Grid (Jasmer + DT) */
+.grid-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:16px;flex-wrap:wrap;gap:12px;}
+.grid-stats{font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:var(--ink-muted);}
+.grid-stats strong{color:var(--ink);font-weight:600;}
+.jasmer-grid{display:grid;grid-template-columns:auto repeat(12, 1fr);gap:1px;background:var(--rule-soft);padding:1px;border:1px solid var(--rule);border-radius:2px;font-family:'JetBrains Mono',monospace;font-size:0.7rem;}
+.jasmer-cell{background:var(--paper);padding:6px 4px;text-align:center;min-width:22px;position:relative;}
+.jasmer-cell.header{background:var(--paper-mid);color:var(--ink-muted);font-weight:600;font-size:0.62rem;text-transform:uppercase;letter-spacing:0.06em;}
+.jasmer-cell.row-header{background:var(--paper-mid);color:var(--ink-soft);text-align:right;padding-right:8px;font-weight:600;}
+.jasmer-cell.filled-lifetime{background:#c8bfaa;color:var(--ink);}
+.jasmer-cell.filled-trip{background:var(--forge);color:white;font-weight:700;}
+.jasmer-cell.empty{background:var(--paper);color:var(--rule);}
+.jasmer-cell-count{position:absolute;top:1px;right:2px;font-size:0.52rem;color:var(--ink-muted);}
+.jasmer-cell.filled-trip .jasmer-cell-count{color:rgba(255,255,255,0.7);}
+
+.dt-grid{display:grid;grid-template-columns:auto repeat(9, 1fr);gap:1px;background:var(--rule-soft);padding:1px;border:1px solid var(--rule);border-radius:2px;font-family:'JetBrains Mono',monospace;font-size:0.72rem;max-width:520px;}
+.dt-cell{background:var(--paper);padding:10px 4px;text-align:center;position:relative;min-height:32px;}
+.dt-cell.header{background:var(--paper-mid);color:var(--ink-muted);font-weight:600;font-size:0.66rem;}
+.dt-cell.row-header{background:var(--paper-mid);color:var(--ink-soft);text-align:right;padding-right:8px;font-weight:600;}
+.dt-cell.filled-lifetime{background:#c8bfaa;color:var(--ink);}
+.dt-cell.filled-trip{background:var(--forge);color:white;font-weight:700;}
+.dt-cell.empty{background:var(--paper);color:var(--rule);}
+.dt-cell-count{position:absolute;top:1px;right:3px;font-size:0.52rem;color:var(--ink-muted);}
+.dt-cell.filled-trip .dt-cell-count{color:rgba(255,255,255,0.7);}
+
 /* ── Loading overlay ── */
 .loading-overlay{position:fixed;inset:0;background:var(--paper);display:flex;align-items:center;justify-content:center;z-index:100;flex-direction:column;gap:12px;}
 .loading-text{font-family:'JetBrains Mono',monospace;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.14em;color:var(--ink-muted);}
@@ -168,7 +238,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
 </style>
 </head>
 <body>
-<script>console.log('Routesmith | dashboard | Build 2026.07.07.003');</script>
+<script>console.log('Routesmith | dashboard | Build 2026.07.08.001');</script>
 
 
 
@@ -270,7 +340,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
   </div>
 </div>
 
-<footer>Build 2026.07.07.003b</footer>
+<footer>Build 2026.07.08.001</footer>
 
 <script>
 const BASE     = 'https://routesmith-report.gtl6645.workers.dev';
@@ -825,7 +895,281 @@ function renderPanelContent(catId,sub) {
   if (CATEGORIES.find(c=>c.id===catId)?.requiresRef) {
     return placeholder('Reference file required','Upload reference list files in the Admin panel.','📁','/admin/','Go to Admin →');
   }
+
+  // ── Highlights ──
+  if (catId === 'highlights') {
+    return renderHighlights(sub);
+  }
+
+  // ── Rules ──
+  if (catId === 'rules') {
+    return renderRules(sub);
+  }
+
+  // ── Day by Day ──
+  if (catId === 'dayByDay') {
+    if (sub === 'chart') return renderDayChart();
+    if (sub === 'list')  return renderDayList();
+  }
+
+  // ── Jasmer ──
+  if (catId === 'jasmer') {
+    return renderJasmer(sub);
+  }
+
+  // ── DT Grid ──
+  if (catId === 'dtGrid') {
+    return renderDtGrid(sub);
+  }
+
   return placeholder(`${CATEGORIES.find(c=>c.id===catId)?.label} — ${sub}`,'This view is being built.',getCatIcon(catId));
+}
+
+// ── View renderers ────────────────────────────────────────────────
+function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function renderHighlights(sub) {
+  const results = state.report?.ruleResults ?? [];
+  const severityMap = {'marquee':'marquee','featured':'featured','note':'note','notes':'note'};
+  const filterSev = severityMap[sub] ?? null;
+  const filtered = filterSev ? results.filter(r => r.severity === filterSev) : results;
+
+  if (!filtered.length) {
+    return `<div class="data-panel">
+      <div class="placeholder" style="padding:40px 0;">
+        <div class="placeholder-icon">📋</div>
+        <div class="placeholder-title">No ${sub} highlights</div>
+        <div class="placeholder-sub">No rules of this severity fired for this trip.</div>
+      </div>
+    </div>`;
+  }
+
+  const cards = filtered.map(r => renderRuleCard(r, false)).join('');
+  return `<div class="data-panel">
+    <div class="data-section">
+      <div class="data-section-title">${filterSev ? sub.charAt(0).toUpperCase()+sub.slice(1) : 'All Highlights'}</div>
+      <div class="data-section-sub">${filtered.length} rule${filtered.length===1?'':'s'} fired</div>
+      ${cards}
+    </div>
+  </div>`;
+}
+
+function renderRules(sub) {
+  const results = state.report?.ruleResults ?? [];
+  const allRules = state.report?.allRules ?? []; // pipeline-provided full list or fall back to fired only
+  const firedIds = new Set(results.map(r => r.id));
+
+  const severityMap = {'marquee':'marquee','featured':'featured','note':'note','notes':'note'};
+  const filterSev = severityMap[sub] ?? null;
+
+  const fired = filterSev ? results.filter(r => r.severity === filterSev) : results;
+  const notFired = filterSev
+    ? allRules.filter(r => r.severity === filterSev && !firedIds.has(r.id))
+    : allRules.filter(r => !firedIds.has(r.id));
+
+  const firedCards = fired.map(r => renderRuleCard(r, false)).join('') ||
+    '<p style="color:var(--ink-muted);font-style:italic;margin:8px 0;">No rules fired.</p>';
+
+  const notFiredCards = notFired.map(r => renderRuleCard(r, true)).join('');
+
+  return `<div class="data-panel">
+    <div class="data-section">
+      <div class="data-section-title">${filterSev ? sub.charAt(0).toUpperCase()+sub.slice(1) : 'All Rules'}</div>
+      <div class="data-section-sub">${fired.length} fired · ${notFired.length} did not fire</div>
+      ${firedCards}
+      ${notFired.length ? `<div class="rules-notfired-title">Did not fire</div>${notFiredCards}` : ''}
+    </div>
+  </div>`;
+}
+
+function renderRuleCard(rule, notFired) {
+  const sev = rule.severity ?? 'note';
+  const matches = rule.matches ?? [];
+  const matchesHtml = matches.slice(0, 20).map(m => {
+    const gc = m.gc_code ?? m.gcCode ?? '';
+    const name = m.cache_name ?? m.name ?? '';
+    const date = m.find_date ?? m.findDate ?? '';
+    const link = gc ? `<a href="https://coord.info/${esc(gc)}" target="_blank" rel="noopener">${esc(gc)}</a>` : '';
+    return `<div class="rule-match">
+      <span class="rule-match-gc">${link}</span>
+      <span class="rule-match-name">${esc(name)}</span>
+      <span class="rule-match-date">${esc(date)}</span>
+    </div>`;
+  }).join('');
+  const overflow = matches.length > 20 ? `<div style="font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:var(--ink-muted);margin-top:4px;">+ ${matches.length - 20} more…</div>` : '';
+
+  return `<div class="rule-card ${sev} ${notFired?'notfired':''}">
+    <div class="rule-header">
+      <span class="rule-name">${esc(rule.displayName ?? rule.id)}</span>
+      <span class="rule-badge ${notFired?'notfired':sev}">${notFired?'Did not fire':sev}</span>
+    </div>
+    ${rule.description ? `<div class="rule-desc">${esc(rule.description)}</div>` : ''}
+    ${matches.length && !notFired ? `<div class="rule-matches">${matchesHtml}${overflow}</div>` : ''}
+  </div>`;
+}
+
+function renderDayChart() {
+  const byDay = state.report?.byDay ?? [];
+  if (!byDay.length) return placeholder('No daily data','','📅');
+
+  const w = 800, h = 260, padL = 40, padR = 20, padT = 20, padB = 40;
+  const innerW = w - padL - padR, innerH = h - padT - padB;
+  const max = Math.max(...byDay.map(d => d.findCount ?? 0), 1);
+  const barW = innerW / byDay.length * 0.7;
+  const gap  = innerW / byDay.length * 0.3;
+
+  const bars = byDay.map((d, i) => {
+    const barH = ((d.findCount ?? 0) / max) * innerH;
+    const x = padL + i * (innerW / byDay.length) + gap/2;
+    const y = padT + innerH - barH;
+    const dateShort = (d.dayDate ?? '').slice(5); // MM-DD
+    return `<g>
+      <rect class="chart-bar" x="${x}" y="${y}" width="${barW}" height="${barH}" onclick="showDayDetail(${i})"><title>${esc(d.dayDate)}: ${d.findCount} finds</title></rect>
+      <text class="chart-value" x="${x + barW/2}" y="${y - 4}" text-anchor="middle">${d.findCount}</text>
+      <text class="chart-label" x="${x + barW/2}" y="${padT + innerH + 15}" text-anchor="middle">${dateShort}</text>
+    </g>`;
+  }).join('');
+
+  return `<div class="data-panel">
+    <div class="data-section">
+      <div class="data-section-title">Finds by Day</div>
+      <div class="data-section-sub">${byDay.length} days · ${byDay.reduce((s,d)=>s+(d.findCount??0),0)} total finds</div>
+      <div class="chart-container">
+        <svg class="chart-svg" viewBox="0 0 ${w} ${h}">
+          <line class="chart-axis" x1="${padL}" y1="${padT+innerH}" x2="${w-padR}" y2="${padT+innerH}"/>
+          <line class="chart-axis" x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT+innerH}"/>
+          ${bars}
+        </svg>
+      </div>
+    </div>
+  </div>`;
+}
+
+function showDayDetail(i) {
+  selectSub('list');
+  setTimeout(()=>{
+    const el = document.getElementById(`day-item-${i}`);
+    if (el) el.scrollIntoView({block:'center', behavior:'smooth'});
+  }, 200);
+}
+
+function renderDayList() {
+  const byDay = state.report?.byDay ?? [];
+  if (!byDay.length) return placeholder('No daily data','','📅');
+
+  const items = byDay.map((d, i) => {
+    const types = d.byCacheType ? Object.entries(d.byCacheType).map(([t,c])=>`${esc(t)}: ${c}`).join(' · ') : '';
+    const best = d.bestFind;
+    return `<div class="day-item" id="day-item-${i}">
+      <div class="day-header">
+        <span class="day-date">${esc(d.dayDate)}</span>
+        <span class="day-count">${d.findCount ?? 0} finds</span>
+      </div>
+      ${types ? `<div class="day-types">${types}</div>` : ''}
+      ${best ? `<div style="margin-top:8px;font-size:0.86rem;color:var(--ink-soft);">Best: <a href="https://coord.info/${esc(best.gc_code ?? best.gcCode ?? '')}" target="_blank" rel="noopener" style="color:var(--brass-deep);text-decoration:none;border-bottom:1px dotted;">${esc(best.cache_name ?? best.name ?? '')}</a> ${best.fav_points ? `(${best.fav_points} FP)` : ''}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  return `<div class="data-panel">
+    <div class="data-section">
+      <div class="data-section-title">Day by Day</div>
+      <div class="data-section-sub">${byDay.length} days</div>
+      ${items}
+    </div>
+  </div>`;
+}
+
+function renderJasmer(sub) {
+  const jasmer = state.report?.jasmer;
+  if (!jasmer) return placeholder('No Jasmer data','','🟩');
+
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const nowY = new Date().getUTCFullYear();
+  const years = [];
+  for (let y = 2000; y <= nowY; y++) years.push(y);
+
+  const newFillsMap = new Map(jasmer.newFillsThisTrip ?? []);
+  const newFillsSet = new Set([...newFillsMap.values()]);
+
+  const rows = years.map(y => {
+    const cells = MONTHS.map((mo, mi) => {
+      const m = mi + 1;
+      if (y === 2000 && m < 5) return '<div class="jasmer-cell"></div>';
+      if (y === nowY && m > new Date().getUTCMonth()+1) return '<div class="jasmer-cell"></div>';
+      const key = `${y}-${String(m).padStart(2,'0')}`;
+      const count = jasmer.cellCounts?.[key] ?? 0;
+      const isNewThisTrip = newFillsSet.has(key);
+      const cls = isNewThisTrip ? 'filled-trip' : (count >= jasmer.loopNumber ? 'filled-lifetime' : 'empty');
+      return `<div class="jasmer-cell ${cls}" title="${MONTHS[mi]} ${y}: ${count} find${count===1?'':'s'}">
+        ${count>0?count:''}
+      </div>`;
+    }).join('');
+    return `<div class="jasmer-cell row-header">${y}</div>${cells}`;
+  }).join('');
+
+  const monthHeaders = ['<div class="jasmer-cell header"></div>', ...MONTHS.map(m=>`<div class="jasmer-cell header">${m}</div>`)].join('');
+
+  return `<div class="data-panel">
+    <div class="data-section">
+      <div class="grid-header">
+        <div>
+          <div class="data-section-title">Jasmer Grid — Loop ${jasmer.loopNumber}</div>
+          <div class="data-section-sub">Placement month × year (May 2000 → present)</div>
+        </div>
+        <div class="grid-stats">
+          <strong>${jasmer.completedCells}</strong> / ${jasmer.totalCells} filled this loop ·
+          <strong>${newFillsMap.size}</strong> new this trip
+        </div>
+      </div>
+      <div class="jasmer-grid" style="grid-template-columns:auto repeat(12, 1fr);">
+        ${monthHeaders}
+        ${rows}
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderDtGrid(sub) {
+  const dt = state.report?.dtGrid;
+  if (!dt) return placeholder('No D/T data','','⊞');
+
+  const values = [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0];
+  const newFillsMap = new Map(dt.newFillsThisTrip ?? []);
+  const newFillsSet = new Set([...newFillsMap.values()]);
+
+  const rows = values.map(d => {
+    const cells = values.map(t => {
+      const key = `${d.toFixed(1)}|${t.toFixed(1)}`;
+      const count = dt.cellCounts?.[key] ?? 0;
+      const isNew = newFillsSet.has(key);
+      const cls = isNew ? 'filled-trip' : (count >= dt.loopNumber ? 'filled-lifetime' : 'empty');
+      return `<div class="dt-cell ${cls}" title="D${d.toFixed(1)}/T${t.toFixed(1)}: ${count} find${count===1?'':'s'}">
+        ${count>0?count:''}
+      </div>`;
+    }).join('');
+    return `<div class="dt-cell row-header">D ${d.toFixed(1)}</div>${cells}`;
+  }).join('');
+
+  const headers = ['<div class="dt-cell header"></div>', ...values.map(t=>`<div class="dt-cell header">T ${t.toFixed(1)}</div>`)].join('');
+
+  return `<div class="data-panel">
+    <div class="data-section">
+      <div class="grid-header">
+        <div>
+          <div class="data-section-title">D/T Grid — Loop ${dt.loopNumber}</div>
+          <div class="data-section-sub">Difficulty × Terrain (1.0–5.0)</div>
+        </div>
+        <div class="grid-stats">
+          <strong>${dt.completedCells}</strong> / ${dt.totalCells} filled this loop ·
+          <strong>${newFillsMap.size}</strong> new this trip
+        </div>
+      </div>
+      <div class="dt-grid">
+        ${headers}
+        ${rows}
+      </div>
+    </div>
+  </div>`;
 }
 
 // ── Navigation ────────────────────────────────────────────────────

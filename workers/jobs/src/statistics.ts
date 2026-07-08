@@ -552,3 +552,169 @@ function addDaysStr(dateStr: string, n: number): string {
   d.setUTCDate(d.getUTCDate() + n);
   return utcDayStr(d);
 }
+
+// ============================================================================
+// Loop-aware grid state (Jasmer and D/T)
+// ============================================================================
+
+/**
+ * Loop state for a grid: which loop is being worked on, cell counts, trip additions.
+ * Cell keys use the same format as the query returns:
+ *   - Jasmer: "YYYY-MM" (matches SUBSTR of placement_date)
+ *   - D/T:    "D|T" (e.g. "3.5|4.0")
+ */
+export interface LoopState {
+  loopNumber: number;               // 1 = working on first fill of every cell, 2 = second, etc.
+  totalCells: number;               // Total possible cells (Jasmer varies by year, DT = 81)
+  completedCellsInLoop: number;     // Cells that have been filled at least loopNumber times prior to trip
+  completedCells: number;           // Alias for above (dashboard uses this name)
+  cellCounts: Record<string, number>;      // cell key → total lifetime finds in that cell (as of trip end)
+  newFillsThisTrip: Map<string, string>;   // gcCode → cell key (finds that filled a cell for the FIRST time in this loop)
+  tripAdditionsPerCell: Record<string, number>; // cell key → count of trip finds in that cell
+}
+
+interface JasmerCountRow  { month: string;      priorCount: number; }
+interface JasmerTripRow   { gcCode: string; month: string;      findDate: string; }
+interface DtCountRow      { difficulty: number; terrain: number; priorCount: number; }
+interface DtTripRow       { gcCode: string; difficulty: number; terrain: number; findDate: string; }
+
+/**
+ * Return the total number of Jasmer cells possible as of a given month.
+ * Grid starts May 2000 (first geocache). Each subsequent month adds a cell.
+ */
+function jasmerTotalCells(asOfMonth: string): number {
+  const [y, m] = asOfMonth.split('-').map(Number);
+  // Months from May 2000 (2000-05) through asOfMonth inclusive
+  return (y - 2000) * 12 + m - 4;
+}
+
+export function computeJasmerLoopState(
+  priorCounts: JasmerCountRow[],
+  tripRows: JasmerTripRow[],
+): LoopState {
+  // Total cells possible = months from May 2000 through current month
+  const now = new Date();
+  const nowMonth = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
+  const totalCells = jasmerTotalCells(nowMonth);
+
+  // Build cellCounts from prior data (as of trip start)
+  const cellCounts: Record<string, number> = {};
+  for (const r of priorCounts) cellCounts[r.month] = r.priorCount;
+
+  // Determine current loop number = minimum priorCount across all cells that have at least one find
+  // Loop N means: every cell has been filled at least N times. If any cell has 0 prior, we're on loop 1.
+  // For simplicity: loop = min(priorCount) + 1 across all possible cells
+  let loopNumber = 1;
+  let minCount = 0;
+  const allCells: string[] = [];
+  for (let y = 2000; y <= now.getUTCFullYear(); y++) {
+    const startM = y === 2000 ? 5 : 1;
+    const endM   = y === now.getUTCFullYear() ? now.getUTCMonth() + 1 : 12;
+    for (let m = startM; m <= endM; m++) {
+      allCells.push(`${y}-${String(m).padStart(2, '0')}`);
+    }
+  }
+
+  // Find the minimum count across all possible cells (missing = 0)
+  minCount = Infinity;
+  for (const cell of allCells) {
+    const c = cellCounts[cell] ?? 0;
+    if (c < minCount) minCount = c;
+  }
+  loopNumber = minCount + 1;
+
+  // Count how many cells are "complete" for the current loop
+  // "Complete" means they have >= loopNumber finds already
+  let completedCells = 0;
+  for (const cell of allCells) {
+    const c = cellCounts[cell] ?? 0;
+    if (c >= loopNumber) completedCells++;
+  }
+
+  // Process trip finds — track which finds newly completed the current loop's cell
+  const newFillsThisTrip = new Map<string, string>();
+  const tripAdditionsPerCell: Record<string, number> = {};
+  const sortedTrip = tripRows.slice().sort((a, b) => a.findDate.localeCompare(b.findDate));
+
+  for (const r of sortedTrip) {
+    const cur = cellCounts[r.month] ?? 0;
+    // If this cell hasn't yet been filled for the current loop, this find fills it
+    if (cur < loopNumber) {
+      newFillsThisTrip.set(r.gcCode, r.month);
+    }
+    cellCounts[r.month] = cur + 1;
+    tripAdditionsPerCell[r.month] = (tripAdditionsPerCell[r.month] ?? 0) + 1;
+  }
+
+  return {
+    loopNumber,
+    totalCells,
+    completedCellsInLoop: completedCells,
+    completedCells,
+    cellCounts,
+    newFillsThisTrip,
+    tripAdditionsPerCell,
+  };
+}
+
+export function computeDtLoopState(
+  priorCounts: DtCountRow[],
+  tripRows: DtTripRow[],
+): LoopState {
+  const totalCells = 81; // 9 difficulty × 9 terrain values (1.0, 1.5, ..., 5.0)
+
+  const cellCounts: Record<string, number> = {};
+  for (const r of priorCounts) cellCounts[`${r.difficulty}|${r.terrain}`] = r.priorCount;
+
+  // All 81 DT cells
+  const allCells: string[] = [];
+  for (let d = 1.0; d <= 5.0; d += 0.5) {
+    for (let t = 1.0; t <= 5.0; t += 0.5) {
+      // Normalize to fixed 1-decimal to avoid FP drift
+      allCells.push(`${d.toFixed(1)}|${t.toFixed(1)}`);
+    }
+  }
+
+  // Normalize cellCounts keys similarly
+  const normalizedCounts: Record<string, number> = {};
+  for (const [key, count] of Object.entries(cellCounts)) {
+    const [d, t] = key.split('|').map(Number);
+    normalizedCounts[`${d.toFixed(1)}|${t.toFixed(1)}`] = count;
+  }
+
+  let minCount = Infinity;
+  for (const cell of allCells) {
+    const c = normalizedCounts[cell] ?? 0;
+    if (c < minCount) minCount = c;
+  }
+  const loopNumber = minCount + 1;
+
+  let completedCells = 0;
+  for (const cell of allCells) {
+    if ((normalizedCounts[cell] ?? 0) >= loopNumber) completedCells++;
+  }
+
+  const newFillsThisTrip = new Map<string, string>();
+  const tripAdditionsPerCell: Record<string, number> = {};
+  const sortedTrip = tripRows.slice().sort((a, b) => a.findDate.localeCompare(b.findDate));
+
+  for (const r of sortedTrip) {
+    const key = `${r.difficulty.toFixed(1)}|${r.terrain.toFixed(1)}`;
+    const cur = normalizedCounts[key] ?? 0;
+    if (cur < loopNumber) {
+      newFillsThisTrip.set(r.gcCode, key);
+    }
+    normalizedCounts[key] = cur + 1;
+    tripAdditionsPerCell[key] = (tripAdditionsPerCell[key] ?? 0) + 1;
+  }
+
+  return {
+    loopNumber,
+    totalCells,
+    completedCellsInLoop: completedCells,
+    completedCells,
+    cellCounts: normalizedCounts,
+    newFillsThisTrip,
+    tripAdditionsPerCell,
+  };
+}
