@@ -517,8 +517,8 @@ async function loadHealth() {
     }
     const d = r.value;
     const okBadge = d.ok
-      ? '<span style="color:var(--forge);font-family:'JetBrains Mono',monospace;font-size:0.72rem;">✓ OK</span>'
-      : '<span style="color:var(--stamp);font-family:'JetBrains Mono',monospace;font-size:0.72rem;">✗ Error</span>';
+      ? `<span style="color:var(--forge);font-family:'JetBrains Mono',monospace;font-size:0.72rem;">✓ OK</span>`
+      : `<span style="color:var(--stamp);font-family:'JetBrains Mono',monospace;font-size:0.72rem;">✗ Error</span>`;
     return `<tr>
       <td class="mono">${esc(d.worker||w.name)}</td>
       <td>${okBadge}</td>
