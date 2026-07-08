@@ -194,6 +194,11 @@ body{font-family:'Source Serif 4',Charter,Georgia,serif;font-size:15px;line-heig
 .rule-match-date{font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:var(--ink-muted);}
 .rule-match a{color:inherit;text-decoration:none;border-bottom:1px dotted var(--rule);}
 .rule-match a:hover{color:var(--brass-deep);border-bottom-color:var(--brass);}
+.rule-match-note-inline{color:var(--forge);font-style:italic;font-size:0.82rem;}
+.rule-match-marquee{display:block;padding:10px 0;border-bottom:1px solid var(--rule-soft);}
+.rule-match-marquee:last-child{border-bottom:none;}
+.rule-match-top{display:flex;gap:10px;align-items:baseline;}
+.rule-match-note{margin-top:6px;padding:6px 10px;background:rgba(45,90,42,0.06);border-left:2px solid var(--forge);font-size:0.9rem;color:var(--forge);font-weight:500;border-radius:0 2px 2px 0;}
 .rules-notfired-title{font-family:'JetBrains Mono',monospace;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--ink-muted);margin:20px 0 8px;}
 .rules-collapsible{margin-bottom:14px;border:1px solid var(--rule);border-radius:3px;background:rgba(255,252,240,0.4);}
 .rules-collapsible-hdr{padding:10px 14px;cursor:pointer;user-select:none;display:flex;align-items:center;gap:10px;font-family:'JetBrains Mono',monospace;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--ink-muted);background:var(--paper-mid);border-bottom:1px solid transparent;}
@@ -251,7 +256,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
 </style>
 </head>
 <body>
-<script>console.log('Routesmith | dashboard | Build 2026.07.08.005');</script>
+<script>console.log('Routesmith | dashboard | Build 2026.07.08.006');</script>
 
 
 
@@ -358,7 +363,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
   </div>
 </div>
 
-<footer>Build 2026.07.08.005</footer>
+<footer>Build 2026.07.08.006</footer>
 
 <script>
 const BASE     = 'https://routesmith-report.gtl6645.workers.dev';
@@ -1055,17 +1060,35 @@ function toggleRulesSection(hdrEl) {
 function renderRuleCard(rule, notFired) {
   const sev = rule.severity ?? 'note';
   const matches = rule.matches ?? [];
+  const isMarquee = sev === 'marquee';
+
   const matchesHtml = matches.slice(0, 20).map(m => {
-    const gc = m.gc_code ?? m.gcCode ?? '';
+    const gc   = m.gc_code ?? m.gcCode ?? '';
     const name = m.cache_name ?? m.name ?? '';
     const date = m.find_date ?? m.findDate ?? '';
+    const note = m.note ?? '';
     const link = gc ? `<a href="https://coord.info/${esc(gc)}" target="_blank" rel="noopener">${esc(gc)}</a>` : '';
+
+    if (isMarquee) {
+      // Larger, more prominent layout for marquee finds
+      return `<div class="rule-match rule-match-marquee">
+        <div class="rule-match-top">
+          <span class="rule-match-gc">${link}</span>
+          <span class="rule-match-name">${esc(name)}</span>
+          <span class="rule-match-date">${esc(date)}</span>
+        </div>
+        ${note ? `<div class="rule-match-note">${esc(note)}</div>` : ''}
+      </div>`;
+    }
+
+    // Compact layout for featured/notes
     return `<div class="rule-match">
       <span class="rule-match-gc">${link}</span>
-      <span class="rule-match-name">${esc(name)}</span>
+      <span class="rule-match-name">${esc(name)}${note ? ` <span class="rule-match-note-inline">— ${esc(note)}</span>` : ''}</span>
       <span class="rule-match-date">${esc(date)}</span>
     </div>`;
   }).join('');
+
   const overflow = matches.length > 20 ? `<div style="font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:var(--ink-muted);margin-top:4px;">+ ${matches.length - 20} more…</div>` : '';
 
   return `<div class="rule-card ${sev} ${notFired?'notfired':''}">
