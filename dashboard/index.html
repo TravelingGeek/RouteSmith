@@ -126,8 +126,8 @@ body{font-family:'Source Serif 4',Charter,Georgia,serif;font-size:15px;line-heig
 /* ── Trip flyout ── */
 .flyout-overlay{display:none;position:fixed;inset:0;background:rgba(31,24,16,0.4);z-index:50;}
 .flyout-overlay.open{display:block;}
-.flyout{position:fixed;top:0;right:-420px;bottom:0;width:400px;background:var(--paper);border-left:1px solid var(--rule);z-index:51;display:flex;flex-direction:column;transition:right 0.25s ease;box-shadow:-4px 0 24px rgba(31,24,16,0.15);}
-.flyout.open{right:0;}
+.flyout{position:fixed;top:0;left:-420px;bottom:0;width:400px;background:var(--paper);border-right:1px solid var(--rule);z-index:51;display:flex;flex-direction:column;transition:left 0.25s ease;box-shadow:4px 0 24px rgba(31,24,16,0.15);}
+.flyout.open{left:0;}
 .flyout-header{padding:20px 24px;border-bottom:1px solid var(--rule);display:flex;justify-content:space-between;align-items:center;}
 .flyout-title{font-family:'Fraunces',serif;font-weight:600;font-size:1.2rem;color:var(--ink);}
 .flyout-close{font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:var(--ink-muted);background:none;border:none;cursor:pointer;}
@@ -238,7 +238,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
 </style>
 </head>
 <body>
-<script>console.log('Routesmith | dashboard | Build 2026.07.08.001');</script>
+<script>console.log('Routesmith | dashboard | Build 2026.07.08.002');</script>
 
 
 
@@ -340,7 +340,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
   </div>
 </div>
 
-<footer>Build 2026.07.08.001</footer>
+<footer>Build 2026.07.08.002</footer>
 
 <script>
 const BASE     = 'https://routesmith-report.gtl6645.workers.dev';
@@ -1622,8 +1622,16 @@ window.addEventListener('load', async () => {
 
   const params=new URLSearchParams(location.search);
   const tripId=params.get('id');
-  if (tripId) await loadTrip(tripId);
-  else openTripSelector();
+  if (tripId) {
+    await loadTrip(tripId);
+    // Auto-run report if requested via URL param
+    if (params.get('run') === '1') {
+      const url = new URL(location.href);
+      url.searchParams.delete('run');
+      history.replaceState({}, '', url);
+      setTimeout(()=>startReportRun(), 300);
+    }
+  } else openTripSelector();
 });
 </script>
 </body>

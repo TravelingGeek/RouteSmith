@@ -189,6 +189,10 @@
   .trip-status.draft    { color: var(--ink-muted); border: 1px solid var(--rule); }
   .trip-status.active   { color: var(--forge); border: 1px solid var(--forge); background: rgba(45,90,42,0.06); }
   .trip-status.complete { color: var(--brass-deep); border: 1px solid var(--brass); background: rgba(168,120,50,0.06); }
+  .trip-action-btn { font-family:'JetBrains Mono',monospace;font-size:0.66rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-muted);background:none;border:1px solid var(--rule);padding:4px 10px;border-radius:2px;cursor:pointer;transition:color 0.15s,border-color 0.15s;white-space:nowrap; }
+  .trip-action-btn:hover { color:var(--ink);border-color:var(--ink-soft); }
+  .trip-action-btn-danger { color:var(--stamp); }
+  .trip-action-btn-danger:hover { border-color:var(--stamp); }
 
   .empty-state {
     text-align: center; padding: 48px 24px;
@@ -274,7 +278,7 @@
 </style>
 </head>
 <body>
-<script>console.log('Routesmith | report | Build 2026.07.08.001');</script>
+<script>console.log('Routesmith | report | Build 2026.07.08.002');</script>
 
 
 
@@ -389,7 +393,7 @@
   <span class="sep">·</span>
   <span>Forged 2026</span>
   <span class="sep">·</span>
-  <span>Build 2026.07.08.001</span>
+  <span>Build 2026.07.08.002</span>
 </footer>
 
 <script>
@@ -441,15 +445,48 @@ function renderTrips(trips) {
     const card = document.createElement('div');
     card.className = 'trip-card';
     card.innerHTML = `
-      <div class="trip-card-left">
+      <div class="trip-card-left" style="cursor:pointer;">
         <div class="trip-card-name">${esc(trip.name)}</div>
         <div class="trip-card-dates">${trip.date_start && trip.date_end ? fmtDateRange(trip.date_start, trip.date_end) : 'Dates not set'}</div>
       </div>
       <div class="trip-card-right">
         <span class="trip-status ${trip.status}">${trip.status}</span>
+        <button class="trip-action-btn" data-action="run"  data-id="${trip.trip_id}">Run Report</button>
+        <button class="trip-action-btn" data-action="edit" data-id="${trip.trip_id}">Edit</button>
+        <button class="trip-action-btn trip-action-btn-danger" data-action="delete" data-id="${trip.trip_id}" data-name="${esc(trip.name)}">Delete</button>
       </div>`;
-    card.addEventListener('click', () => {
+    card.querySelector('.trip-card-left').addEventListener('click', () => {
       location.href = `/dashboard/?id=${trip.trip_id}`;
+    });
+    card.querySelectorAll('.trip-action-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const action = btn.dataset.action;
+        const id     = btn.dataset.id;
+        if (action === 'edit') {
+          location.href = `/report/trip.html?id=${id}`;
+        } else if (action === 'run') {
+          location.href = `/dashboard/?id=${id}&run=1`;
+        } else if (action === 'delete') {
+          const name = btn.dataset.name;
+          if (!confirm(`Delete "${name}"?\n\nThis cannot be undone.`)) return;
+          btn.disabled = true;
+          btn.textContent = 'Deleting…';
+          try {
+            const token = await getToken();
+            const resp = await fetch(`${BASE}/api/trips/${id}`, {
+              method:'DELETE', headers:{'Authorization':'Bearer '+token}
+            });
+            const result = await resp.json();
+            if (result.error) throw new Error(result.error);
+            await loadTrips();
+          } catch(err) {
+            alert('Delete failed: ' + err.message);
+            btn.disabled = false;
+            btn.textContent = 'Delete';
+          }
+        }
+      });
     });
     listEl.appendChild(card);
   }
