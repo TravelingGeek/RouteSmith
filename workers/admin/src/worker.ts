@@ -64,7 +64,7 @@ export default {
       return addCors(new Response(JSON.stringify({
         ok: true,
         worker: 'routesmith-admin',
-        build: '2026.07.07.001',
+        build: '2026.07.09.001',
         timestamp: new Date().toISOString(),
       }), { headers: { 'Content-Type': 'application/json' } }), request);
     }
@@ -167,6 +167,37 @@ export default {
     }
 
     // Rules list
+    // Pages health check — fetches each HTML page and extracts the build line
+    if (url.pathname === '/api/admin/pages-health' && request.method === 'GET') {
+      const origin = 'https://routesmithing.com';
+      const paths = [
+        { name: 'home',          path: '/' },
+        { name: 'account',       path: '/account/' },
+        { name: 'dashboard',     path: '/dashboard/' },
+        { name: 'admin',         path: '/admin/' },
+        { name: 'report/trips',  path: '/report/' },
+        { name: 'report/trip',   path: '/report/trip.html' },
+      ];
+      const results = await Promise.all(paths.map(async p => {
+        try {
+          const resp = await fetch(origin + p.path + '?nocache=' + Date.now(), {
+            signal: AbortSignal.timeout(5000),
+            cf: { cacheEverything: false, cacheTtl: 0 } as any,
+          });
+          if (!resp.ok) return { ...p, ok: false, build: null, error: `HTTP ${resp.status}` };
+          const text = await resp.text();
+          const match = text.match(/console\.log\('Routesmith\s*\|\s*([^|]+)\s*\|\s*Build\s+([\d.]+)'/);
+          if (!match) return { ...p, ok: false, build: null, error: 'Build line not found' };
+          return { ...p, ok: true, build: match[2], detected_name: match[1].trim() };
+        } catch (e) {
+          return { ...p, ok: false, build: null, error: (e as Error).message };
+        }
+      }));
+      return addCors(new Response(JSON.stringify({ pages: results, checked_at: new Date().toISOString() }), {
+        headers: { 'Content-Type': 'application/json' },
+      }), request);
+    }
+
     if (url.pathname === '/api/admin/rules' && request.method === 'GET') {
       return addCors(new Response(JSON.stringify({ rules: RULES }), {
         headers: { 'Content-Type': 'application/json' },

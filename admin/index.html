@@ -75,7 +75,7 @@
 </style>
 </head>
 <body>
-<script>console.log('Routesmith | admin | Build 2026.07.08.005');</script>
+<script>console.log('Routesmith | admin | Build 2026.07.09.002');</script>
 
 
 
@@ -179,9 +179,15 @@
       </button>
       <div class="section-body" id="body-health">
         <div class="section-actions"><button class="btn-sm" onclick="loadHealth()">Refresh</button></div>
+        <h4 style="font-family:'JetBrains Mono',monospace;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--ink-muted);margin:12px 0 6px;">Workers</h4>
         <table>
           <thead><tr><th>Worker</th><th>Status</th><th>Build</th><th>Checked</th></tr></thead>
           <tbody id="health-tbody"><tr><td colspan="4" class="muted">—</td></tr></tbody>
+        </table>
+        <h4 style="font-family:'JetBrains Mono',monospace;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--ink-muted);margin:20px 0 6px;">Pages</h4>
+        <table>
+          <thead><tr><th>Page</th><th>Status</th><th>Build</th><th>Checked</th></tr></thead>
+          <tbody id="pages-health-tbody"><tr><td colspan="4" class="muted">—</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -220,7 +226,7 @@
   <span class="sep">·</span>
   <span>Admin</span>
   <span class="sep">·</span>
-  <span>Build 2026.07.07.001</span>
+  <span>Build 2026.07.09.002</span>
 </footer>
 
 <script>
@@ -526,6 +532,37 @@ async function loadHealth() {
       <td class="muted">${new Date().toLocaleTimeString()}</td>
     </tr>`;
   }).join('');
+
+  // Also load pages health
+  loadPagesHealth();
+}
+
+async function loadPagesHealth() {
+  const tbody = document.getElementById('pages-health-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="4" class="muted">Checking…</td></tr>';
+  try {
+    const token = await getToken();
+    const resp = await fetch(`${ADMIN_BASE}/api/admin/pages-health`, {
+      headers: { 'Authorization': 'Bearer ' + token },
+      signal: AbortSignal.timeout(15000),
+    });
+    const data = await resp.json();
+    if (!data.pages?.length) { tbody.innerHTML = '<tr><td colspan="4" class="muted">No pages.</td></tr>'; return; }
+    tbody.innerHTML = data.pages.map(p => {
+      const badge = p.ok
+        ? `<span style="color:var(--forge);font-family:'JetBrains Mono',monospace;font-size:0.72rem;">✓ OK</span>`
+        : `<span style="color:var(--stamp);font-family:'JetBrains Mono',monospace;font-size:0.72rem;" title="${esc(p.error||'')}">✗ ${esc(p.error||'Error')}</span>`;
+      return `<tr>
+        <td class="mono">${esc(p.name)}</td>
+        <td>${badge}</td>
+        <td class="mono muted" style="font-size:0.72rem;">${esc(p.build||'—')}</td>
+        <td class="muted">${new Date().toLocaleTimeString()}</td>
+      </tr>`;
+    }).join('');
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="4" style="color:var(--stamp);">Error: ${esc(e.message)}</td></tr>`;
+  }
 }
 
 // ── Rules ─────────────────────────────────────────────────────────
