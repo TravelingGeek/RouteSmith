@@ -21,20 +21,31 @@ import { handleGpxParseJob } from './gpxParseJob.js';
 import { handleReportRunJob } from './reportRunJob.js';
 import { handleTripRunJob } from './tripRunJob.js';
 
-const WORKER_BUILD = '2026.07.07.001';
+const WORKER_BUILD = '2026.07.09.001';
 
 export default {
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
+    const corsHeaders = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+    };
+
+    // Handle CORS preflight
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { headers: corsHeaders });
+    }
+
     if (url.pathname === '/api/health') {
       return new Response(JSON.stringify({
         ok: true,
         worker: 'routesmith-jobs',
         build: WORKER_BUILD,
         timestamp: new Date().toISOString(),
-      }), { headers: { 'Content-Type': 'application/json' } });
+      }), { headers: { 'Content-Type': 'application/json', ...corsHeaders } });
     }
-    return new Response('routesmith-jobs queue worker', { status: 200 });
+    return new Response('routesmith-jobs queue worker', { status: 200, headers: corsHeaders });
   },
   // ── Queue consumer ──────────────────────────────────────────────────────────
   async queue(batch: MessageBatch<JobMessage>, env: Env): Promise<void> {

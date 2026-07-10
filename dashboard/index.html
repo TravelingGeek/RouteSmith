@@ -256,7 +256,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
 </style>
 </head>
 <body>
-<script>console.log('Routesmith | dashboard | Build 2026.07.08.006');</script>
+<script>console.log('Routesmith | dashboard | Build 2026.07.09.001');</script>
 
 
 
@@ -363,7 +363,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
   </div>
 </div>
 
-<footer>Build 2026.07.08.006</footer>
+<footer>Build 2026.07.09.001</footer>
 
 <script>
 const BASE     = 'https://routesmith-report.gtl6645.workers.dev';
@@ -735,12 +735,22 @@ function fitMapToBounds(tripNewFips,tripPrevFips,geojson) {
 
 // ── Map sidebar ───────────────────────────────────────────────────
 function buildMapSidebar(tripNewFips,tripPrevFips) {
-  const ownerNameEl = document.getElementById('map-owner-name');
-  if (ownerNameEl && state.report?.owner) {
-    ownerNameEl.textContent = state.report.owner.gc_username||state.report.owner.display_name||'—';
+  const finders    = state.report?.finders ?? [];
+  const finderList = document.getElementById('map-finder-list');
+  if (finderList && finders.length) {
+    finderList.innerHTML = finders.map(f => `
+      <div class="finder-row" style="justify-content:space-between;padding:2px 0;">
+        <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1;">
+          <div class="finder-dot-sm" style="background:${f.color};"></div>
+          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.gc_username || f.display_name}</span>
+        </div>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:0.66rem;color:var(--ink-muted);flex-shrink:0;">${f.find_count} · ${f.county_count} co.</span>
+      </div>
+    `).join('');
+  } else if (finderList) {
+    const ownerName = state.report?.owner?.gc_username || state.report?.owner?.display_name || '—';
+    finderList.innerHTML = `<div class="finder-row"><div class="finder-dot-sm" style="background:var(--forge);"></div><span>${ownerName}</span></div>`;
   }
-
-  // County list removed — stats and gc.com link coming in next iteration (see todo)
 }
 
 function flyToCounty(fips) {
@@ -785,12 +795,28 @@ function highlightCountyInSidebar(fips) {
     if (lc) lifetimeDate = lc.first_found;
   }
 
+  // Per-finder attribution for this county
+  const finderChipsKey = `${meta.county}|${meta.stateAbbrev}`;
+  const attr = state.report?.countiesData?.countyAttribution?.[finderChipsKey];
+  const finders = state.report?.finders ?? [];
+  let finderChips = '';
+  if (attr && finders.length > 1) {
+    finderChips = '<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;">' +
+      attr.finderIds.map(fid => {
+        const f = finders.find(x => x.finder_id === fid);
+        if (!f) return '';
+        const cnt = attr.findCounts[fid] ?? 0;
+        return `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 6px;background:${f.color};color:white;border-radius:2px;font-family:'JetBrains Mono',monospace;font-size:0.66rem;">${f.gc_username || f.display_name} · ${cnt}</span>`;
+      }).join('') + '</div>';
+  }
+
   // TODO: add more statistics and gc.com search link
   infoEl.innerHTML=`
     <strong style="color:var(--ink);font-family:'Fraunces',serif;">${meta.county} County, ${meta.stateAbbrev}</strong><br>
     <span style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:${color};display:block;margin-top:2px;">${label}</span>
     ${tripDate ? `<span style="font-family:'JetBrains Mono',monospace;font-size:0.66rem;color:var(--ink-muted);display:block;margin-top:4px;">This trip: ${tripDate}</span>` : ''}
     ${lifetimeDate ? `<span style="font-family:'JetBrains Mono',monospace;font-size:0.66rem;color:var(--ink-muted);display:block;margin-top:2px;">First found: ${lifetimeDate}</span>` : ''}
+    ${finderChips}
   `;
 }
 
@@ -901,9 +927,11 @@ function renderPanelContent(catId,sub) {
               <span class="map-sidebar-chev open" id="mschev-finders">▼</span>
             </div>
             <div class="map-sidebar-body open" id="msbody-finders">
-              <div class="finder-row">
-                <div class="finder-dot-sm" style="background:var(--forge);"></div>
-                <span id="map-owner-name">—</span>
+              <div id="map-finder-list">
+                <div class="finder-row">
+                  <div class="finder-dot-sm" style="background:var(--forge);"></div>
+                  <span id="map-owner-name">—</span>
+                </div>
               </div>
             </div>
           </div>
@@ -1389,19 +1417,23 @@ async function loadTripList() {
   const data=await resp.json();
   const trips=data.trips??[];
   if (!trips.length){el.innerHTML='<p style="color:var(--ink-muted);font-size:0.88rem;">No trips yet.</p>';return;}
-  el.innerHTML=trips.map(t=>`
+  el.innerHTML=trips.map(t=>{
+    const finderCount = t.finder_count ?? 1;
+    const finderLabel = finderCount > 1 ? `${finderCount} finders` : 'solo';
+    return `
     <div class="trip-list-item${t.trip_id===state.tripId?' active':''}">
       <div onclick="selectTrip('${t.trip_id}')" style="cursor:pointer;">
         <div class="trip-item-name">${t.name}</div>
         <div class="trip-item-dates">${fmtDateRange(t.date_start,t.date_end)}</div>
-        <div class="trip-item-status">${t.status}</div>
+        <div class="trip-item-status">${t.status} · ${finderLabel}</div>
       </div>
       <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
         <button class="flyout-trip-btn" onclick="event.stopPropagation();flyoutRunReport('${t.trip_id}')">Run Report</button>
         <button class="flyout-trip-btn" onclick="event.stopPropagation();location.href='/report/trip.html?id=${t.trip_id}&from=dashboard'">Edit</button>
         <button class="flyout-trip-btn flyout-trip-btn-danger" onclick="event.stopPropagation();flyoutDeleteTrip('${t.trip_id}','${t.name.replace(/'/g,"\\'")}')">Delete</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 async function selectTrip(tripId){closeTripSelector();await loadTrip(tripId);}

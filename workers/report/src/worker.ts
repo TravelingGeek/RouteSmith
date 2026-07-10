@@ -75,8 +75,13 @@ export default {
     }
 
     // Health check — no auth required
-    if (url.pathname === '/api/report/health') {
-      return addCors(new Response(JSON.stringify({ status: 'ok' }), {
+    if (url.pathname === '/api/health' || url.pathname === '/api/report/health') {
+      return addCors(new Response(JSON.stringify({
+        ok: true,
+        worker: 'routesmith-report',
+        build: '2026.07.09.001',
+        timestamp: new Date().toISOString(),
+      }), {
         headers: { 'Content-Type': 'application/json' },
       }), request);
     }

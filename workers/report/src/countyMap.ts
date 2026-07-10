@@ -47,3 +47,33 @@ export function buildCountiesData(
     stateCoverage,
   };
 }
+
+/**
+ * Build per-finder county attribution — for each county key, list of finder IDs
+ * who found caches there during the trip window. Used for county map pins.
+ */
+export interface PerFinderCountyAttribution {
+  countyAttribution: Record<string, { finderIds: string[]; findCounts: Record<string, number> }>;
+}
+
+export function buildPerFinderCountyAttribution(
+  perFinderTripFinds: Record<string, Array<{ gc_code: string; county: string | null; state: string | null; find_date: string }>>,
+): PerFinderCountyAttribution {
+  const countyAttribution: Record<string, { finderIds: string[]; findCounts: Record<string, number> }> = {};
+
+  for (const [finderId, finds] of Object.entries(perFinderTripFinds)) {
+    for (const f of finds) {
+      if (!f.county || !f.state) continue;
+      const key = countyKey(f.county, f.state);
+      if (!countyAttribution[key]) {
+        countyAttribution[key] = { finderIds: [], findCounts: {} };
+      }
+      if (!countyAttribution[key].finderIds.includes(finderId)) {
+        countyAttribution[key].finderIds.push(finderId);
+      }
+      countyAttribution[key].findCounts[finderId] = (countyAttribution[key].findCounts[finderId] ?? 0) + 1;
+    }
+  }
+
+  return { countyAttribution };
+}

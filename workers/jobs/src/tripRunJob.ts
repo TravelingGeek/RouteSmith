@@ -51,30 +51,44 @@ export async function handleTripRunJob(
   const tripStart = trip.date_start;
   const tripEnd   = trip.date_end;
 
-  // ── Load owner finder ─────────────────────────────────────────────────────
-  const ownerFinder = await env.DB
+  // ── Load all trip finders (owner + companions) ────────────────────────────
+  const { results: tripFinderRows } = await env.DB
     .prepare(`
-      SELECT tf.finder_id, tf.gc_username, tf.display_name,
-             f.gc_username as f_gc_username, f.display_name as f_display_name
+      SELECT tf.finder_id, tf.role,
+             COALESCE(tf.display_name, f.display_name) as display_name,
+             COALESCE(tf.gc_username, f.gc_username)   as gc_username
       FROM trip_finders tf
       JOIN finders f ON f.finder_id = tf.finder_id
-      WHERE tf.trip_id = ? AND tf.role = 'owner'
+      WHERE tf.trip_id = ?
+      ORDER BY (tf.role = 'owner') DESC, tf.display_name ASC
     `)
     .bind(trip_id)
-    .first<{
-      finder_id: string; gc_username: string | null; display_name: string | null;
-      f_gc_username: string | null; f_display_name: string | null;
-    }>();
+    .all<{ finder_id: string; role: string; display_name: string | null; gc_username: string | null }>();
 
+  if (!tripFinderRows.length) throw new Error('No finders found for trip');
+
+  const ownerFinder = tripFinderRows.find(f => f.role === 'owner');
   if (!ownerFinder) throw new Error('Trip owner finder not found');
 
   const finderId    = ownerFinder.finder_id;
-  const gcUsername  = ownerFinder.gc_username || ownerFinder.f_gc_username || '';
-  const displayName = ownerFinder.display_name || ownerFinder.f_display_name || gcUsername;
+  const gcUsername  = ownerFinder.gc_username || '';
+  const displayName = ownerFinder.display_name || gcUsername;
+
+  // Palette for pin colors — matches POC visualization
+  const FINDER_COLORS = ['#2d5a2a', '#a83328', '#7a5621', '#4a6d8c', '#8a5a2a', '#6a4a7d', '#2d7a6a', '#a86a32'];
+  const tripFinders = tripFinderRows.map((f, i) => ({
+    finder_id: f.finder_id,
+    role: f.role,
+    display_name: f.display_name || f.gc_username || 'Unknown',
+    gc_username: f.gc_username || '',
+    color: FINDER_COLORS[i % FINDER_COLORS.length],
+  }));
+
+  console.log(`[trip_run] trip has ${tripFinders.length} finder(s): ${tripFinders.map(f=>f.display_name).join(', ')}`);
 
   // ── Targeted D1 queries ───────────────────────────────────────────────────
 
-  // Q1: Trip-window finds (full data)
+  // Q1: Trip-window finds for OWNER (full data — used for rule evaluation)
   const { results: tripRows } = await env.DB
     .prepare(`
       SELECT gc_code, cache_name, cache_owner, find_date,
@@ -94,7 +108,27 @@ export async function handleTripRunJob(
       placement_date: string | null;
     }>();
 
-  console.log(`[trip_run] Q1 trip finds: ${tripRows.length}`);
+  console.log(`[trip_run] Q1 owner trip finds: ${tripRows.length}`);
+
+  // Q1b: Per-companion trip finds (for county attribution + per-finder stats)
+  const perFinderTripFinds: Record<string, Array<{ gc_code: string; county: string | null; state: string | null; find_date: string }>> = {};
+  perFinderTripFinds[finderId] = tripRows.map(r => ({
+    gc_code: r.gc_code, county: r.county, state: r.state, find_date: r.find_date
+  }));
+
+  const companions = tripFinders.filter(f => f.role !== 'owner');
+  for (const c of companions) {
+    const { results: cRows } = await env.DB
+      .prepare(`
+        SELECT gc_code, county, state, find_date
+        FROM finder_finds
+        WHERE finder_id = ? AND find_date >= ? AND find_date <= ?
+      `)
+      .bind(c.finder_id, tripStart, tripEnd)
+      .all<{ gc_code: string; county: string | null; state: string | null; find_date: string }>();
+    perFinderTripFinds[c.finder_id] = cRows;
+    console.log(`[trip_run] Q1b companion ${c.display_name}: ${cRows.length} finds`);
+  }
 
   // Q2-5: Prior data (DISTINCT queries)
   const [priorCountyRows, priorStateRows, priorCountryRows, priorTypeRows] = await Promise.all([
@@ -172,7 +206,7 @@ export async function handleTripRunJob(
   } = await import('./statistics.js');
   const { buildDefaultRules, evaluateAllRules } = await import('./rules.js');
   const { fetchReferenceListsFromR2, injectReferenceContext } = await import('./referenceLists.js');
-  const { buildCountiesData } = await import('./countyMap.js');
+  const { buildCountiesData, buildPerFinderCountyAttribution } = await import('./countyMap.js');
 
   // ── Convert rows to Waypoint-like objects ─────────────────────────────────
   type WaypointLike = {
@@ -218,6 +252,27 @@ export async function handleTripRunJob(
   const milestones   = computeMilestones([...lifetimeMinimal, ...tripFinds] as any, tripStartDate, tripEndDate);
   const stateComps   = computeStateCompletions(tripFinds as any, priorCounties);
   const countiesData = buildCountiesData(tripFinds as any, priorCounties);
+
+  // Per-finder county attribution — for county map pins showing who found what
+  const perFinderAttribution = buildPerFinderCountyAttribution(perFinderTripFinds);
+
+  // Per-finder stats — total finds and counties for each finder on this trip
+  const perFinderStats = tripFinders.map(f => {
+    const finds = perFinderTripFinds[f.finder_id] ?? [];
+    const counties = new Set<string>();
+    for (const fd of finds) {
+      if (fd.county && fd.state) counties.add(`${fd.county}|${fd.state}`);
+    }
+    return {
+      finder_id: f.finder_id,
+      display_name: f.display_name,
+      gc_username: f.gc_username,
+      role: f.role,
+      color: f.color,
+      find_count: finds.length,
+      county_count: counties.size,
+    };
+  });
 
   // ── Loop state for Jasmer + DT ────────────────────────────────────────────
   const { computeJasmerLoopState, computeDtLoopState } = await import('./statistics.js');
@@ -290,6 +345,7 @@ export async function handleTripRunJob(
       ? [`No finds found between ${tripStart} and ${tripEnd} for ${gcUsername}.`]
       : [],
     owner: { finder_id: finderId, display_name: displayName, gc_username: gcUsername },
+    finders: perFinderStats,
     aggregate,
     byDay: mappedByDay,
     ruleResults: ruleResults.map((rr: any) => ({
@@ -320,6 +376,8 @@ export async function handleTripRunJob(
       firstTimeCount: (countiesData as any).firstTime.size,
       previouslyFoundCount: (countiesData as any).previouslyFound.size,
       firstTime: [...(countiesData as any).firstTime].slice(0, 500),
+      previouslyFound: [...(countiesData as any).previouslyFound].slice(0, 500),
+      countyAttribution: perFinderAttribution.countyAttribution,
     },
     jasmer: {
       loopNumber: jasmerLoopState.loopNumber,

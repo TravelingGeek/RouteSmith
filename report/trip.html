@@ -570,9 +570,163 @@ function renderCompanions(companions) {
       </div>
       <div class="companion-data ${cls}">${esc(dataLabel)}</div>
       <span class="companion-role ${isOwner ? 'owner' : ''}">${isOwner ? 'Owner' : 'Companion'}</span>
-      ${!isOwner ? `<button class="btn-icon" onclick="removeCompanion('${esc(c.finder_id)}')" title="Remove">✕</button>` : ''}
+      ${!isOwner ? `
+        <label class="btn-icon" title="Upload GPX for this companion" style="cursor:pointer;">📂
+          <input type="file" accept=".gpx,.zip" style="display:none;" onchange="uploadCompanionGpx(event, '${esc(c.finder_id)}', '${esc(c.gc_username || c.display_name)}')">
+        </label>
+        <button class="btn-icon" onclick="removeCompanion('${esc(c.finder_id)}')" title="Remove">✕</button>
+      ` : ''}
     </div>`;
   }).join('');
+}
+
+async function uploadCompanionGpx(event, finderId, finderName) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  // Store the file reference and show upload dialog
+  if (!confirm(`Upload ${file.name} as find data for ${finderName}?`)) {
+    event.target.value = '';
+    return;
+  }
+
+  // Parse the GPX in the browser to extract finds (uses same logic as account page)
+  const btn = event.target.parentElement;
+  const origText = btn.innerHTML;
+  btn.innerHTML = '⏳';
+
+  try {
+    const parsed = await parseGpxInBrowser(file);
+    if (!parsed || !parsed.finds || parsed.finds.length === 0) {
+      throw new Error('No finds found in file.');
+    }
+
+    const token = await getToken();
+
+    // 1. Request upload URL
+    const initResp = await fetch(`${BASE}/api/account/upload/init`, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        filename: file.name,
+        file_size_bytes: file.size,
+        format: 'pgc',
+        finder_id: finderId,
+        file_role: 'lifetime',
+        scope: 'personal',
+        finder_gc_username: finderName,
+      }),
+    });
+    const initData = await initResp.json();
+    if (initData.error) throw new Error(initData.error);
+
+    // 2. Upload to R2
+    const uploadResp = await fetch(initData.upload_url, {
+      method: 'PUT',
+      body: file,
+    });
+    if (!uploadResp.ok) throw new Error(`R2 upload failed: ${uploadResp.status}`);
+
+    // 3. Confirm with parsed finds
+    const confirmResp = await fetch(`${BASE}/api/account/upload/confirm`, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        gpx_file_id: initData.gpx_file_id,
+        data_through_date: parsed.dataThroughDate,
+        finds: parsed.finds,
+        counties: parsed.counties,
+      }),
+    });
+    const confirmData = await confirmResp.json();
+    if (confirmData.error) throw new Error(confirmData.error);
+
+    alert(`Uploaded ${parsed.finds.length} finds for ${finderName}.`);
+    await loadCompanions();
+  } catch(e) {
+    alert('Upload failed: ' + e.message);
+  } finally {
+    btn.innerHTML = origText;
+    event.target.value = '';
+  }
+}
+
+// Browser-side GPX parser (matches account page logic)
+async function parseGpxInBrowser(file) {
+  let text;
+  if (file.name.endsWith('.zip')) {
+    // Try to unzip - load fflate lazily
+    if (!window.fflate) {
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js';
+        s.onload = resolve; s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    }
+    const buffer = await file.arrayBuffer();
+    const unzipped = window.fflate.unzipSync(new Uint8Array(buffer));
+    // Find first .gpx inside
+    const gpxName = Object.keys(unzipped).find(n => n.toLowerCase().endsWith('.gpx'));
+    if (!gpxName) throw new Error('No .gpx inside ZIP');
+    text = new TextDecoder().decode(unzipped[gpxName]);
+  } else {
+    text = await file.text();
+  }
+
+  const finds = [];
+  const counties = [];
+  const wptChunks = text.split('</wpt>');
+
+  const between = (str, open, close) => {
+    const s = str.indexOf(open);
+    if (s === -1) return '';
+    const e = str.indexOf(close, s + open.length);
+    if (e === -1) return '';
+    return str.slice(s + open.length, e).trim();
+  };
+
+  let latestDate = '';
+  for (const chunk of wptChunks) {
+    const gcCode = between(chunk, '<name>', '</name>');
+    if (!gcCode || !gcCode.startsWith('GC')) continue;
+
+    const cacheStart = chunk.indexOf('<groundspeak:cache');
+    const cacheChunk = cacheStart !== -1 ? chunk.slice(cacheStart) : chunk;
+
+    // Try to extract find date from <groundspeak:log> section
+    let findDate = between(chunk, '<time>', '</time>');
+    if (findDate) findDate = findDate.slice(0, 10);
+    if (findDate > latestDate) latestDate = findDate;
+
+    const latMatch = chunk.match(/<wpt\s+lat="([^"]+)"\s+lon="([^"]+)"/);
+    const lat = latMatch ? parseFloat(latMatch[1]) : null;
+    const lon = latMatch ? parseFloat(latMatch[2]) : null;
+
+    const county = between(cacheChunk, '<groundspeak:county>', '</groundspeak:county>');
+    const state  = between(cacheChunk, '<groundspeak:state>',  '</groundspeak:state>');
+    const country = between(cacheChunk, '<groundspeak:country>', '</groundspeak:country>');
+    const dtM = between(cacheChunk, '<groundspeak:difficulty>', '</groundspeak:difficulty>');
+    const tM  = between(cacheChunk, '<groundspeak:terrain>',    '</groundspeak:terrain>');
+    const fp  = between(cacheChunk, '<groundspeak:favorite_points>', '</groundspeak:favorite_points>');
+
+    finds.push({
+      gc_code: gcCode,
+      cache_name: between(cacheChunk, '<groundspeak:name>', '</groundspeak:name>'),
+      cache_owner: between(cacheChunk, '<groundspeak:owner', '</groundspeak:owner>').replace(/^[^>]*>/, ''),
+      find_date: findDate,
+      county, state, country,
+      cache_type: between(cacheChunk, '<groundspeak:type>', '</groundspeak:type>'),
+      difficulty: dtM ? parseFloat(dtM) : null,
+      terrain:    tM  ? parseFloat(tM)  : null,
+      fav_points: fp ? parseInt(fp) : 0,
+      lat, lon,
+      placement_date: (between(cacheChunk, '<groundspeak:placed_by>', '</groundspeak:placed_by>') && between(cacheChunk, '<groundspeak:cache_time>', '</groundspeak:cache_time>')) || null,
+    });
+    if (county && state) counties.push({ county, state, country, first_found: findDate });
+  }
+
+  return { finds, counties, dataThroughDate: latestDate };
 }
 
 function renderFinderPicker(companions) {

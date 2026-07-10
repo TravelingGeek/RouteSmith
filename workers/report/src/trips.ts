@@ -42,11 +42,12 @@ export async function handleListTrips(user: AuthUser, env: Env): Promise<Respons
   try {
     const { results } = await env.DB
       .prepare(`
-        SELECT trip_id, name, description, status, date_start, date_end,
-               distance_miles, distance_hours, gas_cost, created_at, updated_at
-        FROM trips
-        WHERE user_id = ?
-        ORDER BY COALESCE(date_start, '') DESC, created_at DESC
+        SELECT t.trip_id, t.name, t.description, t.status, t.date_start, t.date_end,
+               t.distance_miles, t.distance_hours, t.gas_cost, t.created_at, t.updated_at,
+               (SELECT COUNT(*) FROM trip_finders tf WHERE tf.trip_id = t.trip_id) as finder_count
+        FROM trips t
+        WHERE t.user_id = ?
+        ORDER BY COALESCE(t.date_start, '') DESC, t.created_at DESC
       `)
       .bind(user.userId)
       .all<{
@@ -54,6 +55,7 @@ export async function handleListTrips(user: AuthUser, env: Env): Promise<Respons
         status: string; date_start: string | null; date_end: string | null;
         distance_miles: number | null; distance_hours: number | null;
         gas_cost: number | null; created_at: number; updated_at: number;
+        finder_count: number;
       }>();
 
     return jsonResponse({ trips: results });
