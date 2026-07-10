@@ -553,16 +553,18 @@
 </style>
 </head>
 <body>
+<script>console.log('Routesmith | home | Build 2026.07.09.002');</script>
 
 <header class="site-header">
   <a href="/" class="site-brand-mark">routesmithing.com</a>
   <nav class="site-nav" aria-label="Site navigation">
     <div class="nav-modules">
-      <a href="/plan/" class="nav-module disabled" aria-disabled="true">Plan</a>
-      <a href="/navigate/" class="nav-module disabled" aria-disabled="true">Navigate</a>
-      <a href="/report/" class="nav-module disabled" aria-disabled="true">Report</a>
+      <a href="/dashboard/" class="nav-module">Dashboard</a>
+      <a href="/report/" class="nav-module">Trips</a>
+      <a href="/admin/" class="nav-module" id="nav-admin" style="display:none;">Admin</a>
     </div>
-    <a href="/account/" class="nav-signin">Sign in</a>
+    <a href="/account/" class="nav-signin" id="nav-signin-link">Sign in</a>
+    <a href="/account/" class="nav-signin" id="nav-account-link" style="display:none;">Account</a>
   </nav>
 </header>
 
@@ -707,7 +709,41 @@
   <span>Forged 2026</span>
   <span class="sep">·</span>
   <span>Status: Unpublished</span>
+  <span class="sep">·</span>
+  <span>Build 2026.07.09.002</span>
 </footer>
+
+<!-- Detect signed-in state and show Admin nav for admin users -->
+<script src="https://ready-redbird-56.clerk.accounts.dev/npm/@clerk/clerk-js@5/dist/clerk.browser.js"
+        data-clerk-publishable-key="pk_test_cmVhZHktcmVkYmlyZC01Ni5jbGVyay5hY2NvdW50cy5kZXYk"
+        async crossorigin="anonymous"></script>
+<script>
+  window.addEventListener('load', async () => {
+    // Wait for Clerk to load
+    let waited = 0;
+    while (!window.Clerk && waited < 3000) {
+      await new Promise(r => setTimeout(r, 100));
+      waited += 100;
+    }
+    if (!window.Clerk) return;
+    try {
+      await window.Clerk.load();
+      if (window.Clerk.user) {
+        document.getElementById('nav-signin-link').style.display = 'none';
+        document.getElementById('nav-account-link').style.display = 'inline-block';
+        // Check admin
+        try {
+          const token = await window.Clerk.session.getToken();
+          const chk = await fetch('https://routesmith-admin.gtl6645.workers.dev/api/admin/users', {
+            headers: { 'Authorization': 'Bearer ' + token },
+            signal: AbortSignal.timeout(3000),
+          });
+          if (chk.ok) document.getElementById('nav-admin').style.display = 'inline-block';
+        } catch(e) { /* not admin */ }
+      }
+    } catch(e) { console.warn('Clerk load failed:', e); }
+  });
+</script>
 
 </body>
 </html>
