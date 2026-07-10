@@ -300,7 +300,7 @@
 </style>
 </head>
 <body>
-<script>console.log('Routesmith | report/trip | Build 2026.07.09.002');</script>
+<script>console.log('Routesmith | report/trip | Build 2026.07.09.003');</script>
 
 
 
@@ -449,7 +449,7 @@
   <span class="sep">·</span>
   <span>Forged 2026</span>
   <span class="sep">·</span>
-  <span>Build 2026.07.09.002</span>
+  <span>Build 2026.07.09.003</span>
 </footer>
 
 <script>
@@ -584,13 +584,11 @@ async function uploadCompanionGpx(event, finderId, finderName) {
   const file = event.target.files[0];
   if (!file) return;
 
-  // Store the file reference and show upload dialog
   if (!confirm(`Upload ${file.name} as find data for ${finderName}?`)) {
     event.target.value = '';
     return;
   }
 
-  // Parse the GPX in the browser to extract finds (uses same logic as account page)
   const btn = event.target.parentElement;
   const origText = btn.innerHTML;
   btn.innerHTML = '⏳';
@@ -603,39 +601,43 @@ async function uploadCompanionGpx(event, finderId, finderName) {
 
     const token = await getToken();
 
-    // 1. Request upload URL
-    const initResp = await fetch(`${BASE}/api/account/upload/init`, {
+    // 1. Presign
+    const presignResp = await fetch(`${BASE}/api/upload/presign`, {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         filename: file.name,
         file_size_bytes: file.size,
-        format: 'pgc',
-        finder_id: finderId,
-        file_role: 'lifetime',
         scope: 'personal',
-        finder_gc_username: finderName,
+        file_role: 'lifetime',
+        finder_id: finderId,
       }),
     });
-    const initData = await initResp.json();
-    if (initData.error) throw new Error(initData.error);
+    const presign = await presignResp.json();
+    if (presign.error) throw new Error(presign.error);
 
-    // 2. Upload to R2
-    const uploadResp = await fetch(initData.upload_url, {
+    // 2. PUT bytes to Worker upload endpoint
+    const tok2 = await getToken();
+    const uploadResp = await fetch(`${BASE}${presign.upload_url}`, {
       method: 'PUT',
+      headers: { 'Authorization': 'Bearer ' + tok2, 'Content-Type': 'application/octet-stream' },
       body: file,
     });
-    if (!uploadResp.ok) throw new Error(`R2 upload failed: ${uploadResp.status}`);
+    const uploadResult = await uploadResp.json();
+    if (uploadResult.error) throw new Error(uploadResult.error);
 
     // 3. Confirm with parsed finds
-    const confirmResp = await fetch(`${BASE}/api/account/upload/confirm`, {
+    const tok3 = await getToken();
+    const confirmResp = await fetch(`${BASE}/api/upload/confirm/${presign.gpx_file_id}`, {
       method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      headers: { 'Authorization': 'Bearer ' + tok3, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        gpx_file_id: initData.gpx_file_id,
-        data_through_date: parsed.dataThroughDate,
-        finds: parsed.finds,
+        find_count: parsed.finds.length,
+        data_through: parsed.dataThroughDate,
+        format: 'pgc',
+        detected_username: finderName,
         counties: parsed.counties,
+        finds: parsed.finds,
       }),
     });
     const confirmData = await confirmResp.json();
