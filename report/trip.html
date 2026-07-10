@@ -300,7 +300,7 @@
 </style>
 </head>
 <body>
-<script>console.log('Routesmith | report/trip | Build 2026.07.09.003');</script>
+<script>console.log('Routesmith | report/trip | Build 2026.07.09.004');</script>
 
 
 
@@ -449,7 +449,7 @@
   <span class="sep">·</span>
   <span>Forged 2026</span>
   <span class="sep">·</span>
-  <span>Build 2026.07.09.003</span>
+  <span>Build 2026.07.09.004</span>
 </footer>
 
 <script>
@@ -608,7 +608,7 @@ async function uploadCompanionGpx(event, finderId, finderName) {
       body: JSON.stringify({
         filename: file.name,
         file_size_bytes: file.size,
-        scope: 'personal',
+        scope: 'full',
         file_role: 'lifetime',
         finder_id: finderId,
       }),
