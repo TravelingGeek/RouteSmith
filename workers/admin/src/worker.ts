@@ -64,7 +64,7 @@ export default {
       return addCors(new Response(JSON.stringify({
         ok: true,
         worker: 'routesmith-admin',
-        build: '2026.07.09.001',
+        build: '2026.07.09.006',
         timestamp: new Date().toISOString(),
       }), { headers: { 'Content-Type': 'application/json' } }), request);
     }

@@ -172,6 +172,11 @@ body{font-family:'Source Serif 4',Charter,Georgia,serif;font-size:15px;line-heig
 .data-section{margin-bottom:32px;}
 .data-section-title{font-family:'Fraunces',serif;font-weight:600;font-size:1.4rem;color:var(--ink);margin-bottom:6px;letter-spacing:-0.01em;}
 .data-section-sub{font-family:'JetBrains Mono',monospace;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--ink-muted);margin-bottom:16px;}
+.county-list{display:flex;flex-direction:column;gap:2px;}
+.county-list-row{display:flex;align-items:center;gap:8px;padding:6px 10px;background:rgba(255,252,240,0.5);border:1px solid var(--rule-soft);border-radius:2px;font-size:0.86rem;}
+.county-list-row:hover{background:rgba(168,120,50,0.05);border-color:var(--rule);}
+.county-list-name{flex:1;color:var(--ink);}
+.county-list-count{font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--brass-deep);font-weight:600;}
 
 /* Rule cards */
 .rule-card{background:rgba(255,252,240,0.6);border:1px solid var(--rule);border-radius:3px;padding:16px 20px;margin-bottom:12px;}
@@ -256,7 +261,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
 </style>
 </head>
 <body>
-<script>console.log('Routesmith | dashboard | Build 2026.07.09.003');</script>
+<script>console.log('Routesmith | dashboard | Build 2026.07.09.006');</script>
 
 
 
@@ -363,7 +368,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
   </div>
 </div>
 
-<footer>Build 2026.07.09.003</footer>
+<footer>Build 2026.07.09.006</footer>
 
 <script>
 const BASE     = 'https://routesmith-report.gtl6645.workers.dev';
@@ -498,12 +503,208 @@ function toggleMapSection(id) {
   chev.classList.toggle('open',!isOpen);
 }
 
+let currentVizMode = null;
+const VIZ_MODES = ['pins','arcs','rings'];
+
 function setVizMode(mode) {
-  ['pins','arcs','rings'].forEach(m=>{
+  if (mode === currentVizMode) return; // toggle off: no-op
+  currentVizMode = mode;
+  VIZ_MODES.forEach(m=>{
     const btn=document.getElementById('vbtn-'+m);
     if(btn&&!btn.disabled) btn.classList.toggle('active',m===mode);
   });
-  // TODO: implement pin markers for 'pins' mode; Arcs/Rings deferred to multi-finder
+  removeAllFinderLayers();
+  if (!mapInstance || !state.report?.countiesData?.countyAttribution) return;
+  const finders = state.report?.finders ?? [];
+  if (finders.length < 2) return; // need multi-finder data
+
+  if (mode === 'pins')  renderPinsLayer(finders);
+  if (mode === 'arcs')  renderArcsLayer(finders);
+  if (mode === 'rings') renderRingsLayer(finders);
+}
+
+function clearVizMode() {
+  currentVizMode = null;
+  VIZ_MODES.forEach(m => {
+    const btn = document.getElementById('vbtn-'+m);
+    if (btn) btn.classList.remove('active');
+  });
+  removeAllFinderLayers();
+}
+
+function removeAllFinderLayers() {
+  if (!mapInstance) return;
+  ['finder-pins','finder-arcs','finder-rings'].forEach(id => {
+    if (mapInstance.getLayer(id)) mapInstance.removeLayer(id);
+  });
+  ['finder-viz-src'].forEach(id => {
+    if (mapInstance.getSource(id)) mapInstance.removeSource(id);
+  });
+}
+
+/**
+ * Compute a "center point" for each attributed county using the corresponding
+ * GeoJSON feature's bounding box centroid.
+ */
+function computeCountyCenters() {
+  const centers = {}; // key = "County|ST" → {lng, lat}
+  const geojson = state._lastPaintedGeojson;
+  if (!geojson) return centers;
+  for (const f of geojson.features) {
+    const county = f.properties.county;
+    const state  = f.properties.stateAbbrev;
+    if (!county || !state) continue;
+    const key = `${county}|${state}`;
+    const bbox = getFeatureBBox(f);
+    if (bbox) centers[key] = { lng: (bbox[0]+bbox[2])/2, lat: (bbox[1]+bbox[3])/2 };
+  }
+  return centers;
+}
+
+function getFeatureBBox(feature) {
+  const g = feature.geometry;
+  if (!g) return null;
+  let minLng=Infinity, minLat=Infinity, maxLng=-Infinity, maxLat=-Infinity;
+  const walk = (coords) => {
+    if (typeof coords[0] === 'number') {
+      const [lng,lat] = coords;
+      if (lng<minLng)minLng=lng; if (lat<minLat)minLat=lat;
+      if (lng>maxLng)maxLng=lng; if (lat>maxLat)maxLat=lat;
+    } else {
+      for (const c of coords) walk(c);
+    }
+  };
+  walk(g.coordinates);
+  return [minLng,minLat,maxLng,maxLat];
+}
+
+/**
+ * Pins mode — one small colored circle per finder per county, offset around the centroid.
+ */
+function renderPinsLayer(finders) {
+  const centers = computeCountyCenters();
+  const attr    = state.report.countiesData.countyAttribution;
+  const features = [];
+
+  for (const [key, info] of Object.entries(attr)) {
+    const ctr = centers[key];
+    if (!ctr) continue;
+    const finderIds = info.finderIds;
+    // Offset each pin in a small circle around the centroid
+    const R = 0.15; // degrees
+    finderIds.forEach((fid, i) => {
+      const finder = finders.find(f => f.finder_id === fid);
+      if (!finder) return;
+      const angle = (2*Math.PI*i) / finderIds.length;
+      features.push({
+        type:'Feature',
+        properties: { finder_id: fid, color: finder.color, name: finder.gc_username || finder.display_name },
+        geometry: {
+          type: 'Point',
+          coordinates: [
+            ctr.lng + R*Math.cos(angle) * (finderIds.length>1 ? 1 : 0),
+            ctr.lat + R*Math.sin(angle) * (finderIds.length>1 ? 1 : 0),
+          ],
+        },
+      });
+    });
+  }
+
+  mapInstance.addSource('finder-viz-src', { type:'geojson', data:{type:'FeatureCollection',features} });
+  mapInstance.addLayer({
+    id:'finder-pins', type:'circle', source:'finder-viz-src',
+    paint:{
+      'circle-radius':5,
+      'circle-color':['get','color'],
+      'circle-stroke-color':'#ffffff',
+      'circle-stroke-width':1.5,
+      'circle-opacity':0.9,
+    },
+  });
+}
+
+/**
+ * Arcs mode — pie-slice sectors around each county centroid, one slice per finder.
+ * Uses stroke-based rendering by generating short line segments per slice.
+ */
+function renderArcsLayer(finders) {
+  const centers = computeCountyCenters();
+  const attr    = state.report.countiesData.countyAttribution;
+  const features = [];
+  const R = 0.20;
+
+  for (const [key, info] of Object.entries(attr)) {
+    const ctr = centers[key];
+    if (!ctr) continue;
+    const n = info.finderIds.length;
+    info.finderIds.forEach((fid, i) => {
+      const finder = finders.find(f => f.finder_id === fid);
+      if (!finder) return;
+      const start = (2*Math.PI*i) / n - Math.PI/2;
+      const end   = (2*Math.PI*(i+1)) / n - Math.PI/2;
+      const coords = [];
+      const steps = 12;
+      for (let s=0; s<=steps; s++) {
+        const a = start + (end-start)*(s/steps);
+        coords.push([ctr.lng + R*Math.cos(a), ctr.lat + R*Math.sin(a)]);
+      }
+      features.push({
+        type:'Feature',
+        properties: { color: finder.color },
+        geometry: { type:'LineString', coordinates: coords },
+      });
+    });
+  }
+
+  mapInstance.addSource('finder-viz-src', { type:'geojson', data:{type:'FeatureCollection',features} });
+  mapInstance.addLayer({
+    id:'finder-arcs', type:'line', source:'finder-viz-src',
+    paint:{
+      'line-color':['get','color'],
+      'line-width':4,
+      'line-opacity':0.85,
+    },
+  });
+}
+
+/**
+ * Rings mode — concentric circles per finder around each county centroid.
+ */
+function renderRingsLayer(finders) {
+  const centers = computeCountyCenters();
+  const attr    = state.report.countiesData.countyAttribution;
+  const features = [];
+
+  for (const [key, info] of Object.entries(attr)) {
+    const ctr = centers[key];
+    if (!ctr) continue;
+    info.finderIds.forEach((fid, i) => {
+      const finder = finders.find(f => f.finder_id === fid);
+      if (!finder) return;
+      const r = 0.08 + i*0.08;
+      const coords = [];
+      const steps = 32;
+      for (let s=0; s<=steps; s++) {
+        const a = (2*Math.PI*s)/steps;
+        coords.push([ctr.lng + r*Math.cos(a), ctr.lat + r*Math.sin(a)]);
+      }
+      features.push({
+        type:'Feature',
+        properties: { color: finder.color },
+        geometry: { type:'LineString', coordinates: coords },
+      });
+    });
+  }
+
+  mapInstance.addSource('finder-viz-src', { type:'geojson', data:{type:'FeatureCollection',features} });
+  mapInstance.addLayer({
+    id:'finder-rings', type:'line', source:'finder-viz-src',
+    paint:{
+      'line-color':['get','color'],
+      'line-width':2.5,
+      'line-opacity':0.85,
+    },
+  });
 }
 
 function setBaseMap(mode) {
@@ -737,6 +938,19 @@ function fitMapToBounds(tripNewFips,tripPrevFips,geojson) {
 function buildMapSidebar(tripNewFips,tripPrevFips) {
   const finders    = state.report?.finders ?? [];
   const finderList = document.getElementById('map-finder-list');
+
+  // Enable viz mode buttons when 2+ finders
+  const multi = finders.length >= 2;
+  ['pins','arcs','rings'].forEach(m => {
+    const btn = document.getElementById('vbtn-'+m);
+    if (!btn) return;
+    btn.disabled = !multi;
+    btn.style.opacity = multi ? '1' : '0.5';
+    btn.style.cursor  = multi ? 'pointer' : 'not-allowed';
+    btn.title = multi ? '' : 'Multi-finder only';
+  });
+  if (!multi) clearVizMode();
+
   if (finderList && finders.length) {
     finderList.innerHTML = finders.map(f => `
       <div class="finder-row" style="justify-content:space-between;padding:2px 0;">
@@ -799,24 +1013,34 @@ function highlightCountyInSidebar(fips) {
   const finderChipsKey = `${meta.county}|${meta.stateAbbrev}`;
   const attr = state.report?.countiesData?.countyAttribution?.[finderChipsKey];
   const finders = state.report?.finders ?? [];
-  let finderChips = '';
+  let finderRows = '';
   if (attr && finders.length > 1) {
-    finderChips = '<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;">' +
+    finderRows = '<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--rule-soft);display:flex;flex-direction:column;gap:6px;">' +
       attr.finderIds.map(fid => {
         const f = finders.find(x => x.finder_id === fid);
         if (!f) return '';
         const cnt = attr.findCounts[fid] ?? 0;
-        return `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 6px;background:${f.color};color:white;border-radius:2px;font-family:'JetBrains Mono',monospace;font-size:0.66rem;">${f.gc_username || f.display_name} · ${cnt}</span>`;
+        const status = attr.finderStatus?.[fid] ?? '';
+        const statusLabel = status === 'new' ? 'new' : status === 'prev' ? 'prev' : '';
+        const statusColor = status === 'new' ? 'var(--forge)' : '#4a7a54';
+        return `<div style="display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:0.68rem;">
+          <span style="width:10px;height:10px;background:${f.color};border-radius:50%;flex-shrink:0;"></span>
+          <span style="flex:1;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.gc_username || f.display_name}</span>
+          ${statusLabel ? `<span style="color:${statusColor};text-transform:uppercase;letter-spacing:0.08em;font-size:0.62rem;">${statusLabel}</span>` : ''}
+          <span style="color:var(--brass-deep);font-weight:600;">${cnt}</span>
+        </div>`;
       }).join('') + '</div>';
   }
 
-  // TODO: add more statistics and gc.com search link
+  // gc.com county search link
+  const gcSearchLink = `https://www.geocaching.com/play/search?ot=county&ost=${encodeURIComponent(meta.county + ' County, ' + meta.stateAbbrev)}`;
+
   infoEl.innerHTML=`
     <strong style="color:var(--ink);font-family:'Fraunces',serif;">${meta.county} County, ${meta.stateAbbrev}</strong><br>
     <span style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:${color};display:block;margin-top:2px;">${label}</span>
     ${tripDate ? `<span style="font-family:'JetBrains Mono',monospace;font-size:0.66rem;color:var(--ink-muted);display:block;margin-top:4px;">This trip: ${tripDate}</span>` : ''}
     ${lifetimeDate ? `<span style="font-family:'JetBrains Mono',monospace;font-size:0.66rem;color:var(--ink-muted);display:block;margin-top:2px;">First found: ${lifetimeDate}</span>` : ''}
-    ${finderChips}
+    ${finderRows}
   `;
 }
 
@@ -947,6 +1171,11 @@ function renderPanelContent(catId,sub) {
     return placeholder('Reference file required','Upload reference list files in the Admin panel.','📁','/admin/','Go to Admin →');
   }
 
+  // ── Counties New / Previously Found ──
+  if (catId === 'counties' && (sub === 'new' || sub === 'previouslyFound')) {
+    return renderCountiesList(sub);
+  }
+
   // ── Highlights ──
   if (catId === 'highlights') {
     return renderHighlights(sub);
@@ -978,6 +1207,61 @@ function renderPanelContent(catId,sub) {
 
 // ── View renderers ────────────────────────────────────────────────
 function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function renderCountiesList(sub) {
+  const counties = sub === 'new'
+    ? (state.report?.countiesData?.firstTime ?? [])
+    : (state.report?.countiesData?.previouslyFound ?? []);
+  const attr    = state.report?.countiesData?.countyAttribution ?? {};
+  const finders = state.report?.finders ?? [];
+  const isMulti = finders.length > 1;
+
+  const title = sub === 'new' ? 'New Counties This Trip' : 'Previously Found Counties';
+  const sub2  = sub === 'new'
+    ? `${counties.length} new count${counties.length===1?'y':'ies'} added this trip`
+    : `${counties.length} count${counties.length===1?'y':'ies'} previously found were visited this trip`;
+
+  if (!counties.length) {
+    return `<div class="data-panel">
+      <div class="data-section">
+        <div class="data-section-title">${title}</div>
+        <div class="data-section-sub">None</div>
+      </div>
+    </div>`;
+  }
+
+  // Build rows — sort alphabetically by county name
+  const sorted = counties.slice().sort();
+  const rows = sorted.map(key => {
+    const [county, stateAbbrev] = key.split('|');
+    const info = attr[key];
+    let dots = '';
+    if (isMulti && info) {
+      dots = '<span style="display:inline-flex;gap:2px;margin-right:8px;">' +
+        info.finderIds.map(fid => {
+          const f = finders.find(x => x.finder_id === fid);
+          if (!f) return '';
+          const cnt = info.findCounts[fid] ?? 0;
+          return `<span title="${esc(f.gc_username || f.display_name)} · ${cnt} find${cnt===1?'':'s'}" style="display:inline-block;width:10px;height:10px;background:${f.color};border-radius:50%;flex-shrink:0;"></span>`;
+        }).join('') + '</span>';
+    }
+    return `<div class="county-list-row">
+      ${dots}
+      <span class="county-list-name">${esc(county)} County, ${esc(stateAbbrev)}</span>
+      ${!isMulti && info ? `<span class="county-list-count">${Object.values(info.findCounts).reduce((s,n)=>s+n,0)} find${Object.values(info.findCounts).reduce((s,n)=>s+n,0)===1?'':'s'}</span>` : ''}
+    </div>`;
+  }).join('');
+
+  return `<div class="data-panel">
+    <div class="data-section">
+      <div class="data-section-title">${title}</div>
+      <div class="data-section-sub">${sub2}</div>
+      <div class="county-list">
+        ${rows}
+      </div>
+    </div>
+  </div>`;
+}
 
 function renderHighlights(sub) {
   const results = state.report?.ruleResults ?? [];

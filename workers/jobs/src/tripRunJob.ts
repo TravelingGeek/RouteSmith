@@ -116,6 +116,10 @@ export async function handleTripRunJob(
     gc_code: r.gc_code, county: r.county, state: r.state, find_date: r.find_date
   }));
 
+  // Q1c: Per-finder PRIOR counties (for determining new vs previously found per finder)
+  const perFinderPriorCounties: Record<string, Set<string>> = {};
+  perFinderPriorCounties[finderId] = priorCounties;  // already have owner's
+
   const companions = tripFinders.filter(f => f.role !== 'owner');
   for (const c of companions) {
     const { results: cRows } = await env.DB
@@ -127,7 +131,18 @@ export async function handleTripRunJob(
       .bind(c.finder_id, tripStart, tripEnd)
       .all<{ gc_code: string; county: string | null; state: string | null; find_date: string }>();
     perFinderTripFinds[c.finder_id] = cRows;
-    console.log(`[trip_run] Q1b companion ${c.display_name}: ${cRows.length} finds`);
+
+    // Per-companion prior counties (for status determination)
+    const { results: cPriorCounties } = await env.DB
+      .prepare(`
+        SELECT DISTINCT county, state FROM finder_finds
+        WHERE finder_id = ? AND find_date < ? AND county IS NOT NULL AND state IS NOT NULL
+      `)
+      .bind(c.finder_id, tripStart)
+      .all<{ county: string; state: string }>();
+    perFinderPriorCounties[c.finder_id] = new Set(cPriorCounties.map(r => `${r.county}|${r.state}`));
+
+    console.log(`[trip_run] Q1b companion ${c.display_name}: ${cRows.length} finds, ${cPriorCounties.length} prior counties`);
   }
 
   // Q2-5: Prior data (DISTINCT queries)
@@ -254,7 +269,7 @@ export async function handleTripRunJob(
   const countiesData = buildCountiesData(tripFinds as any, priorCounties);
 
   // Per-finder county attribution — for county map pins showing who found what
-  const perFinderAttribution = buildPerFinderCountyAttribution(perFinderTripFinds);
+  const perFinderAttribution = buildPerFinderCountyAttribution(perFinderTripFinds, perFinderPriorCounties);
 
   // Per-finder stats — total finds and counties for each finder on this trip
   const perFinderStats = tripFinders.map(f => {

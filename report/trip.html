@@ -300,7 +300,7 @@
 </style>
 </head>
 <body>
-<script>console.log('Routesmith | report/trip | Build 2026.07.09.004');</script>
+<script>console.log('Routesmith | report/trip | Build 2026.07.09.006');</script>
 
 
 
@@ -449,7 +449,7 @@
   <span class="sep">·</span>
   <span>Forged 2026</span>
   <span class="sep">·</span>
-  <span>Build 2026.07.09.004</span>
+  <span>Build 2026.07.09.006</span>
 </footer>
 
 <script>
@@ -570,12 +570,10 @@ function renderCompanions(companions) {
       </div>
       <div class="companion-data ${cls}">${esc(dataLabel)}</div>
       <span class="companion-role ${isOwner ? 'owner' : ''}">${isOwner ? 'Owner' : 'Companion'}</span>
-      ${!isOwner ? `
-        <label class="btn-icon" title="Upload GPX for this companion" style="cursor:pointer;">📂
-          <input type="file" accept=".gpx,.zip" style="display:none;" onchange="uploadCompanionGpx(event, '${esc(c.finder_id)}', '${esc(c.gc_username || c.display_name)}')">
-        </label>
-        <button class="btn-icon" onclick="removeCompanion('${esc(c.finder_id)}')" title="Remove">✕</button>
-      ` : ''}
+      <label class="btn-icon" title="Upload GPX for this finder" style="cursor:pointer;">📂
+        <input type="file" accept=".gpx,.zip" style="display:none;" onchange="uploadCompanionGpx(event, '${esc(c.finder_id)}', '${esc(c.gc_username || c.display_name)}')">
+      </label>
+      ${!isOwner ? `<button class="btn-icon" onclick="removeCompanion('${esc(c.finder_id)}')" title="Remove">✕</button>` : ''}
     </div>`;
   }).join('');
 }
@@ -644,6 +642,9 @@ async function uploadCompanionGpx(event, finderId, finderName) {
     if (confirmData.error) throw new Error(confirmData.error);
 
     alert(`Uploaded ${parsed.finds.length} finds for ${finderName}.`);
+
+    // Force a fresh reload (bypass any browser caching)
+    await new Promise(r => setTimeout(r, 300));
     await loadCompanions();
   } catch(e) {
     alert('Upload failed: ' + e.message);
