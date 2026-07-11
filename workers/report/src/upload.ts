@@ -507,6 +507,88 @@ export async function handleConfirm(
         await env.DB.batch(findStatements);
       }
 
+      // ── Upsert cache metadata to normalized caches table ──────────────────
+      // Detect whether this upload has county info (PGC vs PQ)
+      const hasCountyInfo = finds.some(f => f.county && f.state);
+      const uploadSource: 'pgc' | 'pq' = hasCountyInfo ? 'pgc' : 'pq';
+      // Source priority ranking: plan > pgc > pq > geocoded > null
+      // Only overwrite existing metadata when new source ranks equal or better.
+      const sourceRank: Record<string, number> = { plan: 4, pgc: 3, geocoded: 2, pq: 1 };
+
+      for (let i = 0; i < finds.length; i += BATCH_SIZE) {
+        const batch = finds.slice(i, i + BATCH_SIZE);
+        const cacheStatements = batch.map(f => {
+          const newRank = sourceRank[uploadSource] ?? 0;
+          if (uploadSource === 'pgc' && f.county && f.state) {
+            // PGC has county info — insert or update with pgc source
+            return env.DB.prepare(`
+              INSERT INTO caches (
+                gc_code, name, cache_type, difficulty, terrain, lat, lon,
+                county, state, country, county_source,
+                placement_date, cache_owner, fav_points, status,
+                first_seen, updated_at
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pgc', ?, ?, ?, 'active', ?, ?)
+              ON CONFLICT (gc_code) DO UPDATE SET
+                name = COALESCE(excluded.name, name),
+                cache_type = COALESCE(excluded.cache_type, cache_type),
+                difficulty = COALESCE(excluded.difficulty, difficulty),
+                terrain = COALESCE(excluded.terrain, terrain),
+                lat = COALESCE(excluded.lat, lat),
+                lon = COALESCE(excluded.lon, lon),
+                county = excluded.county,
+                state  = excluded.state,
+                country = COALESCE(excluded.country, country),
+                county_source = 'pgc',
+                placement_date = COALESCE(excluded.placement_date, placement_date),
+                cache_owner = COALESCE(excluded.cache_owner, cache_owner),
+                fav_points = MAX(COALESCE(excluded.fav_points, 0), fav_points),
+                updated_at = excluded.updated_at
+              WHERE ? >= COALESCE(
+                (SELECT CASE county_source
+                  WHEN 'plan' THEN 4 WHEN 'pgc' THEN 3
+                  WHEN 'geocoded' THEN 2 WHEN 'pq' THEN 1 ELSE 0 END
+                 FROM caches WHERE gc_code = excluded.gc_code), 0)
+            `).bind(
+              f.gc_code, f.cache_name ?? null, f.cache_type ?? null,
+              f.difficulty ?? null, f.terrain ?? null, f.lat ?? null, f.lon ?? null,
+              f.county, f.state, f.country ?? null,
+              f.placement_date ?? null, f.cache_owner ?? null, f.fav_points ?? 0,
+              ts, ts,
+              newRank
+            );
+          } else {
+            // PQ upload — no county info; insert basic cache row if missing but
+            // do NOT overwrite existing county/state/county_source
+            return env.DB.prepare(`
+              INSERT INTO caches (
+                gc_code, name, cache_type, difficulty, terrain, lat, lon,
+                country, placement_date, cache_owner, fav_points, status,
+                first_seen, updated_at
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)
+              ON CONFLICT (gc_code) DO UPDATE SET
+                name = COALESCE(name, excluded.name),
+                cache_type = COALESCE(cache_type, excluded.cache_type),
+                difficulty = COALESCE(difficulty, excluded.difficulty),
+                terrain = COALESCE(terrain, excluded.terrain),
+                lat = COALESCE(lat, excluded.lat),
+                lon = COALESCE(lon, excluded.lon),
+                country = COALESCE(country, excluded.country),
+                placement_date = COALESCE(placement_date, excluded.placement_date),
+                cache_owner = COALESCE(cache_owner, excluded.cache_owner),
+                fav_points = MAX(COALESCE(excluded.fav_points, 0), fav_points),
+                updated_at = excluded.updated_at
+            `).bind(
+              f.gc_code, f.cache_name ?? null, f.cache_type ?? null,
+              f.difficulty ?? null, f.terrain ?? null, f.lat ?? null, f.lon ?? null,
+              f.country ?? null, f.placement_date ?? null, f.cache_owner ?? null,
+              f.fav_points ?? 0, ts, ts
+            );
+          }
+        });
+        await env.DB.batch(cacheStatements);
+      }
+      console.log(`Cache upserts: ${finds.length} rows, source=${uploadSource}`);
+
       // Invalidate any trip reports that use this finder's data
       // so dashboard shows "Outdated" badge
       await env.DB.prepare(`
