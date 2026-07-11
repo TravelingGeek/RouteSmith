@@ -252,6 +252,7 @@ export interface D1Database {
 export interface Env {
   REPORT_BUCKET: R2Bucket;
   DB: D1Database;
+  MAPBOX_TOKEN: string;
 }
 
 // ============================================================================

@@ -139,7 +139,7 @@ export async function handleTripRunJob(
             return { gc_code: c.gc_code, loc };
           })
         );
-        const stmts: D1PreparedStatement[] = [];
+        const stmts = [];
         for (const r of results) {
           if (!r.loc) continue;
           hits++;

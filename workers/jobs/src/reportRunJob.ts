@@ -6,7 +6,7 @@ import type { Env, ReportRunPayload, ReportRunResult } from './types.js';
 import { parseGpxTextAsync } from './gpxParser.js';
 import { runPipelineFromWaypoints } from './pipeline.js';
 import { fetchReferenceListsFromR2 } from './referenceLists.js';
-import { unzipSync } from 'fflate';
+// fflate loaded dynamically to reduce bundle startup size
 
 export async function handleReportRunJob(
   jobId: string,
@@ -48,6 +48,7 @@ export async function handleReportRunJob(
 
     let gpxTexts: string[];
     if (row.r2_key.toLowerCase().endsWith('.zip')) {
+      const { unzipSync } = await import('fflate');
       const files = unzipSync(new Uint8Array(buffer));
       const gpxEntries = Object.entries(files).filter(
         ([n]) => n.toLowerCase().endsWith('.gpx') && !n.toLowerCase().includes('wpts')
