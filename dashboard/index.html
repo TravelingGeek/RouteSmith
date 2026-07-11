@@ -261,7 +261,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
 </style>
 </head>
 <body>
-<script>console.log('Routesmith | dashboard | Build 2026.07.09.006');</script>
+<script>console.log('Routesmith | dashboard | Build 2026.07.09.009');</script>
 
 
 
@@ -368,7 +368,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
   </div>
 </div>
 
-<footer>Build 2026.07.09.006</footer>
+<footer>Build 2026.07.09.009</footer>
 
 <script>
 const BASE     = 'https://routesmith-report.gtl6645.workers.dev';
@@ -949,7 +949,14 @@ function buildMapSidebar(tripNewFips,tripPrevFips) {
     btn.style.cursor  = multi ? 'pointer' : 'not-allowed';
     btn.title = multi ? '' : 'Multi-finder only';
   });
-  if (!multi) clearVizMode();
+  if (!multi) {
+    clearVizMode();
+  } else {
+    // Auto-enable Pins mode on multi-finder trips if no mode is active yet
+    setTimeout(() => {
+      if (!currentVizMode) setVizMode('pins');
+    }, 300);
+  }
 
   if (finderList && finders.length) {
     finderList.innerHTML = finders.map(f => `
@@ -1014,22 +1021,25 @@ function highlightCountyInSidebar(fips) {
   const attr = state.report?.countiesData?.countyAttribution?.[finderChipsKey];
   const finders = state.report?.finders ?? [];
   let finderRows = '';
-  if (attr && finders.length > 1) {
-    finderRows = '<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--rule-soft);display:flex;flex-direction:column;gap:6px;">' +
-      attr.finderIds.map(fid => {
-        const f = finders.find(x => x.finder_id === fid);
-        if (!f) return '';
-        const cnt = attr.findCounts[fid] ?? 0;
-        const status = attr.finderStatus?.[fid] ?? '';
-        const statusLabel = status === 'new' ? 'new' : status === 'prev' ? 'prev' : '';
-        const statusColor = status === 'new' ? 'var(--forge)' : '#4a7a54';
-        return `<div style="display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:0.68rem;">
-          <span style="width:10px;height:10px;background:${f.color};border-radius:50%;flex-shrink:0;"></span>
-          <span style="flex:1;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.gc_username || f.display_name}</span>
-          ${statusLabel ? `<span style="color:${statusColor};text-transform:uppercase;letter-spacing:0.08em;font-size:0.62rem;">${statusLabel}</span>` : ''}
-          <span style="color:var(--brass-deep);font-weight:600;">${cnt}</span>
-        </div>`;
-      }).join('') + '</div>';
+  // Show the per-finder detail whenever there are 2+ finders on the trip,
+  // even if only one of them found this specific county
+  if (finders.length > 1) {
+    if (attr) {
+      finderRows = '<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--rule-soft);display:flex;flex-direction:column;gap:6px;">' +
+        finders.map(f => {
+          const found = attr.finderIds.includes(f.finder_id);
+          const cnt = attr.findCounts[f.finder_id] ?? 0;
+          const status = attr.finderStatus?.[f.finder_id] ?? '';
+          const statusLabel = status === 'new' ? 'new' : status === 'prev' ? 'prev' : '';
+          const statusColor = status === 'new' ? 'var(--forge)' : '#4a7a54';
+          return `<div style="display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:0.68rem;opacity:${found?1:0.4};">
+            <span style="width:10px;height:10px;background:${f.color};border-radius:50%;flex-shrink:0;"></span>
+            <span style="flex:1;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.gc_username || f.display_name}</span>
+            ${found && statusLabel ? `<span style="color:${statusColor};text-transform:uppercase;letter-spacing:0.08em;font-size:0.62rem;">${statusLabel}</span>` : ''}
+            <span style="color:${found?'var(--brass-deep)':'var(--ink-muted)'};font-weight:${found?600:400};">${found ? cnt : '—'}</span>
+          </div>`;
+        }).join('') + '</div>';
+    }
   }
 
   // gc.com county search link

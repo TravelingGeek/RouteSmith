@@ -212,11 +212,6 @@ export function countyKey(county: string, state: string): string {
   return `${county}|${state}`;
 }
 
-// ============================================================================
-// Cloudflare runtime types
-// Defined once here; imported by worker.ts, account.ts, upload.ts, etc.
-// ============================================================================
-
 export interface R2ObjectBody {
   key: string;
   size: number;
@@ -254,25 +249,41 @@ export interface D1Database {
   batch(statements: D1PreparedStatement[]): Promise<D1Result[]>;
 }
 
-/** Shared Worker environment bindings — see Queue section below for full definition. */
-
-// ============================================================================
-// Queue types
-// ============================================================================
-
-export interface Queue<T> {
-  send(message: T): Promise<void>;
+export interface Env {
+  REPORT_BUCKET: R2Bucket;
+  DB: D1Database;
+  MAPBOX_TOKEN: string;
 }
+
+// ============================================================================
+// Job message schema
+// ============================================================================
 
 export type JobType = 'gpx_parse' | 'report_run' | 'trip_run';
 export type JobModule = 'report' | 'plan' | 'navigate';
+export type JobStatus = 'pending' | 'processing' | 'complete' | 'failed';
 
 export interface JobMessage {
   job_id: string;
   job_type: JobType;
   module: JobModule;
   user_id: string;
-  payload: Record<string, unknown>;
+  payload: GpxParsePayload; // union as more job types are added
+}
+
+export interface GpxParsePayload {
+  gpx_file_id: string;
+  finder_id: string;
+  r2_key: string;
+  file_role: string;
+  scope: string;
+}
+
+export interface GpxParseResult {
+  find_count: number;
+  data_through: string | null;
+  format: string;
+  superseded_file_id: string | null;
 }
 
 export interface ReportRunPayload {
@@ -293,14 +304,23 @@ export interface ReportRunPayload {
     gpx_file_ids: string[];
     mode: 'lifetime' | 'diff';
   }>;
+  result_r2_key: string;  // where to store the result JSON in R2
+}
+
+export interface ReportRunResult {
+  result_r2_key: string;
+  find_count: number;
+  companion_count: number;
+}
+
+export interface TripRunPayload {
+  trip_id: string;
+  user_id: string;
   result_r2_key: string;
 }
 
-// Extend Env with queue binding
-export interface Env {
-  REPORT_BUCKET: R2Bucket;
-  DB: D1Database;
-  CLERK_SECRET_KEY: string;
-  JOBS_QUEUE: Queue<JobMessage>;
-  MAPBOX_TOKEN: string;
+export interface TripRunResult {
+  result_r2_key: string;
+  trip_find_count: number;
+  lifetime_find_count: number;
 }

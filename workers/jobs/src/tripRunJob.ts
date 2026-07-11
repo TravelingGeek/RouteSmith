@@ -110,6 +110,72 @@ export async function handleTripRunJob(
 
   console.log(`[trip_run] Q1 owner trip finds: ${tripRows.length}`);
 
+  // ── Geocoding pass: fill in county/state for any caches missing them ──────
+  // Only geocodes caches referenced by any trip finder's data — cheap and targeted.
+  const { results: needGeocode } = await env.DB
+    .prepare(`
+      SELECT DISTINCT ff.gc_code, ff.lat, ff.lon
+      FROM finder_finds ff
+      JOIN trip_finders tf ON tf.finder_id = ff.finder_id
+      WHERE tf.trip_id = ? AND ff.find_date BETWEEN ? AND ?
+        AND ff.lat IS NOT NULL AND ff.lon IS NOT NULL
+        AND (ff.county IS NULL OR ff.state IS NULL)
+    `)
+    .bind(trip_id, tripStart, tripEnd)
+    .all<{ gc_code: string; lat: number; lon: number }>();
+
+  if (needGeocode.length > 0 && env.MAPBOX_TOKEN) {
+    console.log(`[trip_run] geocoding ${needGeocode.length} caches via Mapbox`);
+    try {
+      const { geocodePoint } = await import('./geocode.js');
+      let hits = 0;
+      // Concurrency-limited parallel calls (10 at a time) to avoid rate limits
+      const CONCURRENCY = 10;
+      for (let i = 0; i < needGeocode.length; i += CONCURRENCY) {
+        const batch = needGeocode.slice(i, i + CONCURRENCY);
+        const results = await Promise.all(
+          batch.map(async c => {
+            const loc = await geocodePoint(c.lat, c.lon, env.MAPBOX_TOKEN);
+            return { gc_code: c.gc_code, loc };
+          })
+        );
+        const stmts: D1PreparedStatement[] = [];
+        for (const r of results) {
+          if (!r.loc) continue;
+          hits++;
+          stmts.push(env.DB.prepare(
+            `UPDATE finder_finds SET county = ?, state = ? WHERE gc_code = ? AND (county IS NULL OR state IS NULL)`
+          ).bind(r.loc.county, r.loc.state, r.gc_code));
+          stmts.push(env.DB.prepare(`
+            UPDATE caches SET county = ?, state = ?, county_source = 'geocoded', updated_at = ?
+            WHERE gc_code = ? AND (county_source IS NULL OR county_source = 'geocoded')
+          `).bind(r.loc.county, r.loc.state, ts, r.gc_code));
+        }
+        if (stmts.length > 0) await env.DB.batch(stmts);
+      }
+      console.log(`[trip_run] geocoded ${hits}/${needGeocode.length} caches`);
+    } catch (e) {
+      console.error(`Geocoding failed: ${(e as Error).message}`);
+    }
+
+    // Re-query tripRows so downstream sees the newly geocoded values
+    const refresh = await env.DB
+      .prepare(`
+        SELECT gc_code, cache_name, cache_owner, find_date,
+               county, state, country, cache_type,
+               difficulty, terrain, fav_points, lat, lon, placement_date
+        FROM finder_finds
+        WHERE finder_id = ? AND find_date >= ? AND find_date <= ?
+        ORDER BY find_date ASC
+      `)
+      .bind(finderId, tripStart, tripEnd)
+      .all<typeof tripRows[0]>();
+    tripRows.length = 0;
+    tripRows.push(...refresh.results);
+  } else if (needGeocode.length > 0) {
+    console.warn(`[trip_run] ${needGeocode.length} caches need geocoding but MAPBOX_TOKEN is not set`);
+  }
+
   // Q1b: Per-companion trip finds (for county attribution + per-finder stats)
   const perFinderTripFinds: Record<string, Array<{ gc_code: string; county: string | null; state: string | null; find_date: string }>> = {};
   perFinderTripFinds[finderId] = tripRows.map(r => ({
@@ -118,7 +184,16 @@ export async function handleTripRunJob(
 
   // Q1c: Per-finder PRIOR counties (for determining new vs previously found per finder)
   const perFinderPriorCounties: Record<string, Set<string>> = {};
-  perFinderPriorCounties[finderId] = priorCounties;  // already have owner's
+
+  // Owner's prior counties (also used later as priorCounties)
+  const { results: ownerPriorCountyRows } = await env.DB
+    .prepare(`
+      SELECT DISTINCT county, state FROM finder_finds
+      WHERE finder_id = ? AND find_date < ? AND county IS NOT NULL AND state IS NOT NULL
+    `)
+    .bind(finderId, tripStart)
+    .all<{ county: string; state: string }>();
+  perFinderPriorCounties[finderId] = new Set(ownerPriorCountyRows.map(r => `${r.county}|${r.state}`));
 
   const companions = tripFinders.filter(f => f.role !== 'owner');
   for (const c of companions) {

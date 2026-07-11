@@ -293,7 +293,7 @@
 </style>
 </head>
 <body>
-<script>console.log('Routesmith | account | Build 2026.07.09.006');</script>
+<script>console.log('Routesmith | account | Build 2026.07.09.009');</script>
 
 
 
@@ -366,7 +366,7 @@
   <span class="sep">·</span>
   <span>Forged 2026</span>
   <span class="sep">·</span>
-  <span>Build 2026.07.09.006</span>
+  <span>Build 2026.07.09.009</span>
 </footer>
 
 <script>
@@ -901,8 +901,24 @@ document.getElementById('upload-btn').addEventListener('click', async () => {
   btn.textContent = 'Uploading…';
 
   const queued = selectedFiles.filter(f => f.status === 'queued');
-  // Upload all files in parallel — queue handles parse concurrency
-  await Promise.all(queued.map(entry => uploadFile(entry)));
+
+  // Peek at file contents to sort: PGC files (contain <groundspeak:county>) first,
+  // then PQ files. This ensures cache metadata is populated with county info
+  // before PQ files reference the same caches.
+  async function detectFormat(entry) {
+    try {
+      const sample = await entry.file.slice(0, 500_000).text();
+      return sample.includes('<groundspeak:county>') ? 'pgc' : 'pq';
+    } catch { return 'pq'; }
+  }
+  const withFormat = await Promise.all(queued.map(async e => ({ entry: e, fmt: await detectFormat(e) })));
+  withFormat.sort((a, b) => (a.fmt === 'pgc' ? -1 : 1) - (b.fmt === 'pgc' ? -1 : 1));
+  const sortedQueued = withFormat.map(x => x.entry);
+
+  // Upload sequentially so PGC finishes before PQ starts (prevents race on cache metadata)
+  for (const entry of sortedQueued) {
+    await uploadFile(entry);
+  }
 
   btn.disabled = false;
   btn.textContent = 'Upload selected files';
