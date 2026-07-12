@@ -300,7 +300,7 @@
 </style>
 </head>
 <body>
-<script>console.log('Routesmith | report/trip | Build 2026.07.09.020');</script>
+<script>console.log('Routesmith | report/trip | Build 2026.07.09.022');</script>
 
 
 
@@ -449,7 +449,7 @@
   <span class="sep">·</span>
   <span>Forged 2026</span>
   <span class="sep">·</span>
-  <span>Build 2026.07.09.020</span>
+  <span>Build 2026.07.09.022</span>
 </footer>
 
 <script>
@@ -699,12 +699,32 @@ async function parseGpxInBrowser(file) {
     const cacheStart = chunk.indexOf('<groundspeak:cache');
     const cacheChunk = cacheStart !== -1 ? chunk.slice(cacheStart) : chunk;
 
-    // Try to extract find date from <groundspeak:log> section
-    // Find date comes from the user's log (<groundspeak:log><groundspeak:date>),
-    // NOT the wpt-level <time>, which is the cache's PLACED date.
-    let findDate = between(chunk, '<groundspeak:date>', '</groundspeak:date>');
-    if (!findDate) findDate = between(chunk, '<time>', '</time>'); // fallback
-    if (findDate) findDate = findDate.slice(0, 10);
+    // Iterate the <groundspeak:log> blocks and only accept ones whose
+    // <groundspeak:type> is a find/attended-style log. Skips Project-GC's
+    // "Write note" entries (which have their own date) and pre-find logs.
+    const FOUND_TYPES = new Set(['Found it', 'Attended', 'Webcam Photo Taken']);
+    let findDate = null;
+    const logsStart = cacheChunk.indexOf('<groundspeak:logs>');
+    if (logsStart !== -1) {
+      const logsBlock = cacheChunk.slice(logsStart);
+      const logChunks = logsBlock.split('<groundspeak:log').slice(1);
+      for (const logRaw of logChunks) {
+        const log = '<groundspeak:log' + logRaw;
+        const logType = between(log, '<groundspeak:type>', '</groundspeak:type>');
+        if (!logType || !FOUND_TYPES.has(logType)) continue;
+        const dateRaw = between(log, '<groundspeak:date>', '</groundspeak:date>');
+        if (!dateRaw) continue;
+        findDate = dateRaw.slice(0, 10);
+        break;   // take the first found log
+      }
+    }
+    // Fallback for non-log files (very rare): use wpt <time>
+    if (!findDate) {
+      const wptTime = between(chunk, '<time>', '</time>');
+      if (wptTime) findDate = wptTime.slice(0, 10);
+    }
+    // If we still have no find date, this cache has no find log — skip it entirely
+    if (!findDate) continue;
     if (findDate > latestDate) latestDate = findDate;
 
     const latAttr = chunk.match(/lat="([^"]+)"/);

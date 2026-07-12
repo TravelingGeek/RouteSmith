@@ -202,6 +202,9 @@ body{font-family:'Source Serif 4',Charter,Georgia,serif;font-size:15px;line-heig
 .progress-table tr:last-child td{border-bottom:none;}
 .progress-table tr:hover td{background:rgba(168,120,50,0.04);}
 .progress-delta-pos{color:var(--forge);font-weight:600;}
+.progress-row-complete td{background:rgba(45,90,42,0.08) !important;}
+.progress-row-complete td:first-child{color:var(--forge);font-weight:600;}
+.progress-complete-badge{color:var(--forge);font-size:0.85em;letter-spacing:0;}
 .progress-finder-section{margin-bottom:32px;}
 .progress-finder-header{display:flex;align-items:center;gap:8px;font-family:'Fraunces',serif;font-weight:600;font-size:1rem;color:var(--ink);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--rule-soft);}
 .county-list-row{display:flex;align-items:center;gap:8px;padding:6px 10px;background:rgba(255,252,240,0.5);border:1px solid var(--rule-soft);border-radius:2px;font-size:0.86rem;}
@@ -292,7 +295,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
 </style>
 </head>
 <body>
-<script>console.log('Routesmith | dashboard | Build 2026.07.09.020');</script>
+<script>console.log('Routesmith | dashboard | Build 2026.07.09.021');</script>
 
 
 
@@ -399,7 +402,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
   </div>
 </div>
 
-<footer>Build 2026.07.09.020</footer>
+<footer>Build 2026.07.09.021</footer>
 
 <script>
 const BASE     = 'https://routesmith-report.gtl6645.workers.dev';
@@ -1450,7 +1453,7 @@ function renderCountiesProgress() {
     <button class="progress-toggle-btn ${progressViewMode==='perFinder'?'active':''}" onclick="setProgressMode('per-finder')">Per finder</button>
   </div>` : '';
 
-  const body = progressViewMode === 'per-finder' && isMulti
+  const body = progressViewMode === 'perFinder' && isMulti
     ? renderProgressPerFinder(pd, finders)
     : renderProgressCombined(pd.combined);
 
@@ -1516,8 +1519,9 @@ function renderProgressTables(d, finder) {
     const priorFound = foundStates - tripNew;
     const priorPct = totalStatesInCountry ? (100 * priorFound / totalStatesInCountry) : null;
     const nowPct   = totalStatesInCountry ? (100 * foundStates / totalStatesInCountry) : null;
-    return `<tr>
-      <td>${esc(country)}</td>
+    const isComplete = totalStatesInCountry !== null && foundStates >= totalStatesInCountry;
+    return `<tr class="${isComplete ? 'progress-row-complete' : ''}">
+      <td>${esc(country)}${isComplete ? ' <span class="progress-complete-badge" title="All states/provinces found">★</span>' : ''}</td>
       <td>${tripFinds}</td>
       <td>${totalStatesInCountry ?? '—'}</td>
       <td>${foundStates}</td>
@@ -1541,8 +1545,9 @@ function renderProgressTables(d, finder) {
     const priorCounties = foundCounties - tripNewCounties;
     const priorPct = totalCounties ? (100 * priorCounties / totalCounties) : null;
     const nowPct   = totalCounties ? (100 * foundCounties / totalCounties) : null;
-    return `<tr>
-      <td>${esc(abbrevToStateName(st))}</td>
+    const isComplete = totalCounties !== null && foundCounties >= totalCounties;
+    return `<tr class="${isComplete ? 'progress-row-complete' : ''}">
+      <td>${esc(abbrevToStateName(st))}${isComplete ? ' <span class="progress-complete-badge" title="All counties found">★</span>' : ''}</td>
       <td>${tripFinds}</td>
       <td>${totalCounties ?? '—'}</td>
       <td>${foundCounties}</td>
