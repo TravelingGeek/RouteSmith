@@ -21,7 +21,7 @@ import { handleGpxParseJob } from './gpxParseJob.js';
 import { handleReportRunJob } from './reportRunJob.js';
 import { handleTripRunJob } from './tripRunJob.js';
 
-const WORKER_BUILD = '2026.07.09.019';
+const WORKER_BUILD = '2026.07.09.020';
 
 export default {
   async fetch(request: Request): Promise<Response> {

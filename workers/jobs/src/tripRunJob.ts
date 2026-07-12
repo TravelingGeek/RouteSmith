@@ -434,11 +434,11 @@ export async function handleTripRunJob(
   //   - trip county deltas per state
   // Frontend uses this to render the Counties/Progress table.
   const progressData: {
-    perFinder: Record<string, { states: string[]; countries: string[]; countyCountByState: Record<string, number>; tripNewStates: string[]; tripNewCountries: string[]; tripCountyByState: Record<string, number> }>;
-    combined:  { states: string[]; countries: string[]; countyCountByState: Record<string, number>; tripNewStates: string[]; tripNewCountries: string[]; tripCountyByState: Record<string, number>; countryToStates: Record<string, string[]> };
+    perFinder: Record<string, { states: string[]; countries: string[]; countyCountByState: Record<string, number>; tripNewStates: string[]; tripNewCountries: string[]; tripCountyByState: Record<string, number>; tripFindsByState: Record<string, number>; tripFindsByCountry: Record<string, number> }>;
+    combined:  { states: string[]; countries: string[]; countyCountByState: Record<string, number>; tripNewStates: string[]; tripNewCountries: string[]; tripCountyByState: Record<string, number>; countryToStates: Record<string, string[]>; tripFindsByState: Record<string, number>; tripFindsByCountry: Record<string, number> };
   } = {
     perFinder: {},
-    combined: { states: [], countries: [], countyCountByState: {}, tripNewStates: [], tripNewCountries: [], tripCountyByState: {}, countryToStates: {} },
+    combined: { states: [], countries: [], countyCountByState: {}, tripNewStates: [], tripNewCountries: [], tripCountyByState: {}, countryToStates: {}, tripFindsByState: {}, tripFindsByCountry: {} },
   };
 
   // Per-finder loop: query lifetime data + slice trip contribution from the trip-finds we already have
@@ -463,9 +463,17 @@ export async function handleTripRunJob(
     const tripStates    = new Set<string>();
     const tripCountries = new Set<string>();
     const tripCountyByState: Record<string, Set<string>> = {};
+    const tripFindsByState:   Record<string, number> = {};
+    const tripFindsByCountry: Record<string, number> = {};
     for (const fd of tripFindsF) {
-      if (fd.state) tripStates.add(fd.state);
-      if ((fd as any).country) tripCountries.add((fd as any).country);
+      if (fd.state) {
+        tripStates.add(fd.state);
+        tripFindsByState[fd.state] = (tripFindsByState[fd.state] ?? 0) + 1;
+      }
+      if ((fd as any).country) {
+        tripCountries.add((fd as any).country);
+        tripFindsByCountry[(fd as any).country] = (tripFindsByCountry[(fd as any).country] ?? 0) + 1;
+      }
       if (fd.county && fd.state) {
         (tripCountyByState[fd.state] ||= new Set()).add(fd.county);
       }
@@ -500,6 +508,8 @@ export async function handleTripRunJob(
       tripNewStates,
       tripNewCountries,
       tripCountyByState: tripCountyByStateCount,
+      tripFindsByState,
+      tripFindsByCountry,
     };
   }
 
@@ -532,6 +542,23 @@ export async function handleTripRunJob(
     `)
     .bind(trip_id, tripEnd)
     .all<{ state: string; county: string; country: string | null }>();
+
+  // Combined trip find counts by state / country — deduped by gc_code across finders
+  const combinedTripFindRows = await env.DB
+    .prepare(`
+      SELECT DISTINCT ff.gc_code, ff.state, ff.country FROM finder_finds ff
+      JOIN trip_finders tf ON tf.finder_id = ff.finder_id
+      WHERE tf.trip_id = ?
+        AND ff.find_date BETWEEN ? AND ?
+    `)
+    .bind(trip_id, tripStart, tripEnd)
+    .all<{ gc_code: string; state: string | null; country: string | null }>();
+  const combinedTripFindsByState:   Record<string, number> = {};
+  const combinedTripFindsByCountry: Record<string, number> = {};
+  for (const r of combinedTripFindRows.results) {
+    if (r.state)   combinedTripFindsByState[r.state]     = (combinedTripFindsByState[r.state]     ?? 0) + 1;
+    if (r.country) combinedTripFindsByCountry[r.country] = (combinedTripFindsByCountry[r.country] ?? 0) + 1;
+  }
   for (const r of combinedLifetimeRows.results) {
     (combinedCountyByState[r.state] ||= new Set()).add(r.county);
     if (r.country) (countryToStates[r.country] ||= new Set()).add(r.state);
@@ -568,6 +595,8 @@ export async function handleTripRunJob(
     tripNewCountries: [...combinedTripNewCountries],
     tripCountyByState: combinedTripCountyByState,
     countryToStates: Object.fromEntries(Object.entries(countryToStates).map(([k, v]) => [k, [...v].sort()])),
+    tripFindsByState: combinedTripFindsByState,
+    tripFindsByCountry: combinedTripFindsByCountry,
   };
 
   // Per-finder stats — total finds and counties for each finder on this trip

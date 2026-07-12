@@ -172,10 +172,15 @@ body{font-family:'Source Serif 4',Charter,Georgia,serif;font-size:15px;line-heig
 .data-section{margin-bottom:32px;}
 .data-section-title{font-family:'Fraunces',serif;font-weight:600;font-size:1.4rem;color:var(--ink);margin-bottom:6px;letter-spacing:-0.01em;}
 .data-section-sub{font-family:'JetBrains Mono',monospace;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--ink-muted);margin-bottom:16px;}
-.county-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px;}
 .county-state-group{margin-bottom:22px;}
 .county-state-group:last-child{margin-bottom:0;}
-.county-state-header{font-family:'Fraunces',serif;font-weight:600;font-size:1.05rem;color:var(--ink);margin:8px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--rule-soft);display:flex;align-items:baseline;gap:10px;}
+.county-state-header{font-family:'Fraunces',serif;font-weight:600;font-size:1.05rem;color:var(--ink);margin:8px 0 8px;padding:8px 4px 4px;border-bottom:1px solid var(--rule-soft);display:flex;align-items:baseline;gap:10px;cursor:pointer;user-select:none;transition:color 0.15s;}
+.county-state-header:hover{color:var(--brass-deep);}
+.county-state-chev{font-size:0.72rem;color:var(--ink-muted);width:14px;flex-shrink:0;transition:transform 0.15s;}
+.county-state-header:not(.open) .county-state-chev{transform:rotate(-90deg);}
+.county-state-name{flex:1;}
+.county-list{display:none;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px;margin-top:8px;}
+.county-list.open{display:grid;}
 .county-state-count{font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--ink-muted);font-weight:400;}
 .finder-legend{display:flex;flex-wrap:wrap;gap:14px;padding:10px 14px;margin-bottom:16px;background:rgba(255,252,240,0.5);border:1px solid var(--rule);border-radius:3px;}
 .finder-legend-item{display:inline-flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--ink-soft);}
@@ -287,7 +292,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
 </style>
 </head>
 <body>
-<script>console.log('Routesmith | dashboard | Build 2026.07.09.019');</script>
+<script>console.log('Routesmith | dashboard | Build 2026.07.09.020');</script>
 
 
 
@@ -394,7 +399,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
   </div>
 </div>
 
-<footer>Build 2026.07.09.019</footer>
+<footer>Build 2026.07.09.020</footer>
 
 <script>
 const BASE     = 'https://routesmith-report.gtl6645.workers.dev';
@@ -462,6 +467,16 @@ function stateToAbbrev(s) {
   if (!s) return null;
   if (s.length === 2 && STATE_FIPS[s.toUpperCase()]) return s.toUpperCase();
   return STATE_NAME_TO_ABBREV[s] ?? null;
+}
+
+let _abbrevToName = null;
+function abbrevToStateName(abbrev) {
+  if (!abbrev) return abbrev;
+  if (!_abbrevToName) {
+    _abbrevToName = {};
+    for (const [name, ab] of Object.entries(STATE_NAME_TO_ABBREV)) _abbrevToName[ab] = name;
+  }
+  return _abbrevToName[abbrev] ?? abbrev;
 }
 
 // ── FIPS cache ────────────────────────────────────────────────────
@@ -1364,8 +1379,12 @@ function renderCountiesList(sub) {
     }).join('');
 
     return `<div class="county-state-group">
-      <div class="county-state-header">${esc(st)} <span class="county-state-count">${items.length}</span></div>
-      <div class="county-list">${rows}</div>
+      <div class="county-state-header open" onclick="toggleStateGroup(this)">
+        <span class="county-state-chev">▼</span>
+        <span class="county-state-name">${esc(abbrevToStateName(st))}</span>
+        <span class="county-state-count">${items.length}</span>
+      </div>
+      <div class="county-list open">${rows}</div>
     </div>`;
   }).join('');
 
@@ -1486,22 +1505,20 @@ function renderProgressPerFinder(pd, finders) {
 }
 
 function renderProgressTables(d, finder) {
-  // Country table — only countries with a trip find, showing state totals
-  const countriesToShow = d.tripNewCountries?.length
-    ? d.countries.filter(c => (d.tripNewCountries.includes(c)) || Object.keys(d.countryToStates ?? {}).includes(c))
-    : d.countries;
+  const tripCountriesArr = Object.entries(d.tripFindsByCountry ?? {})
+    .filter(([, n]) => n > 0)
+    .sort((a, b) => b[1] - a[1]);
 
-  // Actually show every country the finder has finds in
-  const countryRows = d.countries.map(country => {
+  const countryRows = tripCountriesArr.map(([country, tripFinds]) => {
     const totalStatesInCountry = COUNTRY_STATE_TOTALS[country] ?? null;
-    const statesInCountry = (d.countryToStates?.[country] ?? []).filter(Boolean);
-    const foundStates = statesInCountry.length || d.states.filter(s => STATE_TO_COUNTRY[s] === country).length;
+    const foundStates = d.states.filter(s => STATE_TO_COUNTRY[s] === country).length;
     const tripNew = d.tripNewStates.filter(s => STATE_TO_COUNTRY[s] === country).length;
     const priorFound = foundStates - tripNew;
     const priorPct = totalStatesInCountry ? (100 * priorFound / totalStatesInCountry) : null;
     const nowPct   = totalStatesInCountry ? (100 * foundStates / totalStatesInCountry) : null;
     return `<tr>
       <td>${esc(country)}</td>
+      <td>${tripFinds}</td>
       <td>${totalStatesInCountry ?? '—'}</td>
       <td>${foundStates}</td>
       <td class="${deltaClass(tripNew)}">${delta(tripNew)}</td>
@@ -1512,12 +1529,12 @@ function renderProgressTables(d, finder) {
     </tr>`;
   }).join('');
 
-  // State/province table — only those with trip finds
-  const statesToShow = [...new Set([...(d.tripNewStates ?? []), ...Object.keys(d.tripCountyByState ?? {})])];
-  const statesForShown = statesToShow
-    .filter(s => (d.tripCountyByState?.[s] ?? 0) > 0 || d.tripNewStates.includes(s))
-    .sort();
-  const stateRows = statesForShown.map(st => {
+  // States/provinces with trip finds > 0, sorted by trip find count desc
+  const tripStatesArr = Object.entries(d.tripFindsByState ?? {})
+    .filter(([, n]) => n > 0)
+    .sort((a, b) => b[1] - a[1]);
+
+  const stateRows = tripStatesArr.map(([st, tripFinds]) => {
     const totalCounties = STATE_TOTALS_BY_ABBREV[st] ?? null;
     const foundCounties = d.countyCountByState[st] ?? 0;
     const tripNewCounties = d.tripCountyByState[st] ?? 0;
@@ -1525,7 +1542,8 @@ function renderProgressTables(d, finder) {
     const priorPct = totalCounties ? (100 * priorCounties / totalCounties) : null;
     const nowPct   = totalCounties ? (100 * foundCounties / totalCounties) : null;
     return `<tr>
-      <td>${esc(st)}</td>
+      <td>${esc(abbrevToStateName(st))}</td>
+      <td>${tripFinds}</td>
       <td>${totalCounties ?? '—'}</td>
       <td>${foundCounties}</td>
       <td class="${deltaClass(tripNewCounties)}">${delta(tripNewCounties)}</td>
@@ -1540,16 +1558,16 @@ function renderProgressTables(d, finder) {
     <h4 class="progress-subtitle">Countries</h4>
     <table class="progress-table">
       <thead><tr>
-        <th>Country</th><th>Total states</th><th>Found</th><th>Trip Δ</th><th>% found</th><th>% Δ</th>
+        <th>Country</th><th>Trip finds</th><th>Total states</th><th>Found</th><th>Trip Δ</th><th>% found</th><th>% Δ</th>
       </tr></thead>
-      <tbody>${countryRows || '<tr><td colspan="6" class="muted">No countries visited on this trip.</td></tr>'}</tbody>
+      <tbody>${countryRows || '<tr><td colspan="7" class="muted">No countries visited on this trip.</td></tr>'}</tbody>
     </table>
     <h4 class="progress-subtitle">States / Provinces</h4>
     <table class="progress-table">
       <thead><tr>
-        <th>State</th><th>Total counties</th><th>Found</th><th>Trip Δ</th><th>% found</th><th>% Δ</th>
+        <th>State</th><th>Trip finds</th><th>Total counties</th><th>Found</th><th>Trip Δ</th><th>% found</th><th>% Δ</th>
       </tr></thead>
-      <tbody>${stateRows || '<tr><td colspan="6" class="muted">No states with new counties on this trip.</td></tr>'}</tbody>
+      <tbody>${stateRows || '<tr><td colspan="7" class="muted">No states with new counties on this trip.</td></tr>'}</tbody>
     </table>
   </div>`;
 }
@@ -1649,6 +1667,12 @@ function renderRules(sub) {
       ${cards}
     </div>
   </div>`;
+}
+
+function toggleStateGroup(hdrEl) {
+  hdrEl.classList.toggle('open');
+  const body = hdrEl.nextElementSibling;
+  if (body) body.classList.toggle('open');
 }
 
 function toggleRulesSection(hdrEl) {
