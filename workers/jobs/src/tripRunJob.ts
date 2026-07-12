@@ -146,16 +146,36 @@ export async function handleTripRunJob(
   tripRows.length = 0;
   tripRows.push(...cleanupRefresh.results);
 
+  // Backfill county/state from the normalized caches table first — any cache
+  // already known (e.g. via another finder's PGC upload) costs zero API calls.
+  const backfill = await env.DB.prepare(`
+    UPDATE finder_finds
+    SET county = (SELECT c.county FROM caches c WHERE c.gc_code = finder_finds.gc_code),
+        state  = (SELECT c.state  FROM caches c WHERE c.gc_code = finder_finds.gc_code)
+    WHERE (county IS NULL OR state IS NULL)
+      AND EXISTS (
+        SELECT 1 FROM caches c
+        WHERE c.gc_code = finder_finds.gc_code
+          AND c.county IS NOT NULL AND c.state IS NOT NULL
+      )
+  `).run();
+  const backfilled = (backfill as any)?.meta?.changes ?? 0;
+  if (backfilled > 0) console.log(`[trip_run] backfilled county for ${backfilled} finds from caches table (0 API calls)`);
+
   // ── Geocoding pass: fill in county/state for any caches missing them ──────
-  // Only geocodes caches referenced by any trip finder's data — cheap and targeted.
+  // Covers ALL finds of this trip's finders (prior-county calculations need
+  // full history), trip-window caches first. Capped per run to stay within
+  // Worker subrequest limits; large backlogs finish over subsequent runs.
   const { results: needGeocode } = await env.DB
     .prepare(`
       SELECT DISTINCT ff.gc_code, ff.lat, ff.lon
       FROM finder_finds ff
       JOIN trip_finders tf ON tf.finder_id = ff.finder_id
-      WHERE tf.trip_id = ? AND ff.find_date BETWEEN ? AND ?
+      WHERE tf.trip_id = ?
         AND ff.lat IS NOT NULL AND ff.lon IS NOT NULL
         AND (ff.county IS NULL OR ff.county = '' OR ff.state IS NULL OR ff.state = '')
+      ORDER BY CASE WHEN ff.find_date BETWEEN ? AND ? THEN 0 ELSE 1 END
+      LIMIT 250
     `)
     .bind(trip_id, tripStart, tripEnd)
     .all<{ gc_code: string; lat: number; lon: number }>();
@@ -165,16 +185,21 @@ export async function handleTripRunJob(
     try {
       const { geocodePoint } = await import('./geocode.js');
       let hits = 0;
+      const geoStart = Date.now();
+      let apiMs = 0;   // cumulative time in Mapbox batches
+      let dbMs  = 0;   // cumulative time writing results to D1
       // Concurrency-limited parallel calls (10 at a time) to avoid rate limits
       const CONCURRENCY = 10;
       for (let i = 0; i < needGeocode.length; i += CONCURRENCY) {
         const batch = needGeocode.slice(i, i + CONCURRENCY);
+        const t0 = Date.now();
         const results = await Promise.all(
           batch.map(async c => {
             const loc = await geocodePoint(c.lat, c.lon, env.MAPBOX_TOKEN);
             return { gc_code: c.gc_code, loc };
           })
         );
+        apiMs += Date.now() - t0;
         const stmts = [];
         for (const r of results) {
           if (!r.loc) continue;
@@ -187,9 +212,18 @@ export async function handleTripRunJob(
             WHERE gc_code = ? AND (county_source IS NULL OR county_source = 'geocoded')
           `).bind(r.loc.county, r.loc.state, ts, r.gc_code));
         }
-        if (stmts.length > 0) await env.DB.batch(stmts);
+        if (stmts.length > 0) {
+          const t1 = Date.now();
+          await env.DB.batch(stmts);
+          dbMs += Date.now() - t1;
+        }
       }
-      console.log(`[trip_run] geocoded ${hits}/${needGeocode.length} caches`);
+      const totalMs = Date.now() - geoStart;
+      console.log(
+        `[trip_run] geocoded ${hits}/${needGeocode.length} caches in ${totalMs}ms ` +
+        `(mapbox: ${apiMs}ms, d1 writes: ${dbMs}ms, ` +
+        `${(totalMs / needGeocode.length).toFixed(1)}ms/cache avg, concurrency=${CONCURRENCY})`
+      );
     } catch (e) {
       console.error(`Geocoding failed: ${(e as Error).message}`);
     }

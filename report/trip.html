@@ -300,7 +300,7 @@
 </style>
 </head>
 <body>
-<script>console.log('Routesmith | report/trip | Build 2026.07.09.015');</script>
+<script>console.log('Routesmith | report/trip | Build 2026.07.09.016');</script>
 
 
 
@@ -449,7 +449,7 @@
   <span class="sep">·</span>
   <span>Forged 2026</span>
   <span class="sep">·</span>
-  <span>Build 2026.07.09.015</span>
+  <span>Build 2026.07.09.016</span>
 </footer>
 
 <script>
@@ -700,7 +700,10 @@ async function parseGpxInBrowser(file) {
     const cacheChunk = cacheStart !== -1 ? chunk.slice(cacheStart) : chunk;
 
     // Try to extract find date from <groundspeak:log> section
-    let findDate = between(chunk, '<time>', '</time>');
+    // Find date comes from the user's log (<groundspeak:log><groundspeak:date>),
+    // NOT the wpt-level <time>, which is the cache's PLACED date.
+    let findDate = between(chunk, '<groundspeak:date>', '</groundspeak:date>');
+    if (!findDate) findDate = between(chunk, '<time>', '</time>'); // fallback
     if (findDate) findDate = findDate.slice(0, 10);
     if (findDate > latestDate) latestDate = findDate;
 
@@ -736,7 +739,7 @@ async function parseGpxInBrowser(file) {
       terrain:    tM  ? parseFloat(tM)  : null,
       fav_points: fp ? parseInt(fp) : 0,
       lat, lon,
-      placement_date: (between(cacheChunk, '<groundspeak:placed_by>', '</groundspeak:placed_by>') && between(cacheChunk, '<groundspeak:cache_time>', '</groundspeak:cache_time>')) || null,
+      placement_date: between(chunk, '<time>', '</time>').slice(0, 10) || null,
     });
     if (county && state) counties.push({ county, state, country, first_found: findDate });
   }
