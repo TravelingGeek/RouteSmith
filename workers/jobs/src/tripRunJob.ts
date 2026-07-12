@@ -119,6 +119,13 @@ export async function handleTripRunJob(
     env.DB.prepare(`UPDATE finder_finds SET state  = NULL WHERE TRIM(COALESCE(state,''))  = ''`),
     env.DB.prepare(`UPDATE caches SET county = NULL WHERE TRIM(COALESCE(county,'')) = ''`),
     env.DB.prepare(`UPDATE caches SET state  = NULL WHERE TRIM(COALESCE(state,''))  = ''`),
+    // Clear misgeocoded county/state for non-US/CA finds (previous builds
+    // stored Mapbox district values that don't match county grid).
+    env.DB.prepare(`
+      UPDATE finder_finds SET county = NULL, state = NULL
+      WHERE country IS NOT NULL
+        AND country NOT IN ('United States','USA','US','Canada')
+    `),
     env.DB.prepare(`UPDATE finder_finds SET county = REPLACE(county, ' County', '') WHERE county LIKE '% County'`),
     env.DB.prepare(`UPDATE finder_finds SET county = REPLACE(county, ' Parish', '') WHERE county LIKE '% Parish'`),
     env.DB.prepare(`UPDATE finder_finds SET county = REPLACE(county, ' Borough', '') WHERE county LIKE '% Borough'`),
@@ -163,18 +170,21 @@ export async function handleTripRunJob(
   if (backfilled > 0) console.log(`[trip_run] backfilled county for ${backfilled} finds from caches table (0 API calls)`);
 
   // ── Geocoding pass: fill in county/state for any caches missing them ──────
-  // Covers ALL finds of this trip's finders (prior-county calculations need
-  // full history), trip-window caches first. Capped per run to stay within
-  // Worker subrequest limits; large backlogs finish over subsequent runs.
+  // Only geocodes trip-window finds — full-lifetime geocoding is deferred until
+  // that finder appears on another trip. Skips finds in countries without
+  // county-style subdivisions (only US and Canada are supported for map
+  // attribution). NULL country is treated as unknown → still geocoded, since
+  // most PQ files without country info are US anyway.
   const { results: needGeocode } = await env.DB
     .prepare(`
       SELECT DISTINCT ff.gc_code, ff.lat, ff.lon
       FROM finder_finds ff
       JOIN trip_finders tf ON tf.finder_id = ff.finder_id
       WHERE tf.trip_id = ?
+        AND ff.find_date BETWEEN ? AND ?
         AND ff.lat IS NOT NULL AND ff.lon IS NOT NULL
         AND (ff.county IS NULL OR ff.county = '' OR ff.state IS NULL OR ff.state = '')
-      ORDER BY CASE WHEN ff.find_date BETWEEN ? AND ? THEN 0 ELSE 1 END
+        AND (ff.country IS NULL OR ff.country IN ('United States','USA','US','Canada'))
       LIMIT 250
     `)
     .bind(trip_id, tripStart, tripEnd)

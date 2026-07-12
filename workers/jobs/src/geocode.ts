@@ -74,16 +74,14 @@ export async function geocodePoint(
     const data = await resp.json() as MapboxResponse;
     if (!data.features?.length) return null;
 
-    // Look for a district (county) in the returned feature or its context
     let county: string | null = null;
     let stateAbbrev: string | null = null;
+    let countryCode: string | null = null;
 
     for (const feat of data.features) {
-      // The main feature might be the district
       if (feat.place_type.includes('district')) {
         county = normalizeCountyName(feat.text);
       }
-      // Or it might be nested in context
       if (feat.context) {
         for (const ctx of feat.context) {
           if (ctx.id.startsWith('district.')) {
@@ -93,14 +91,23 @@ export async function geocodePoint(
             // short_code format: 'US-CO' or 'CA-ON'
             if (ctx.short_code) {
               const parts = ctx.short_code.split('-');
-              if (parts.length === 2) stateAbbrev = parts[1].toUpperCase();
+              if (parts.length === 2) {
+                countryCode = parts[0].toUpperCase();
+                stateAbbrev = parts[1].toUpperCase();
+              }
             }
-            // Fallback: look up by full name
             if (!stateAbbrev) stateAbbrev = REGION_TO_ABBREV[ctx.text] ?? null;
+          }
+          if (ctx.id.startsWith('country.') && ctx.short_code) {
+            countryCode = ctx.short_code.toUpperCase();
           }
         }
       }
     }
+
+    // Only return county attribution for US and Canada — other countries don't
+    // have county-style subdivisions that map to our county grid.
+    if (countryCode && countryCode !== 'US' && countryCode !== 'CA') return null;
 
     if (county && stateAbbrev) {
       return { county, state: stateAbbrev };
