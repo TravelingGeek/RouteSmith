@@ -173,6 +173,32 @@ body{font-family:'Source Serif 4',Charter,Georgia,serif;font-size:15px;line-heig
 .data-section-title{font-family:'Fraunces',serif;font-weight:600;font-size:1.4rem;color:var(--ink);margin-bottom:6px;letter-spacing:-0.01em;}
 .data-section-sub{font-family:'JetBrains Mono',monospace;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--ink-muted);margin-bottom:16px;}
 .county-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px;}
+.county-state-group{margin-bottom:22px;}
+.county-state-group:last-child{margin-bottom:0;}
+.county-state-header{font-family:'Fraunces',serif;font-weight:600;font-size:1.05rem;color:var(--ink);margin:8px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--rule-soft);display:flex;align-items:baseline;gap:10px;}
+.county-state-count{font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--ink-muted);font-weight:400;}
+.finder-legend{display:flex;flex-wrap:wrap;gap:14px;padding:10px 14px;margin-bottom:16px;background:rgba(255,252,240,0.5);border:1px solid var(--rule);border-radius:3px;}
+.finder-legend-item{display:inline-flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--ink-soft);}
+.finder-legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.finder-legend-name{white-space:nowrap;}
+.county-dot-strip{display:inline-flex;gap:2px;margin-right:8px;}
+.county-dot{display:inline-block;width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.progress-toggle{display:inline-flex;border:1px solid var(--rule);border-radius:2px;overflow:hidden;margin-bottom:16px;}
+.progress-toggle-btn{font-family:'JetBrains Mono',monospace;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.1em;padding:6px 14px;background:none;border:none;color:var(--ink-muted);cursor:pointer;border-right:1px solid var(--rule);}
+.progress-toggle-btn:last-child{border-right:none;}
+.progress-toggle-btn:hover{background:rgba(168,120,50,0.06);color:var(--brass-deep);}
+.progress-toggle-btn.active{background:var(--brass-deep);color:white;}
+.progress-section{margin-bottom:24px;}
+.progress-subtitle{font-family:'JetBrains Mono',monospace;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--ink-muted);margin:16px 0 6px;font-weight:500;}
+.progress-table{width:100%;border-collapse:collapse;font-size:0.86rem;background:rgba(255,252,240,0.5);border:1px solid var(--rule);border-radius:3px;overflow:hidden;}
+.progress-table th{background:var(--paper-mid);color:var(--ink-muted);font-family:'JetBrains Mono',monospace;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;font-weight:600;text-align:left;padding:8px 10px;border-bottom:1px solid var(--rule);}
+.progress-table td{padding:6px 10px;border-bottom:1px solid var(--rule-soft);color:var(--ink-soft);font-family:'JetBrains Mono',monospace;font-size:0.78rem;}
+.progress-table td:first-child{color:var(--ink);font-family:'Fraunces',serif;font-size:0.9rem;}
+.progress-table tr:last-child td{border-bottom:none;}
+.progress-table tr:hover td{background:rgba(168,120,50,0.04);}
+.progress-delta-pos{color:var(--forge);font-weight:600;}
+.progress-finder-section{margin-bottom:32px;}
+.progress-finder-header{display:flex;align-items:center;gap:8px;font-family:'Fraunces',serif;font-weight:600;font-size:1rem;color:var(--ink);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--rule-soft);}
 .county-list-row{display:flex;align-items:center;gap:8px;padding:6px 10px;background:rgba(255,252,240,0.5);border:1px solid var(--rule-soft);border-radius:2px;font-size:0.86rem;}
 .county-list-row:hover{background:rgba(168,120,50,0.05);border-color:var(--rule);}
 .county-list-name{flex:1;color:var(--ink);}
@@ -261,7 +287,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
 </style>
 </head>
 <body>
-<script>console.log('Routesmith | dashboard | Build 2026.07.09.013');</script>
+<script>console.log('Routesmith | dashboard | Build 2026.07.09.019');</script>
 
 
 
@@ -368,7 +394,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
   </div>
 </div>
 
-<footer>Build 2026.07.09.013</footer>
+<footer>Build 2026.07.09.019</footer>
 
 <script>
 const BASE     = 'https://routesmith-report.gtl6645.workers.dev';
@@ -388,14 +414,13 @@ const state = {
 
 // ── Categories ────────────────────────────────────────────────────
 const CATEGORIES = [
-  { id:'counties',   label:'Counties',      subs:['Map','New Finds','Previously Found','Progress'] },
+  { id:'counties',   label:'Counties',      subs:['Map','New Counties','Previous Counties','Progress'] },
   { id:'highlights', label:'Highlights',    subs:['Marquee','Featured','Notes'] },
   { id:'dayByDay',   label:'Day by Day',    subs:['Chart','List'] },
   { id:'jasmer',     label:'Jasmer Grid',   subs:['Trip Fills','Full Grid'] },
   { id:'dtGrid',     label:'D/T Grid',      subs:['Trip Fills','Full Grid'] },
   { id:'oldest',     label:'Oldest Active', subs:['By State','By Country'], requiresRef:true },
   { id:'rules',      label:'Rules',         subs:['Marquee','Featured','Notes','All'] },
-  { id:'lifetime',   label:'Lifetime',      subs:['County Map','All Finds'] },
 ];
 
 function subId(s) { return s.toLowerCase().replace(/\s+/g,'-'); }
@@ -1201,8 +1226,11 @@ function renderPanelContent(catId,sub) {
   }
 
   // ── Counties New / Previously Found (with finder dots) ──
-  if (catId === 'counties' && (sub === 'new-finds' || sub === 'previously-found')) {
+  if (catId === 'counties' && (sub === 'new-counties' || sub === 'previous-counties')) {
     return renderCountiesList(sub);
+  }
+  if (catId === 'counties' && sub === 'progress') {
+    return renderCountiesProgress();
   }
 
   // ── Highlights ──
@@ -1238,46 +1266,106 @@ function renderPanelContent(catId,sub) {
 function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function renderCountiesList(sub) {
-  const counties = sub === 'new-finds'
+  const counties = sub === 'new-counties'
     ? (state.report?.countiesData?.firstTime ?? [])
     : (state.report?.countiesData?.previouslyFound ?? []);
   const attr    = state.report?.countiesData?.countyAttribution ?? {};
   const finders = state.report?.finders ?? [];
   const isMulti = finders.length > 1;
+  const ownerId = state.report?.owner?.finder_id;
 
-  const title = sub === 'new-finds' ? 'New Counties This Trip' : 'Previously Found Counties';
-  const sub2  = sub === 'new-finds'
+  const title = sub === 'new-counties' ? 'New Counties' : 'Previous Counties';
+  const sub2  = sub === 'new-counties'
     ? `${counties.length} new count${counties.length===1?'y':'ies'} added this trip`
-    : `${counties.length} count${counties.length===1?'y':'ies'} previously found were visited this trip`;
+    : `${counties.length} previously found count${counties.length===1?'y':'ies'} visited this trip`;
 
   if (!counties.length) {
-    return `<div class="data-panel">
-      <div class="data-section">
-        <div class="data-section-title">${title}</div>
-        <div class="data-section-sub">None</div>
-      </div>
-    </div>`;
+    return `<div class="data-panel"><div class="data-section">
+      <div class="data-section-title">${title}</div>
+      <div class="data-section-sub">None</div>
+    </div></div>`;
   }
 
-  // Build rows — sort alphabetically by county name
-  const sorted = counties.slice().sort();
-  const rows = sorted.map(key => {
-    const [county, stateAbbrev] = key.split('|');
+  // Legend (only meaningful when 2+ finders)
+  const legend = isMulti ? `<div class="finder-legend">
+    ${finders.map(f => `<span class="finder-legend-item">
+      <span class="finder-legend-dot" style="background:${f.color};"></span>
+      <span class="finder-legend-name">${esc(f.gc_username || f.display_name)}</span>
+    </span>`).join('')}
+  </div>` : '';
+
+  // Assign a sort tier per county:
+  //   0 = multi-finder including owner
+  //   1 = multi-finder without owner
+  //   2 = owner-only
+  //   3 = single-companion (alphabetical by companion name)
+  function tierOf(key) {
     const info = attr[key];
-    let dots = '';
-    if (isMulti && info) {
-      dots = '<span style="display:inline-flex;gap:2px;margin-right:8px;">' +
-        info.finderIds.map(fid => {
-          const f = finders.find(x => x.finder_id === fid);
-          if (!f) return '';
-          const cnt = info.findCounts[fid] ?? 0;
-          return `<span title="${esc(f.gc_username || f.display_name)} · ${cnt} find${cnt===1?'':'s'}" style="display:inline-block;width:10px;height:10px;background:${f.color};border-radius:50%;flex-shrink:0;"></span>`;
-        }).join('') + '</span>';
-    }
-    return `<div class="county-list-row">
-      ${dots}
-      <span class="county-list-name">${esc(county)} County, ${esc(stateAbbrev)}</span>
-      ${!isMulti && info ? `<span class="county-list-count">${Object.values(info.findCounts).reduce((s,n)=>s+n,0)} find${Object.values(info.findCounts).reduce((s,n)=>s+n,0)===1?'':'s'}</span>` : ''}
+    if (!info || !info.finderIds?.length) return 4;
+    const hasOwner = ownerId && info.finderIds.includes(ownerId);
+    const many     = info.finderIds.length > 1;
+    if (many && hasOwner)  return 0;
+    if (many && !hasOwner) return 1;
+    if (!many && hasOwner) return 2;
+    return 3;
+  }
+  function companionName(key) {
+    const info = attr[key]; if (!info) return '';
+    const fid  = info.finderIds.find(id => id !== ownerId) ?? info.finderIds[0];
+    const f    = finders.find(x => x.finder_id === fid);
+    return (f?.gc_username || f?.display_name || '').toLowerCase();
+  }
+
+  // Group counties by state
+  const byState = {};
+  for (const key of counties) {
+    const [county, stateAbbrev] = key.split('|');
+    (byState[stateAbbrev] ||= []).push({ key, county, stateAbbrev });
+  }
+
+  // Sort states alphabetically; within a state apply the tier order
+  const stateNames = Object.keys(byState).sort();
+
+  const stateSections = stateNames.map(st => {
+    const items = byState[st].slice().sort((a, b) => {
+      const ta = tierOf(a.key), tb = tierOf(b.key);
+      if (ta !== tb) return ta - tb;
+      if (ta === 3) {
+        const ca = companionName(a.key), cb = companionName(b.key);
+        if (ca !== cb) return ca.localeCompare(cb);
+      }
+      return a.county.localeCompare(b.county);
+    });
+
+    const rows = items.map(({ key, county, stateAbbrev }) => {
+      const info = attr[key];
+      let dots = '';
+      if (isMulti && info) {
+        // Sort dots owner-first, then remaining in the order stored
+        const orderedIds = info.finderIds.slice().sort((a, b) => {
+          if (a === ownerId) return -1;
+          if (b === ownerId) return  1;
+          return 0;
+        });
+        dots = '<span class="county-dot-strip">' +
+          orderedIds.map(fid => {
+            const f = finders.find(x => x.finder_id === fid);
+            if (!f) return '';
+            const cnt = info.findCounts[fid] ?? 0;
+            return `<span title="${esc(f.gc_username || f.display_name)} · ${cnt} find${cnt===1?'':'s'}" class="county-dot" style="background:${f.color};"></span>`;
+          }).join('') + '</span>';
+      }
+      const total = info ? Object.values(info.findCounts).reduce((s,n)=>s+n,0) : 0;
+      return `<div class="county-list-row">
+        ${dots}
+        <span class="county-list-name">${esc(county)} County</span>
+        <span class="county-list-count">${total} find${total===1?'':'s'}</span>
+      </div>`;
+    }).join('');
+
+    return `<div class="county-state-group">
+      <div class="county-state-header">${esc(st)} <span class="county-state-count">${items.length}</span></div>
+      <div class="county-list">${rows}</div>
     </div>`;
   }).join('');
 
@@ -1285,10 +1373,184 @@ function renderCountiesList(sub) {
     <div class="data-section">
       <div class="data-section-title">${title}</div>
       <div class="data-section-sub">${sub2}</div>
-      <div class="county-list">
-        ${rows}
-      </div>
+      ${legend}
+      ${stateSections}
     </div>
+  </div>`;
+}
+
+// ── Reference: county totals by state abbrev (US), + Canadian provinces ─────
+const STATE_TOTALS_BY_ABBREV = {
+  AL:67, AK:30, AZ:15, AR:75, CA:58, CO:64, CT:8, DE:3, DC:1, FL:67, GA:159,
+  HI:5, ID:44, IL:102, IN:92, IA:99, KS:105, KY:120, LA:64, ME:16, MD:24,
+  MA:14, MI:83, MN:87, MS:82, MO:115, MT:56, NE:93, NV:17, NH:10, NJ:21,
+  NM:33, NY:62, NC:100, ND:53, OH:88, OK:77, OR:36, PA:67, RI:5, SC:46,
+  SD:66, TN:95, TX:254, UT:29, VT:14, VA:133, WA:39, WV:55, WI:72, WY:23,
+  // Canada: subdivisions per province (census divisions)
+  AB:19, BC:29, MB:23, NB:15, NL:11, NS:18, ON:49, PE:3, QC:98, SK:18,
+  NT:6, NU:3, YT:1,
+};
+const STATE_TO_COUNTRY = {
+  AL:'United States',AK:'United States',AZ:'United States',AR:'United States',
+  CA:'United States',CO:'United States',CT:'United States',DE:'United States',
+  DC:'United States',FL:'United States',GA:'United States',HI:'United States',
+  ID:'United States',IL:'United States',IN:'United States',IA:'United States',
+  KS:'United States',KY:'United States',LA:'United States',ME:'United States',
+  MD:'United States',MA:'United States',MI:'United States',MN:'United States',
+  MS:'United States',MO:'United States',MT:'United States',NE:'United States',
+  NV:'United States',NH:'United States',NJ:'United States',NM:'United States',
+  NY:'United States',NC:'United States',ND:'United States',OH:'United States',
+  OK:'United States',OR:'United States',PA:'United States',RI:'United States',
+  SC:'United States',SD:'United States',TN:'United States',TX:'United States',
+  UT:'United States',VT:'United States',VA:'United States',WA:'United States',
+  WV:'United States',WI:'United States',WY:'United States',
+  AB:'Canada',BC:'Canada',MB:'Canada',NB:'Canada',NL:'Canada',NS:'Canada',
+  ON:'Canada',PE:'Canada',QC:'Canada',SK:'Canada',NT:'Canada',NU:'Canada',YT:'Canada',
+};
+// Country → total state/province count
+const COUNTRY_STATE_TOTALS = {
+  'United States': 51, // 50 states + DC
+  Canada: 13,
+};
+
+let progressViewMode = 'combined'; // 'combined' | 'perFinder'
+
+function renderCountiesProgress() {
+  const pd = state.report?.progressData;
+  if (!pd) {
+    return `<div class="data-panel"><div class="data-section">
+      <div class="data-section-title">Progress</div>
+      <div class="data-section-sub">Not available — regenerate the report.</div>
+    </div></div>`;
+  }
+  const finders = state.report?.finders ?? [];
+  const isMulti = finders.length > 1;
+
+  const toggle = isMulti ? `<div class="progress-toggle">
+    <button class="progress-toggle-btn ${progressViewMode==='combined'?'active':''}" onclick="setProgressMode('combined')">Combined</button>
+    <button class="progress-toggle-btn ${progressViewMode==='perFinder'?'active':''}" onclick="setProgressMode('per-finder')">Per finder</button>
+  </div>` : '';
+
+  const body = progressViewMode === 'per-finder' && isMulti
+    ? renderProgressPerFinder(pd, finders)
+    : renderProgressCombined(pd.combined);
+
+  return `<div class="data-panel">
+    <div class="data-section">
+      <div class="data-section-title">Progress</div>
+      <div class="data-section-sub">Countries and states visited on this trip</div>
+      ${toggle}
+      ${body}
+    </div>
+  </div>`;
+}
+
+function setProgressMode(mode) {
+  progressViewMode = mode === 'per-finder' ? 'perFinder' : 'combined';
+  document.getElementById('main-view').innerHTML = '';
+  currentPanelId = null;
+  showPanel(`${state.activeCat}::${state.activeSub}`);
+}
+
+function pct(n, total) {
+  if (!total) return '—';
+  return `${(100 * n / total).toFixed(1)}%`;
+}
+function delta(n) { return n > 0 ? `+${n}` : n < 0 ? `${n}` : '·'; }
+function deltaClass(n) { return n > 0 ? 'progress-delta-pos' : ''; }
+
+function renderProgressCombined(c) {
+  return renderProgressTables(c, null);
+}
+
+function renderProgressPerFinder(pd, finders) {
+  // Render each finder as its own section
+  return finders.map(f => {
+    const d = pd.perFinder[f.finder_id];
+    if (!d) return '';
+    // Fake a country map for this finder from the state list
+    const countryToStates = {};
+    for (const st of d.states) {
+      const country = STATE_TO_COUNTRY[st] ?? 'Other';
+      (countryToStates[country] ||= []).push(st);
+    }
+    const enriched = { ...d, countryToStates };
+    return `<div class="progress-finder-section">
+      <div class="progress-finder-header">
+        <span class="finder-legend-dot" style="background:${f.color};"></span>
+        <span>${esc(f.gc_username || f.display_name)}</span>
+      </div>
+      ${renderProgressTables(enriched, f)}
+    </div>`;
+  }).join('');
+}
+
+function renderProgressTables(d, finder) {
+  // Country table — only countries with a trip find, showing state totals
+  const countriesToShow = d.tripNewCountries?.length
+    ? d.countries.filter(c => (d.tripNewCountries.includes(c)) || Object.keys(d.countryToStates ?? {}).includes(c))
+    : d.countries;
+
+  // Actually show every country the finder has finds in
+  const countryRows = d.countries.map(country => {
+    const totalStatesInCountry = COUNTRY_STATE_TOTALS[country] ?? null;
+    const statesInCountry = (d.countryToStates?.[country] ?? []).filter(Boolean);
+    const foundStates = statesInCountry.length || d.states.filter(s => STATE_TO_COUNTRY[s] === country).length;
+    const tripNew = d.tripNewStates.filter(s => STATE_TO_COUNTRY[s] === country).length;
+    const priorFound = foundStates - tripNew;
+    const priorPct = totalStatesInCountry ? (100 * priorFound / totalStatesInCountry) : null;
+    const nowPct   = totalStatesInCountry ? (100 * foundStates / totalStatesInCountry) : null;
+    return `<tr>
+      <td>${esc(country)}</td>
+      <td>${totalStatesInCountry ?? '—'}</td>
+      <td>${foundStates}</td>
+      <td class="${deltaClass(tripNew)}">${delta(tripNew)}</td>
+      <td>${nowPct !== null ? nowPct.toFixed(1)+'%' : '—'}</td>
+      <td class="${priorPct!==null && nowPct!==null && (nowPct-priorPct)>0 ? 'progress-delta-pos':''}">${
+        priorPct !== null && nowPct !== null ? (nowPct - priorPct > 0 ? '+'+(nowPct - priorPct).toFixed(1)+'%' : '·') : '—'
+      }</td>
+    </tr>`;
+  }).join('');
+
+  // State/province table — only those with trip finds
+  const statesToShow = [...new Set([...(d.tripNewStates ?? []), ...Object.keys(d.tripCountyByState ?? {})])];
+  const statesForShown = statesToShow
+    .filter(s => (d.tripCountyByState?.[s] ?? 0) > 0 || d.tripNewStates.includes(s))
+    .sort();
+  const stateRows = statesForShown.map(st => {
+    const totalCounties = STATE_TOTALS_BY_ABBREV[st] ?? null;
+    const foundCounties = d.countyCountByState[st] ?? 0;
+    const tripNewCounties = d.tripCountyByState[st] ?? 0;
+    const priorCounties = foundCounties - tripNewCounties;
+    const priorPct = totalCounties ? (100 * priorCounties / totalCounties) : null;
+    const nowPct   = totalCounties ? (100 * foundCounties / totalCounties) : null;
+    return `<tr>
+      <td>${esc(st)}</td>
+      <td>${totalCounties ?? '—'}</td>
+      <td>${foundCounties}</td>
+      <td class="${deltaClass(tripNewCounties)}">${delta(tripNewCounties)}</td>
+      <td>${nowPct !== null ? nowPct.toFixed(1)+'%' : '—'}</td>
+      <td class="${priorPct!==null && nowPct!==null && (nowPct-priorPct)>0 ? 'progress-delta-pos':''}">${
+        priorPct !== null && nowPct !== null ? (nowPct - priorPct > 0 ? '+'+(nowPct - priorPct).toFixed(1)+'%' : '·') : '—'
+      }</td>
+    </tr>`;
+  }).join('');
+
+  return `<div class="progress-section">
+    <h4 class="progress-subtitle">Countries</h4>
+    <table class="progress-table">
+      <thead><tr>
+        <th>Country</th><th>Total states</th><th>Found</th><th>Trip Δ</th><th>% found</th><th>% Δ</th>
+      </tr></thead>
+      <tbody>${countryRows || '<tr><td colspan="6" class="muted">No countries visited on this trip.</td></tr>'}</tbody>
+    </table>
+    <h4 class="progress-subtitle">States / Provinces</h4>
+    <table class="progress-table">
+      <thead><tr>
+        <th>State</th><th>Total counties</th><th>Found</th><th>Trip Δ</th><th>% found</th><th>% Δ</th>
+      </tr></thead>
+      <tbody>${stateRows || '<tr><td colspan="6" class="muted">No states with new counties on this trip.</td></tr>'}</tbody>
+    </table>
   </div>`;
 }
 

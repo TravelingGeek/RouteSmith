@@ -257,9 +257,9 @@ export async function handleTripRunJob(
   }
 
   // Q1b: Per-companion trip finds (for county attribution + per-finder stats)
-  const perFinderTripFinds: Record<string, Array<{ gc_code: string; county: string | null; state: string | null; find_date: string }>> = {};
+  const perFinderTripFinds: Record<string, Array<{ gc_code: string; county: string | null; state: string | null; country: string | null; find_date: string }>> = {};
   perFinderTripFinds[finderId] = tripRows.map(r => ({
-    gc_code: r.gc_code, county: r.county, state: r.state, find_date: r.find_date
+    gc_code: r.gc_code, county: r.county, state: r.state, country: r.country, find_date: r.find_date
   }));
 
   // Q1c: Per-finder PRIOR counties (for determining new vs previously found per finder)
@@ -279,12 +279,12 @@ export async function handleTripRunJob(
   for (const c of companions) {
     const { results: cRows } = await env.DB
       .prepare(`
-        SELECT gc_code, county, state, find_date
+        SELECT gc_code, county, state, country, find_date
         FROM finder_finds
         WHERE finder_id = ? AND find_date >= ? AND find_date <= ?
       `)
       .bind(c.finder_id, tripStart, tripEnd)
-      .all<{ gc_code: string; county: string | null; state: string | null; find_date: string }>();
+      .all<{ gc_code: string; county: string | null; state: string | null; country: string | null; find_date: string }>();
     perFinderTripFinds[c.finder_id] = cRows;
 
     // Per-companion prior counties (for status determination)
@@ -426,6 +426,150 @@ export async function handleTripRunJob(
   // Per-finder county attribution — for county map pins showing who found what
   const perFinderAttribution = buildPerFinderCountyAttribution(perFinderTripFinds, perFinderPriorCounties);
 
+  // ── Per-finder + combined progress data ─────────────────────────────────
+  // For every finder + a combined "any finder" view, capture:
+  //   - lifetime states/countries found (as of trip end)
+  //   - trip states/countries newly added this trip
+  //   - lifetime county count per state
+  //   - trip county deltas per state
+  // Frontend uses this to render the Counties/Progress table.
+  const progressData: {
+    perFinder: Record<string, { states: string[]; countries: string[]; countyCountByState: Record<string, number>; tripNewStates: string[]; tripNewCountries: string[]; tripCountyByState: Record<string, number> }>;
+    combined:  { states: string[]; countries: string[]; countyCountByState: Record<string, number>; tripNewStates: string[]; tripNewCountries: string[]; tripCountyByState: Record<string, number>; countryToStates: Record<string, string[]> };
+  } = {
+    perFinder: {},
+    combined: { states: [], countries: [], countyCountByState: {}, tripNewStates: [], tripNewCountries: [], tripCountyByState: {}, countryToStates: {} },
+  };
+
+  // Per-finder loop: query lifetime data + slice trip contribution from the trip-finds we already have
+  for (const f of tripFinders) {
+    const priorStateRowsF = await env.DB
+      .prepare(`SELECT DISTINCT state FROM finder_finds WHERE finder_id = ? AND find_date < ? AND state IS NOT NULL AND state != ''`)
+      .bind(f.finder_id, tripStart)
+      .all<{ state: string }>();
+    const priorCountryRowsF = await env.DB
+      .prepare(`SELECT DISTINCT country FROM finder_finds WHERE finder_id = ? AND find_date < ? AND country IS NOT NULL AND country != ''`)
+      .bind(f.finder_id, tripStart)
+      .all<{ country: string }>();
+    const priorCountyByStateRowsF = await env.DB
+      .prepare(`SELECT state, COUNT(DISTINCT county) AS n FROM finder_finds WHERE finder_id = ? AND find_date < ? AND state IS NOT NULL AND state != '' AND county IS NOT NULL AND county != '' GROUP BY state`)
+      .bind(f.finder_id, tripStart)
+      .all<{ state: string; n: number }>();
+
+    const priorStatesF    = new Set(priorStateRowsF.results.map(r => r.state));
+    const priorCountriesF = new Set(priorCountryRowsF.results.map(r => r.country));
+
+    const tripFindsF = perFinderTripFinds[f.finder_id] ?? [];
+    const tripStates    = new Set<string>();
+    const tripCountries = new Set<string>();
+    const tripCountyByState: Record<string, Set<string>> = {};
+    for (const fd of tripFindsF) {
+      if (fd.state) tripStates.add(fd.state);
+      if ((fd as any).country) tripCountries.add((fd as any).country);
+      if (fd.county && fd.state) {
+        (tripCountyByState[fd.state] ||= new Set()).add(fd.county);
+      }
+    }
+
+    const allStates     = new Set([...priorStatesF, ...tripStates]);
+    const allCountries  = new Set([...priorCountriesF, ...tripCountries]);
+    const tripNewStates    = [...tripStates].filter(s => !priorStatesF.has(s));
+    const tripNewCountries = [...tripCountries].filter(c => !priorCountriesF.has(c));
+
+    // Lifetime county count per state (post-trip = prior + trip-adds not previously counted)
+    // Simpler: query lifetime county count per state fresh
+    const lifetimeCountyRowsF = await env.DB
+      .prepare(`SELECT state, COUNT(DISTINCT county) AS n FROM finder_finds WHERE finder_id = ? AND state IS NOT NULL AND state != '' AND county IS NOT NULL AND county != '' AND find_date <= ? GROUP BY state`)
+      .bind(f.finder_id, tripEnd)
+      .all<{ state: string; n: number }>();
+
+    const countyCountByState: Record<string, number> = {};
+    for (const r of lifetimeCountyRowsF.results) countyCountByState[r.state] = r.n;
+
+    const tripCountyByStateCount: Record<string, number> = {};
+    for (const [st, set] of Object.entries(tripCountyByState)) {
+      const prior = priorCountyByStateRowsF.results.find(r => r.state === st)?.n ?? 0;
+      const lifetime = countyCountByState[st] ?? 0;
+      tripCountyByStateCount[st] = lifetime - prior;  // net new counties this trip
+    }
+
+    progressData.perFinder[f.finder_id] = {
+      states: [...allStates].sort(),
+      countries: [...allCountries].sort(),
+      countyCountByState,
+      tripNewStates,
+      tripNewCountries,
+      tripCountyByState: tripCountyByStateCount,
+    };
+  }
+
+  // Combined — union across finders
+  const combinedStates = new Set<string>();
+  const combinedCountries = new Set<string>();
+  const combinedTripNewStates = new Set<string>();
+  const combinedTripNewCountries = new Set<string>();
+  const combinedCountyByState: Record<string, Set<string>> = {};
+  const combinedPriorCountyByState: Record<string, Set<string>> = {};
+  const countryToStates: Record<string, Set<string>> = {};
+
+  for (const f of tripFinders) {
+    const p = progressData.perFinder[f.finder_id];
+    for (const s of p.states) combinedStates.add(s);
+    for (const c of p.countries) combinedCountries.add(c);
+    for (const s of p.tripNewStates) combinedTripNewStates.add(s);
+    for (const c of p.tripNewCountries) combinedTripNewCountries.add(c);
+  }
+
+  // Lifetime + prior county sets per state, combined across finders
+  const combinedLifetimeRows = await env.DB
+    .prepare(`
+      SELECT DISTINCT ff.state, ff.county, ff.country FROM finder_finds ff
+      JOIN trip_finders tf ON tf.finder_id = ff.finder_id
+      WHERE tf.trip_id = ?
+        AND ff.state IS NOT NULL AND ff.state != ''
+        AND ff.county IS NOT NULL AND ff.county != ''
+        AND ff.find_date <= ?
+    `)
+    .bind(trip_id, tripEnd)
+    .all<{ state: string; county: string; country: string | null }>();
+  for (const r of combinedLifetimeRows.results) {
+    (combinedCountyByState[r.state] ||= new Set()).add(r.county);
+    if (r.country) (countryToStates[r.country] ||= new Set()).add(r.state);
+  }
+
+  const combinedPriorRows = await env.DB
+    .prepare(`
+      SELECT DISTINCT ff.state, ff.county FROM finder_finds ff
+      JOIN trip_finders tf ON tf.finder_id = ff.finder_id
+      WHERE tf.trip_id = ?
+        AND ff.state IS NOT NULL AND ff.state != ''
+        AND ff.county IS NOT NULL AND ff.county != ''
+        AND ff.find_date < ?
+    `)
+    .bind(trip_id, tripStart)
+    .all<{ state: string; county: string }>();
+  for (const r of combinedPriorRows.results) {
+    (combinedPriorCountyByState[r.state] ||= new Set()).add(r.county);
+  }
+
+  const combinedCountyCountByState: Record<string, number> = {};
+  const combinedTripCountyByState: Record<string, number> = {};
+  for (const [st, set] of Object.entries(combinedCountyByState)) {
+    combinedCountyCountByState[st] = set.size;
+    const prior = combinedPriorCountyByState[st]?.size ?? 0;
+    combinedTripCountyByState[st] = set.size - prior;
+  }
+
+  progressData.combined = {
+    states: [...combinedStates].sort(),
+    countries: [...combinedCountries].sort(),
+    countyCountByState: combinedCountyCountByState,
+    tripNewStates: [...combinedTripNewStates],
+    tripNewCountries: [...combinedTripNewCountries],
+    tripCountyByState: combinedTripCountyByState,
+    countryToStates: Object.fromEntries(Object.entries(countryToStates).map(([k, v]) => [k, [...v].sort()])),
+  };
+
   // Per-finder stats — total finds and counties for each finder on this trip
   const perFinderStats = tripFinders.map(f => {
     const finds = perFinderTripFinds[f.finder_id] ?? [];
@@ -549,6 +693,7 @@ export async function handleTripRunJob(
       previouslyFound: [...(countiesData as any).previouslyFound].slice(0, 500),
       countyAttribution: perFinderAttribution.countyAttribution,
     },
+    progressData,
     jasmer: {
       loopNumber: jasmerLoopState.loopNumber,
       totalCellsInLoop: jasmerLoopState.totalCells,
