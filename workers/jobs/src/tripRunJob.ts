@@ -111,8 +111,14 @@ export async function handleTripRunJob(
   console.log(`[trip_run] Q1 owner trip finds: ${tripRows.length}`);
 
   // ── One-time cleanup: strip "County" / "Parish" / "Borough" suffix from ──
-  // county names stored before the parser normalization was added. Idempotent.
+  // county names stored before the parser normalization was added, and
+  // normalize empty strings to NULL so the geocoding pass picks them up.
+  // Idempotent.
   await env.DB.batch([
+    env.DB.prepare(`UPDATE finder_finds SET county = NULL WHERE TRIM(COALESCE(county,'')) = ''`),
+    env.DB.prepare(`UPDATE finder_finds SET state  = NULL WHERE TRIM(COALESCE(state,''))  = ''`),
+    env.DB.prepare(`UPDATE caches SET county = NULL WHERE TRIM(COALESCE(county,'')) = ''`),
+    env.DB.prepare(`UPDATE caches SET state  = NULL WHERE TRIM(COALESCE(state,''))  = ''`),
     env.DB.prepare(`UPDATE finder_finds SET county = REPLACE(county, ' County', '') WHERE county LIKE '% County'`),
     env.DB.prepare(`UPDATE finder_finds SET county = REPLACE(county, ' Parish', '') WHERE county LIKE '% Parish'`),
     env.DB.prepare(`UPDATE finder_finds SET county = REPLACE(county, ' Borough', '') WHERE county LIKE '% Borough'`),
@@ -149,7 +155,7 @@ export async function handleTripRunJob(
       JOIN trip_finders tf ON tf.finder_id = ff.finder_id
       WHERE tf.trip_id = ? AND ff.find_date BETWEEN ? AND ?
         AND ff.lat IS NOT NULL AND ff.lon IS NOT NULL
-        AND (ff.county IS NULL OR ff.state IS NULL)
+        AND (ff.county IS NULL OR ff.county = '' OR ff.state IS NULL OR ff.state = '')
     `)
     .bind(trip_id, tripStart, tripEnd)
     .all<{ gc_code: string; lat: number; lon: number }>();
