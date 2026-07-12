@@ -298,13 +298,17 @@ export async function handleListCompanions(
   if (!trip) return jsonError('Trip not found', 404);
 
   try {
+    // Read cached lifetime_find_count/lifetime_data_through, but override with
+    // live values from finder_finds so bulk deletes are reflected immediately.
     const { results } = await env.DB
       .prepare(`
         SELECT
           tf.finder_id, tf.role, tf.gpx_mode, tf.find_count,
           tf.display_name, tf.gc_username,
           f.color, f.is_favorite,
-          f.lifetime_find_count, f.lifetime_uploaded_at, f.lifetime_data_through
+          (SELECT COUNT(*)      FROM finder_finds ff WHERE ff.finder_id = tf.finder_id) AS lifetime_find_count,
+          (SELECT MAX(find_date) FROM finder_finds ff WHERE ff.finder_id = tf.finder_id) AS lifetime_data_through,
+          f.lifetime_uploaded_at
         FROM trip_finders tf
         JOIN finders f ON f.finder_id = tf.finder_id
         WHERE tf.trip_id = ?
@@ -435,9 +439,11 @@ export async function handleListFinders(user: AuthUser, env: Env): Promise<Respo
   try {
     const { results } = await env.DB
       .prepare(`
-        SELECT finder_id, display_name, gc_username, color, is_favorite,
-               lifetime_find_count, lifetime_uploaded_at, lifetime_data_through
-        FROM finders
+        SELECT f.finder_id, f.display_name, f.gc_username, f.color, f.is_favorite,
+               (SELECT COUNT(*)      FROM finder_finds ff WHERE ff.finder_id = f.finder_id) AS lifetime_find_count,
+               (SELECT MAX(find_date) FROM finder_finds ff WHERE ff.finder_id = f.finder_id) AS lifetime_data_through,
+               f.lifetime_uploaded_at
+        FROM finders f
         WHERE owner_user_id = ?
         ORDER BY is_favorite DESC, display_name ASC
       `)

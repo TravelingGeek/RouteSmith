@@ -295,7 +295,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
 </style>
 </head>
 <body>
-<script>console.log('Routesmith | dashboard | Build 2026.07.09.021');</script>
+<script>console.log('Routesmith | dashboard | Build 2026.07.09.023');</script>
 
 
 
@@ -402,7 +402,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
   </div>
 </div>
 
-<footer>Build 2026.07.09.021</footer>
+<footer>Build 2026.07.09.023</footer>
 
 <script>
 const BASE     = 'https://routesmith-report.gtl6645.workers.dev';
@@ -2184,6 +2184,17 @@ async function loadTrip(tripId) {
   document.getElementById('main-view').innerHTML='';
   currentPanelId=null;
   showPanel(`${state.activeCat}::${state.activeSub}`);
+
+  // If the current view is the county map, showPanel has fired renderCountyMap
+  // once, but on a fresh navigation the container may not yet exist. Trigger a
+  // secondary render pass after a short delay so the map appears without a tab
+  // switch.
+  if (state.activeCat === 'counties' && state.activeSub === 'map') {
+    setTimeout(() => {
+      const container = document.getElementById('county-map');
+      if (container && (!mapInstance || !mapLoaded)) renderCountyMap();
+    }, 400);
+  }
 }
 
 // ── Inline report run ─────────────────────────────────────────────
