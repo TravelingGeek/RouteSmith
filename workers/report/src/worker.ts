@@ -79,7 +79,7 @@ export default {
       return addCors(new Response(JSON.stringify({
         ok: true,
         worker: 'routesmith-report',
-        build: '2026.07.09.006',
+        build: '2026.07.09.011',
         timestamp: new Date().toISOString(),
       }), {
         headers: { 'Content-Type': 'application/json' },

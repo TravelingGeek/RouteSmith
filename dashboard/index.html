@@ -261,7 +261,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
 </style>
 </head>
 <body>
-<script>console.log('Routesmith | dashboard | Build 2026.07.09.009');</script>
+<script>console.log('Routesmith | dashboard | Build 2026.07.09.011');</script>
 
 
 
@@ -368,7 +368,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
   </div>
 </div>
 
-<footer>Build 2026.07.09.009</footer>
+<footer>Build 2026.07.09.011</footer>
 
 <script>
 const BASE     = 'https://routesmith-report.gtl6645.workers.dev';
@@ -818,6 +818,16 @@ async function renderCountyMap() {
     state._lastPaintedGeojson = paintedGeojson;
 
     if (!mapInstance) {
+      // Wait for the container to be present in the DOM (up to 1s)
+      let attempts = 0;
+      while (!document.getElementById('county-map') && attempts < 20) {
+        await new Promise(r => setTimeout(r, 50));
+        attempts++;
+      }
+      if (!document.getElementById('county-map')) {
+        console.warn('county-map container not present after wait; aborting map render');
+        return;
+      }
       mapboxgl.accessToken = MAPBOX_TOKEN;
       mapboxgl.config.EVENTS_URL = ''; // disable telemetry
       mapInstance = new mapboxgl.Map({

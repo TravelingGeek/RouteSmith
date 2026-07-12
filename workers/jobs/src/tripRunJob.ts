@@ -110,6 +110,36 @@ export async function handleTripRunJob(
 
   console.log(`[trip_run] Q1 owner trip finds: ${tripRows.length}`);
 
+  // ── One-time cleanup: strip "County" / "Parish" / "Borough" suffix from ──
+  // county names stored before the parser normalization was added. Idempotent.
+  await env.DB.batch([
+    env.DB.prepare(`UPDATE finder_finds SET county = REPLACE(county, ' County', '') WHERE county LIKE '% County'`),
+    env.DB.prepare(`UPDATE finder_finds SET county = REPLACE(county, ' Parish', '') WHERE county LIKE '% Parish'`),
+    env.DB.prepare(`UPDATE finder_finds SET county = REPLACE(county, ' Borough', '') WHERE county LIKE '% Borough'`),
+    env.DB.prepare(`UPDATE finder_finds SET county = REPLACE(county, ' Census Area', '') WHERE county LIKE '% Census Area'`),
+    env.DB.prepare(`UPDATE finder_finds SET county = REPLACE(county, ' Municipality', '') WHERE county LIKE '% Municipality'`),
+    env.DB.prepare(`UPDATE caches SET county = REPLACE(county, ' County', '') WHERE county LIKE '% County'`),
+    env.DB.prepare(`UPDATE caches SET county = REPLACE(county, ' Parish', '') WHERE county LIKE '% Parish'`),
+    env.DB.prepare(`UPDATE caches SET county = REPLACE(county, ' Borough', '') WHERE county LIKE '% Borough'`),
+    env.DB.prepare(`UPDATE caches SET county = REPLACE(county, ' Census Area', '') WHERE county LIKE '% Census Area'`),
+    env.DB.prepare(`UPDATE caches SET county = REPLACE(county, ' Municipality', '') WHERE county LIKE '% Municipality'`),
+  ]);
+
+  // Reload tripRows since county names may have been cleaned
+  const cleanupRefresh = await env.DB
+    .prepare(`
+      SELECT gc_code, cache_name, cache_owner, find_date,
+             county, state, country, cache_type,
+             difficulty, terrain, fav_points, lat, lon, placement_date
+      FROM finder_finds
+      WHERE finder_id = ? AND find_date >= ? AND find_date <= ?
+      ORDER BY find_date ASC
+    `)
+    .bind(finderId, tripStart, tripEnd)
+    .all<typeof tripRows[0]>();
+  tripRows.length = 0;
+  tripRows.push(...cleanupRefresh.results);
+
   // ── Geocoding pass: fill in county/state for any caches missing them ──────
   // Only geocodes caches referenced by any trip finder's data — cheap and targeted.
   const { results: needGeocode } = await env.DB

@@ -293,7 +293,7 @@
 </style>
 </head>
 <body>
-<script>console.log('Routesmith | account | Build 2026.07.09.009');</script>
+<script>console.log('Routesmith | account | Build 2026.07.09.011');</script>
 
 
 
@@ -366,7 +366,7 @@
   <span class="sep">·</span>
   <span>Forged 2026</span>
   <span class="sep">·</span>
-  <span>Build 2026.07.09.009</span>
+  <span>Build 2026.07.09.011</span>
 </footer>
 
 <script>
@@ -521,7 +521,16 @@ async function extractGpxMetadataBrowser(file) {
     function extractWptGeo(chunk) {
       let county = null, state = null, country = null;
       const ctyRaw = between(chunk, '<gsak:County>', '</gsak:County>');
-      if (ctyRaw) county = ctyRaw.replace(/\s*\([A-Z]{2}\)\s*$/, '').trim() || null;
+      if (ctyRaw) {
+        county = ctyRaw
+          .replace(/\s*\([A-Z]{2}\)\s*$/, '')  // strip trailing "(OK)"
+          .replace(/\s+County$/i, '')          // strip trailing "County"
+          .replace(/\s+Parish$/i, '')          // Louisiana
+          .replace(/\s+Borough$/i, '')         // Alaska
+          .replace(/\s+Census Area$/i, '')     // Alaska
+          .replace(/\s+Municipality$/i, '')    // Alaska
+          .trim() || null;
+      }
       state   = between(chunk, '<groundspeak:state>',   '</groundspeak:state>');
       country = between(chunk, '<groundspeak:country>', '</groundspeak:country>');
       return { county, state, country };

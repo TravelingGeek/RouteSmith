@@ -300,7 +300,7 @@
 </style>
 </head>
 <body>
-<script>console.log('Routesmith | report/trip | Build 2026.07.09.009');</script>
+<script>console.log('Routesmith | report/trip | Build 2026.07.09.011');</script>
 
 
 
@@ -449,7 +449,7 @@
   <span class="sep">·</span>
   <span>Forged 2026</span>
   <span class="sep">·</span>
-  <span>Build 2026.07.09.009</span>
+  <span>Build 2026.07.09.011</span>
 </footer>
 
 <script>
@@ -706,7 +706,16 @@ async function parseGpxInBrowser(file) {
     const lat = latMatch ? parseFloat(latMatch[1]) : null;
     const lon = latMatch ? parseFloat(latMatch[2]) : null;
 
-    const county = between(cacheChunk, '<groundspeak:county>', '</groundspeak:county>');
+    const countyRaw = between(cacheChunk, '<groundspeak:county>', '</groundspeak:county>');
+    const county = countyRaw
+      ? countyRaw
+          .replace(/\s+County$/i, '')
+          .replace(/\s+Parish$/i, '')
+          .replace(/\s+Borough$/i, '')
+          .replace(/\s+Census Area$/i, '')
+          .replace(/\s+Municipality$/i, '')
+          .trim() || null
+      : null;
     const state  = between(cacheChunk, '<groundspeak:state>',  '</groundspeak:state>');
     const country = between(cacheChunk, '<groundspeak:country>', '</groundspeak:country>');
     const dtM = between(cacheChunk, '<groundspeak:difficulty>', '</groundspeak:difficulty>');
