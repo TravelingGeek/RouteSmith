@@ -172,7 +172,7 @@ body{font-family:'Source Serif 4',Charter,Georgia,serif;font-size:15px;line-heig
 .data-section{margin-bottom:32px;}
 .data-section-title{font-family:'Fraunces',serif;font-weight:600;font-size:1.4rem;color:var(--ink);margin-bottom:6px;letter-spacing:-0.01em;}
 .data-section-sub{font-family:'JetBrains Mono',monospace;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--ink-muted);margin-bottom:16px;}
-.county-list{display:flex;flex-direction:column;gap:2px;}
+.county-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px;}
 .county-list-row{display:flex;align-items:center;gap:8px;padding:6px 10px;background:rgba(255,252,240,0.5);border:1px solid var(--rule-soft);border-radius:2px;font-size:0.86rem;}
 .county-list-row:hover{background:rgba(168,120,50,0.05);border-color:var(--rule);}
 .county-list-name{flex:1;color:var(--ink);}
@@ -261,7 +261,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
 </style>
 </head>
 <body>
-<script>console.log('Routesmith | dashboard | Build 2026.07.09.012');</script>
+<script>console.log('Routesmith | dashboard | Build 2026.07.09.013');</script>
 
 
 
@@ -368,7 +368,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
   </div>
 </div>
 
-<footer>Build 2026.07.09.012</footer>
+<footer>Build 2026.07.09.013</footer>
 
 <script>
 const BASE     = 'https://routesmith-report.gtl6645.workers.dev';
@@ -534,9 +534,12 @@ function clearVizMode() {
 
 function removeAllFinderLayers() {
   if (!mapInstance) return;
-  ['finder-pins','finder-arcs','finder-rings'].forEach(id => {
-    if (mapInstance.getLayer(id)) mapInstance.removeLayer(id);
-  });
+  try {
+    const layers = mapInstance.getStyle()?.layers ?? [];
+    for (const l of layers) {
+      if (l.id.startsWith('finder-')) mapInstance.removeLayer(l.id);
+    }
+  } catch(e) { /* style not loaded yet */ }
   ['finder-viz-src'].forEach(id => {
     if (mapInstance.getSource(id)) mapInstance.removeSource(id);
   });
@@ -589,37 +592,36 @@ function renderPinsLayer(finders) {
   for (const [key, info] of Object.entries(attr)) {
     const ctr = centers[key];
     if (!ctr) continue;
-    const finderIds = info.finderIds;
-    // Offset each pin in a small circle around the centroid
-    const R = 0.15; // degrees
-    finderIds.forEach((fid, i) => {
+    for (const fid of info.finderIds) {
       const finder = finders.find(f => f.finder_id === fid);
-      if (!finder) return;
-      const angle = (2*Math.PI*i) / finderIds.length;
+      if (!finder) continue;
       features.push({
         type:'Feature',
         properties: { finder_id: fid, color: finder.color, name: finder.gc_username || finder.display_name },
-        geometry: {
-          type: 'Point',
-          coordinates: [
-            ctr.lng + R*Math.cos(angle) * (finderIds.length>1 ? 1 : 0),
-            ctr.lat + R*Math.sin(angle) * (finderIds.length>1 ? 1 : 0),
-          ],
-        },
+        geometry: { type: 'Point', coordinates: [ctr.lng, ctr.lat] },
       });
-    });
+    }
   }
 
   mapInstance.addSource('finder-viz-src', { type:'geojson', data:{type:'FeatureCollection',features} });
-  mapInstance.addLayer({
-    id:'finder-pins', type:'circle', source:'finder-viz-src',
-    paint:{
-      'circle-radius':5,
-      'circle-color':['get','color'],
-      'circle-stroke-color':'#ffffff',
-      'circle-stroke-width':1.5,
-      'circle-opacity':0.9,
-    },
+
+  // One layer per finder with a pixel-based translate so pins sit side by side
+  // at every zoom level. Radius scales with zoom so pins stay proportional.
+  const n = finders.length;
+  finders.forEach((f, i) => {
+    const offsetX = (i - (n - 1) / 2) * 9; // 9px apart, centered on the county
+    mapInstance.addLayer({
+      id:`finder-pins-${i}`, type:'circle', source:'finder-viz-src',
+      filter:['==',['get','finder_id'], f.finder_id],
+      paint:{
+        'circle-radius':['interpolate',['linear'],['zoom'], 3, 2.5, 6, 4, 9, 6, 12, 9],
+        'circle-color':['get','color'],
+        'circle-stroke-color':'#ffffff',
+        'circle-stroke-width':1,
+        'circle-opacity':0.92,
+        'circle-translate':[offsetX, 0],
+      },
+    });
   });
 }
 
@@ -747,6 +749,15 @@ function addTopoOverlay() {
 async function renderCountyMap() {
   const loadingEl = document.getElementById('map-loading-indicator');
   if (loadingEl) loadingEl.style.display='flex';
+
+  // If a previous map instance exists but its container was destroyed by a
+  // panel re-render (innerHTML=''), tear it down so we build fresh in the
+  // new container. Otherwise it paints into a detached canvas and the new
+  // panel stays stuck on "Loading Map Data…".
+  if (mapInstance && !document.body.contains(mapInstance.getContainer())) {
+    try { mapInstance.remove(); } catch(e) { /* already gone */ }
+    mapInstance = null;
+  }
 
   try {
     const [geojson, lifetime] = await Promise.all([loadGeoJson(), loadLifetimeCounties()]);
