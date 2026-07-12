@@ -261,7 +261,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
 </style>
 </head>
 <body>
-<script>console.log('Routesmith | dashboard | Build 2026.07.09.011');</script>
+<script>console.log('Routesmith | dashboard | Build 2026.07.09.012');</script>
 
 
 
@@ -368,7 +368,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
   </div>
 </div>
 
-<footer>Build 2026.07.09.011</footer>
+<footer>Build 2026.07.09.012</footer>
 
 <script>
 const BASE     = 'https://routesmith-report.gtl6645.workers.dev';
@@ -388,7 +388,7 @@ const state = {
 
 // ── Categories ────────────────────────────────────────────────────
 const CATEGORIES = [
-  { id:'counties',   label:'Counties',      subs:['Map','New','Previously Found','Progress'] },
+  { id:'counties',   label:'Counties',      subs:['Map','New Finds','Previously Found','Progress'] },
   { id:'highlights', label:'Highlights',    subs:['Marquee','Featured','Notes'] },
   { id:'dayByDay',   label:'Day by Day',    subs:['Chart','List'] },
   { id:'jasmer',     label:'Jasmer Grid',   subs:['Trip Fills','Full Grid'] },
@@ -551,7 +551,7 @@ function computeCountyCenters() {
   const geojson = state._lastPaintedGeojson;
   if (!geojson) return centers;
   for (const f of geojson.features) {
-    const county = f.properties.county;
+    const county = f.properties.NAME;
     const state  = f.properties.stateAbbrev;
     if (!county || !state) continue;
     const key = `${county}|${state}`;
@@ -1184,15 +1184,13 @@ function renderPanelContent(catId,sub) {
         </aside>
       </div>`;
     }
-    if (sub==='new') return renderCountyList((ft)=>ft,'No new counties on this trip.');
-    if (sub==='previously-found') return renderCountyList((ft,pf)=>pf,'No previously found counties on this trip.');
   }
   if (CATEGORIES.find(c=>c.id===catId)?.requiresRef) {
     return placeholder('Reference file required','Upload reference list files in the Admin panel.','📁','/admin/','Go to Admin →');
   }
 
-  // ── Counties New / Previously Found ──
-  if (catId === 'counties' && (sub === 'new' || sub === 'previouslyFound')) {
+  // ── Counties New / Previously Found (with finder dots) ──
+  if (catId === 'counties' && (sub === 'new-finds' || sub === 'previously-found')) {
     return renderCountiesList(sub);
   }
 
@@ -1229,15 +1227,15 @@ function renderPanelContent(catId,sub) {
 function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function renderCountiesList(sub) {
-  const counties = sub === 'new'
+  const counties = sub === 'new-finds'
     ? (state.report?.countiesData?.firstTime ?? [])
     : (state.report?.countiesData?.previouslyFound ?? []);
   const attr    = state.report?.countiesData?.countyAttribution ?? {};
   const finders = state.report?.finders ?? [];
   const isMulti = finders.length > 1;
 
-  const title = sub === 'new' ? 'New Counties This Trip' : 'Previously Found Counties';
-  const sub2  = sub === 'new'
+  const title = sub === 'new-finds' ? 'New Counties This Trip' : 'Previously Found Counties';
+  const sub2  = sub === 'new-finds'
     ? `${counties.length} new count${counties.length===1?'y':'ies'} added this trip`
     : `${counties.length} count${counties.length===1?'y':'ies'} previously found were visited this trip`;
 
