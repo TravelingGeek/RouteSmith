@@ -300,7 +300,7 @@
 </style>
 </head>
 <body>
-<script>console.log('Routesmith | report/trip | Build 2026.07.09.024');</script>
+<script>console.log('Routesmith | report/trip | Build 2026.07.09.025');</script>
 
 
 
@@ -449,7 +449,7 @@
   <span class="sep">·</span>
   <span>Forged 2026</span>
   <span class="sep">·</span>
-  <span>Build 2026.07.09.024</span>
+  <span>Build 2026.07.09.025</span>
 </footer>
 
 <script>
@@ -582,19 +582,52 @@ async function uploadCompanionGpx(event, finderId, finderName) {
   const file = event.target.files[0];
   if (!file) return;
 
-  if (!confirm(`Upload ${file.name} as find data for ${finderName}?`)) {
-    event.target.value = '';
-    return;
-  }
-
   const btn = event.target.parentElement;
   const origText = btn.innerHTML;
   btn.innerHTML = '⏳';
 
+  let classification;
+  try {
+    classification = await classifyGpx(file);
+  } catch (e) {
+    alert('Could not read file: ' + e.message);
+    btn.innerHTML = origText; event.target.value = ''; return;
+  }
+
+  // Not a My Finds file → reject with clear reason
+  if (classification.format !== 'my-finds') {
+    const detail = classification.warnings.join(' ') || 'This file does not contain the target finder\'s find history.';
+    alert(`❌ Upload rejected\n\nThis file is not a My Finds export.\n\n${detail}\n\nRequest either a Project-GC "My Finds" export or a Groundspeak "My Finds" Pocket Query from ${finderName}.`);
+    btn.innerHTML = origText; event.target.value = ''; return;
+  }
+
+  // Confirm with a rich preview
+  const variantLabel = {
+    'groundspeak': 'Groundspeak My Finds Pocket Query',
+    'project-gc-full': 'Project-GC My Finds (Full)',
+    'project-gc-tiny': 'Project-GC My Finds (Incremental)',
+  }[classification.variant] ?? classification.variant;
+
+  const mismatchWarning = classification.finderName && classification.finderName.toLowerCase() !== finderName.toLowerCase()
+    ? `\n\n⚠️ The file's owner is "${classification.finderName}" but you're uploading it for "${finderName}". If those aren't the same person, the data will be attributed incorrectly.`
+    : '';
+
+  const confirmMsg = `Detected: ${variantLabel}
+Owner: ${classification.finderName ?? '(unknown)'}
+Waypoints: ${classification.waypointCount}
+Finds: ${classification.foundLogCount} in sample
+County data: ${classification.hasCountyData ? 'included' : 'not included (will be geocoded)'}${mismatchWarning}
+
+Upload as find data for ${finderName}?`;
+
+  if (!confirm(confirmMsg)) {
+    btn.innerHTML = origText; event.target.value = ''; return;
+  }
+
   try {
     const parsed = await parseGpxInBrowser(file);
     if (!parsed || !parsed.finds || parsed.finds.length === 0) {
-      throw new Error('No finds found in file.');
+      throw new Error('Parser found no valid finds after re-scan. File may be malformed.');
     }
 
     const token = await getToken();
@@ -655,6 +688,170 @@ async function uploadCompanionGpx(event, finderId, finderName) {
 }
 
 // Browser-side GPX parser (matches account page logic)
+// ─────────────────────────────────────────────────────────────────────────────
+// GPX Classifier
+//
+// Inspects a GPX file's contents and reports what kind of file it is, so the
+// caller can decide whether to accept it. Used by the companion upload flow
+// here (which requires My Finds), and by future PLAN/route flows (which
+// accept Pocket Query and user-generated waypoint files).
+//
+// Output shape:
+//   {
+//     format: 'my-finds' | 'pocket-query' | 'unknown',
+//     variant: 'groundspeak' | 'project-gc-full' | 'project-gc-tiny' | 'project-gc-pq' | 'user-generated' | null,
+//     finderName: string | null,
+//     waypointCount: number,
+//     foundLogCount: number,
+//     hasCountyData: boolean,
+//     hasCoordinates: boolean,
+//     warnings: string[],
+//   }
+// ─────────────────────────────────────────────────────────────────────────────
+async function classifyGpx(file) {
+  const result = {
+    format: 'unknown', variant: null, finderName: null,
+    waypointCount: 0, foundLogCount: 0,
+    hasCountyData: false, hasCoordinates: false,
+    warnings: [],
+  };
+
+  // Extract raw XML text (handle .zip transparently)
+  let text;
+  try {
+    if (file.name.toLowerCase().endsWith('.zip')) {
+      if (!window.fflate) {
+        await new Promise((resolve, reject) => {
+          const s = document.createElement('script');
+          s.src = 'https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js';
+          s.onload = resolve; s.onerror = reject;
+          document.head.appendChild(s);
+        });
+      }
+      const buf = await file.arrayBuffer();
+      const unz = window.fflate.unzipSync(new Uint8Array(buf));
+      const gpxName = Object.keys(unz).find(n => n.toLowerCase().endsWith('.gpx'));
+      if (!gpxName) { result.warnings.push('ZIP has no .gpx inside'); return result; }
+      text = new TextDecoder().decode(unz[gpxName]);
+    } else {
+      text = await file.text();
+    }
+  } catch (e) {
+    result.warnings.push(`Could not read file: ${e.message}`);
+    return result;
+  }
+
+  // Basic GPX sanity
+  if (!/^\s*<\?xml/i.test(text) || !/<gpx\b/i.test(text)) {
+    result.warnings.push('Not a GPX file');
+    return result;
+  }
+
+  // Parse waypoints
+  const wptChunks = text.split(/<wpt[\s>]/).slice(1);
+  result.waypointCount = wptChunks.length;
+  if (result.waypointCount === 0) {
+    result.warnings.push('GPX has no waypoints');
+    return result;
+  }
+
+  const between = (str, open, close) => {
+    const s = str.indexOf(open);
+    if (s === -1) return '';
+    const e = str.indexOf(close, s + open.length);
+    if (e === -1) return '';
+    return str.slice(s + open.length, e).trim();
+  };
+
+  const FOUND_TYPES = new Set(['Found it', 'Attended', 'Webcam Photo Taken']);
+
+  // Sample up to first 60 waypoints for classification
+  const sampleSize = Math.min(wptChunks.length, 60);
+  const sample = wptChunks.slice(0, sampleSize);
+
+  // Track: how many waypoints have at least one Found-type log, who authored those,
+  // do we see PGC / gsak / county data
+  let waypointsWithFoundLog = 0;
+  const foundLogFinders = new Map(); // finderName -> count of waypoints where they are the Found-log author
+  let anyGsakTag = false;
+  let anyProjectGcNote = false;
+  let anyCountyTag = false;
+  let anyLatAttr = false;
+
+  for (const chunk of sample) {
+    const cacheStart = chunk.indexOf('<groundspeak:cache');
+    const cacheChunk = cacheStart !== -1 ? chunk.slice(cacheStart) : chunk;
+    if (chunk.match(/lat="/)) anyLatAttr = true;
+    if (/<gsak:/i.test(cacheChunk)) anyGsakTag = true;
+    if (/<groundspeak:county>[^<]/.test(cacheChunk)) anyCountyTag = true;
+
+    const logsStart = cacheChunk.indexOf('<groundspeak:logs>');
+    if (logsStart === -1) continue;
+    const logsBlock = cacheChunk.slice(logsStart);
+    const logs = logsBlock.split('<groundspeak:log').slice(1);
+
+    let wpFoundBy = null;
+    for (const raw of logs) {
+      const log = '<groundspeak:log' + raw;
+      const logType = between(log, '<groundspeak:type>', '</groundspeak:type>');
+      const logFinder = between(log, '<groundspeak:finder', '</groundspeak:finder>').replace(/^[^>]*>/, '').trim();
+      if (logFinder === 'Project-GC') anyProjectGcNote = true;
+      if (!logType || !FOUND_TYPES.has(logType)) continue;
+      if (!wpFoundBy) wpFoundBy = logFinder || '(unknown)';
+    }
+    if (wpFoundBy) {
+      waypointsWithFoundLog++;
+      foundLogFinders.set(wpFoundBy, (foundLogFinders.get(wpFoundBy) ?? 0) + 1);
+    }
+  }
+
+  result.foundLogCount   = waypointsWithFoundLog;
+  result.hasCountyData   = anyCountyTag;
+  result.hasCoordinates  = anyLatAttr;
+
+  // Classify
+  if (waypointsWithFoundLog === 0) {
+    // No Found-type logs found — this is a Pocket Query or route file
+    result.format = 'pocket-query';
+    if (anyProjectGcNote) result.variant = 'project-gc-pq';
+    else if (anyGsakTag)  result.variant = 'user-generated';
+    else                   result.variant = 'user-generated';
+    result.warnings.push('No Found-type logs detected. This is not a My Finds file.');
+    return result;
+  }
+
+  // Determine the dominant Found-log author
+  let bestName = null, bestCount = 0;
+  for (const [name, c] of foundLogFinders) {
+    if (c > bestCount) { bestName = name; bestCount = c; }
+  }
+  const share = bestCount / waypointsWithFoundLog;
+
+  if (share >= 0.9) {
+    // One person is the Found-log author for essentially every waypoint → My Finds
+    result.format = 'my-finds';
+    result.finderName = bestName;
+
+    if (anyGsakTag || anyProjectGcNote) {
+      // PGC injects a Project-GC "Write note" per cache in their My Finds export.
+      // If the file has fewer than ~1000 waypoints and only PGC notes appear, it's
+      // likely the Tiny (incremental) export; larger → Full.
+      if (result.waypointCount < 1000) result.variant = 'project-gc-tiny';
+      else                              result.variant = 'project-gc-full';
+    } else {
+      result.variant = 'groundspeak';
+    }
+  } else {
+    // Mixed authors → this is a standard PQ that just happens to include recent
+    // Found logs from various users.
+    result.format = 'pocket-query';
+    result.variant = anyGsakTag ? 'user-generated' : 'user-generated';
+    result.warnings.push('Found logs come from multiple users. This is a standard Pocket Query, not a My Finds file.');
+  }
+
+  return result;
+}
+
 async function parseGpxInBrowser(file) {
   let text;
   if (file.name.endsWith('.zip')) {
