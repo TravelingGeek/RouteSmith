@@ -28,11 +28,11 @@ body{font-family:'Source Serif 4',Charter,Georgia,serif;font-size:15px;line-heig
 /* ── Header ── */
 .dash-header{height:var(--header-h);background:var(--ink);display:flex;align-items:center;padding:0 20px;gap:16px;flex-shrink:0;z-index:10;}
 .dash-brand{font-family:'JetBrains Mono',monospace;font-size:0.72rem;font-weight:500;text-transform:uppercase;letter-spacing:0.14em;color:var(--brass);text-decoration:none;flex-shrink:0;}
-.trip-selector-btn{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:3px;padding:6px 14px;cursor:pointer;transition:background 0.15s;flex:1;max-width:380px;color:white;}
+.trip-selector-btn{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:3px;padding:6px 14px;cursor:pointer;transition:background 0.15s;flex:1;max-width:560px;color:white;}
 .trip-selector-btn:hover{background:rgba(255,255,255,0.14);}
 .trip-selector-label{font-family:'JetBrains Mono',monospace;font-size:0.64rem;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.45);flex-shrink:0;}
 .trip-selector-name{font-family:'Fraunces',serif;font-weight:600;font-size:0.92rem;color:white;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.trip-selector-dates{font-family:'JetBrains Mono',monospace;font-size:0.64rem;color:rgba(255,255,255,0.5);flex-shrink:0;}
+.trip-selector-dates{font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:rgba(255,255,255,0.5);flex-shrink:0;white-space:nowrap;}
 .header-actions{display:flex;gap:8px;margin-left:auto;align-items:center;}
 .header-btn{font-family:'JetBrains Mono',monospace;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.6);background:none;border:1px solid rgba(255,255,255,0.2);padding:5px 12px;border-radius:2px;cursor:pointer;transition:color 0.15s,border-color 0.15s;white-space:nowrap;}
 .header-btn:hover{color:white;border-color:rgba(255,255,255,0.5);}
@@ -296,7 +296,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
 </style>
 </head>
 <body>
-<script>console.log('Routesmith | dashboard | Build 2026.07.09.031');</script>
+<script>console.log('Routesmith | dashboard | Build 2026.07.09.032');</script>
 
 
 
@@ -403,7 +403,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
   </div>
 </div>
 
-<footer>Build 2026.07.09.031</footer>
+<footer>Build 2026.07.09.032</footer>
 
 <script>
 const BASE     = 'https://routesmith-report.gtl6645.workers.dev';
@@ -439,7 +439,23 @@ function fmtDate(iso) {
   if (!iso) return '';
   return new Date(iso+'T00:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'});
 }
-function fmtDateRange(s,e) { return !s?'':s===e?fmtDate(s):fmtDate(s)+' – '+fmtDate(e); }
+function fmtDateRange(s, e) {
+  if (!s) return '';
+  if (s === e || !e) return fmtDate(s);
+  // Parse both dates in UTC to avoid TZ issues
+  const ds = new Date(s + 'T00:00:00Z');
+  const de = new Date(e + 'T00:00:00Z');
+  const sameYear  = ds.getUTCFullYear() === de.getUTCFullYear();
+  const sameMonth = sameYear && ds.getUTCMonth() === de.getUTCMonth();
+  const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const yr  = ds.getUTCFullYear();
+  const yr2 = de.getUTCFullYear();
+  const m1  = MON[ds.getUTCMonth()], m2 = MON[de.getUTCMonth()];
+  const d1  = ds.getUTCDate(),       d2 = de.getUTCDate();
+  if (sameMonth) return `${m1} ${d1}–${d2}, ${yr}`;
+  if (sameYear)  return `${m1} ${d1} – ${m2} ${d2}, ${yr}`;
+  return `${m1} ${d1}, ${yr} – ${m2} ${d2}, ${yr2}`;
+}
 function num(n) { return n!=null?Number(n).toLocaleString():'—'; }
 
 // ── STATE_FIPS ────────────────────────────────────────────────────
