@@ -441,6 +441,13 @@ export async function handleTripRunJob(
     combined: { states: [], countries: [], countyCountByState: {}, tripNewStates: [], tripNewCountries: [], tripCountyByState: {}, countryToStates: {}, tripFindsByState: {}, tripFindsByCountry: {} },
   };
 
+  // Helper: normalize state to USPS/postal abbreviation for consistent frontend lookup
+  const toStateAbbrev = (s: string): string => {
+    if (!s) return s;
+    if (s.length === 2) return s.toUpperCase();
+    return (STATE_ABBREVIATIONS as Record<string, string>)[s] ?? s;
+  };
+
   // Per-finder loop: query lifetime data + slice trip contribution from the trip-finds we already have
   for (const f of tripFinders) {
     const priorStateRowsF = await env.DB
@@ -456,7 +463,7 @@ export async function handleTripRunJob(
       .bind(f.finder_id, tripStart)
       .all<{ state: string; n: number }>();
 
-    const priorStatesF    = new Set(priorStateRowsF.results.map(r => r.state));
+    const priorStatesF    = new Set(priorStateRowsF.results.map(r => toStateAbbrev(r.state)));
     const priorCountriesF = new Set(priorCountryRowsF.results.map(r => r.country));
 
     const tripFindsF = perFinderTripFinds[f.finder_id] ?? [];
@@ -466,16 +473,17 @@ export async function handleTripRunJob(
     const tripFindsByState:   Record<string, number> = {};
     const tripFindsByCountry: Record<string, number> = {};
     for (const fd of tripFindsF) {
-      if (fd.state) {
-        tripStates.add(fd.state);
-        tripFindsByState[fd.state] = (tripFindsByState[fd.state] ?? 0) + 1;
+      const stAbbrev = fd.state ? toStateAbbrev(fd.state) : null;
+      if (stAbbrev) {
+        tripStates.add(stAbbrev);
+        tripFindsByState[stAbbrev] = (tripFindsByState[stAbbrev] ?? 0) + 1;
       }
       if ((fd as any).country) {
         tripCountries.add((fd as any).country);
         tripFindsByCountry[(fd as any).country] = (tripFindsByCountry[(fd as any).country] ?? 0) + 1;
       }
-      if (fd.county && fd.state) {
-        (tripCountyByState[fd.state] ||= new Set()).add(fd.county);
+      if (fd.county && stAbbrev) {
+        (tripCountyByState[stAbbrev] ||= new Set()).add(fd.county);
       }
     }
 
@@ -492,11 +500,21 @@ export async function handleTripRunJob(
       .all<{ state: string; n: number }>();
 
     const countyCountByState: Record<string, number> = {};
-    for (const r of lifetimeCountyRowsF.results) countyCountByState[r.state] = r.n;
+    for (const r of lifetimeCountyRowsF.results) {
+      const st = toStateAbbrev(r.state);
+      countyCountByState[st] = (countyCountByState[st] ?? 0) + r.n;
+    }
+
+    // Build prior county-by-state (abbrev keyed) so the diff below matches
+    const priorCountyByStateMap: Record<string, number> = {};
+    for (const r of priorCountyByStateRowsF.results) {
+      const st = toStateAbbrev(r.state);
+      priorCountyByStateMap[st] = (priorCountyByStateMap[st] ?? 0) + r.n;
+    }
 
     const tripCountyByStateCount: Record<string, number> = {};
     for (const [st, set] of Object.entries(tripCountyByState)) {
-      const prior = priorCountyByStateRowsF.results.find(r => r.state === st)?.n ?? 0;
+      const prior = priorCountyByStateMap[st] ?? 0;
       const lifetime = countyCountByState[st] ?? 0;
       tripCountyByStateCount[st] = lifetime - prior;  // net new counties this trip
     }
@@ -556,12 +574,16 @@ export async function handleTripRunJob(
   const combinedTripFindsByState:   Record<string, number> = {};
   const combinedTripFindsByCountry: Record<string, number> = {};
   for (const r of combinedTripFindRows.results) {
-    if (r.state)   combinedTripFindsByState[r.state]     = (combinedTripFindsByState[r.state]     ?? 0) + 1;
+    if (r.state) {
+      const st = toStateAbbrev(r.state);
+      combinedTripFindsByState[st] = (combinedTripFindsByState[st] ?? 0) + 1;
+    }
     if (r.country) combinedTripFindsByCountry[r.country] = (combinedTripFindsByCountry[r.country] ?? 0) + 1;
   }
   for (const r of combinedLifetimeRows.results) {
-    (combinedCountyByState[r.state] ||= new Set()).add(r.county);
-    if (r.country) (countryToStates[r.country] ||= new Set()).add(r.state);
+    const st = toStateAbbrev(r.state);
+    (combinedCountyByState[st] ||= new Set()).add(r.county);
+    if (r.country) (countryToStates[r.country] ||= new Set()).add(st);
   }
 
   const combinedPriorRows = await env.DB
@@ -576,7 +598,8 @@ export async function handleTripRunJob(
     .bind(trip_id, tripStart)
     .all<{ state: string; county: string }>();
   for (const r of combinedPriorRows.results) {
-    (combinedPriorCountyByState[r.state] ||= new Set()).add(r.county);
+    const st = toStateAbbrev(r.state);
+    (combinedPriorCountyByState[st] ||= new Set()).add(r.county);
   }
 
   const combinedCountyCountByState: Record<string, number> = {};
