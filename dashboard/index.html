@@ -196,7 +196,8 @@ body{font-family:'Source Serif 4',Charter,Georgia,serif;font-size:15px;line-heig
 .progress-section{margin-bottom:24px;}
 .progress-subtitle{font-family:'JetBrains Mono',monospace;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--ink-muted);margin:16px 0 6px;font-weight:500;}
 .progress-table{width:100%;border-collapse:collapse;font-size:0.86rem;background:rgba(255,252,240,0.5);border:1px solid var(--rule);border-radius:3px;overflow:hidden;}
-.progress-table th{background:var(--paper-mid);color:var(--ink-muted);font-family:'JetBrains Mono',monospace;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;font-weight:600;text-align:left;padding:8px 10px;border-bottom:1px solid var(--rule);}
+.progress-table th{background:var(--paper-mid);color:var(--ink-muted);font-family:'JetBrains Mono',monospace;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;font-weight:600;text-align:left;padding:8px 10px;border-bottom:1px solid var(--rule);cursor:help;}
+.progress-table th:hover{color:var(--brass-deep);}
 .progress-table td{padding:6px 10px;border-bottom:1px solid var(--rule-soft);color:var(--ink-soft);font-family:'JetBrains Mono',monospace;font-size:0.78rem;}
 .progress-table td:first-child{color:var(--ink);font-family:'Fraunces',serif;font-size:0.9rem;}
 .progress-table tr:last-child td{border-bottom:none;}
@@ -295,7 +296,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
 </style>
 </head>
 <body>
-<script>console.log('Routesmith | dashboard | Build 2026.07.09.023');</script>
+<script>console.log('Routesmith | dashboard | Build 2026.07.09.027');</script>
 
 
 
@@ -402,7 +403,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
   </div>
 </div>
 
-<footer>Build 2026.07.09.023</footer>
+<footer>Build 2026.07.09.027</footer>
 
 <script>
 const BASE     = 'https://routesmith-report.gtl6645.workers.dev';
@@ -1563,14 +1564,26 @@ function renderProgressTables(d, finder) {
     <h4 class="progress-subtitle">Countries</h4>
     <table class="progress-table">
       <thead><tr>
-        <th>Country</th><th>Trip finds</th><th>Total states</th><th>Found</th><th>Trip Δ</th><th>% found</th><th>% Δ</th>
+        <th title="Country of the finds">Country</th>
+        <th title="Total number of caches found in this country during the trip">Trip finds</th>
+        <th title="Number of states/provinces that exist in this country (US: 51 incl. DC; Canada: 13)">Total states</th>
+        <th title="Number of unique states/provinces you've found at least one cache in, lifetime as of the trip end">Found</th>
+        <th title="How many states/provinces this trip added that you'd never previously found in">Trip Δ</th>
+        <th title="Found ÷ Total states, lifetime as of the trip end">% found</th>
+        <th title="Change in % found because of this trip">% Δ</th>
       </tr></thead>
       <tbody>${countryRows || '<tr><td colspan="7" class="muted">No countries visited on this trip.</td></tr>'}</tbody>
     </table>
     <h4 class="progress-subtitle">States / Provinces</h4>
     <table class="progress-table">
       <thead><tr>
-        <th>State</th><th>Trip finds</th><th>Total counties</th><th>Found</th><th>Trip Δ</th><th>% found</th><th>% Δ</th>
+        <th title="State or province of the finds">State</th>
+        <th title="Total number of caches found in this state during the trip">Trip finds</th>
+        <th title="Total number of counties (or parishes/boroughs) in this state/province">Total counties</th>
+        <th title="Number of unique counties you've found at least one cache in, lifetime as of the trip end">Found</th>
+        <th title="How many counties this trip added that you'd never previously found in">Trip Δ</th>
+        <th title="Found ÷ Total counties, lifetime as of the trip end">% found</th>
+        <th title="Change in % found because of this trip">% Δ</th>
       </tr></thead>
       <tbody>${stateRows || '<tr><td colspan="7" class="muted">No states with new counties on this trip.</td></tr>'}</tbody>
     </table>
