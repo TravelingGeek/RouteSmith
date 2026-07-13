@@ -296,7 +296,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
 </style>
 </head>
 <body>
-<script>console.log('Routesmith | dashboard | Build 2026.07.09.028');</script>
+<script>console.log('Routesmith | dashboard | Build 2026.07.09.030');</script>
 
 
 
@@ -403,7 +403,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
   </div>
 </div>
 
-<footer>Build 2026.07.09.028</footer>
+<footer>Build 2026.07.09.030</footer>
 
 <script>
 const BASE     = 'https://routesmith-report.gtl6645.workers.dev';
@@ -602,10 +602,147 @@ function computeCountyCenters() {
     const state  = f.properties.stateAbbrev;
     if (!county || !state) continue;
     const key = `${county}|${state}`;
-    const bbox = getFeatureBBox(f);
-    if (bbox) centers[key] = { lng: (bbox[0]+bbox[2])/2, lat: (bbox[1]+bbox[3])/2 };
+    const c = polygonAnchor(f);
+    if (c) centers[key] = c;
   }
   return centers;
+}
+
+/**
+ * Pick a good anchor point inside a county polygon.
+ *
+ * Strategy:
+ *   1. If MultiPolygon, use only the LARGEST polygon (skip tiny islands).
+ *   2. Compute the polygon centroid via the signed-area formula.
+ *   3. If the centroid falls outside the polygon (concave shapes, L-shapes,
+ *      or when the largest polygon is split by holes), fall back to the
+ *      polygon's "pole of inaccessibility" — the point farthest from the
+ *      boundary — approximated by grid sampling.
+ */
+function polygonAnchor(feature) {
+  const g = feature.geometry;
+  if (!g) return null;
+
+  // Extract polygons — each is [outerRing, ...holes]
+  const polys = g.type === 'Polygon'
+    ? [g.coordinates]
+    : g.type === 'MultiPolygon' ? g.coordinates : [];
+  if (!polys.length) return null;
+
+  // Pick the largest polygon by absolute outer-ring area
+  let bestPoly = polys[0];
+  let bestArea = Math.abs(ringArea(bestPoly[0] || []));
+  for (let i = 1; i < polys.length; i++) {
+    const a = Math.abs(ringArea(polys[i][0] || []));
+    if (a > bestArea) { bestArea = a; bestPoly = polys[i]; }
+  }
+  const outer = bestPoly[0];
+  if (!outer || outer.length < 3) return null;
+
+  // Try signed-area centroid first — usually right for convex-ish shapes
+  const centroid = ringCentroid(outer);
+  if (centroid && pointInPoly(centroid, bestPoly)) {
+    return { lng: centroid[0], lat: centroid[1] };
+  }
+
+  // Fallback: coarse pole-of-inaccessibility. Sample a grid across the bbox
+  // and pick the point inside the polygon that is farthest from any edge.
+  const bb = ringBBox(outer);
+  const GRID = 24;
+  const dx = (bb[2] - bb[0]) / GRID;
+  const dy = (bb[3] - bb[1]) / GRID;
+  let best = null;
+  let bestDist = -Infinity;
+  for (let ix = 1; ix < GRID; ix++) {
+    for (let iy = 1; iy < GRID; iy++) {
+      const p = [bb[0] + ix * dx, bb[1] + iy * dy];
+      if (!pointInPoly(p, bestPoly)) continue;
+      const d = distToBoundary(p, bestPoly);
+      if (d > bestDist) { bestDist = d; best = p; }
+    }
+  }
+  if (best) return { lng: best[0], lat: best[1] };
+  // Last resort: bbox center
+  return { lng: (bb[0] + bb[2]) / 2, lat: (bb[1] + bb[3]) / 2 };
+}
+
+// Signed area of a linear ring (positive → CCW, negative → CW)
+function ringArea(ring) {
+  let a = 0;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    a += (ring[j][0] * ring[i][1]) - (ring[i][0] * ring[j][1]);
+  }
+  return a / 2;
+}
+
+// Centroid of a linear ring using the standard polygon centroid formula
+function ringCentroid(ring) {
+  let cx = 0, cy = 0, area2 = 0;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const cross = ring[j][0] * ring[i][1] - ring[i][0] * ring[j][1];
+    area2 += cross;
+    cx += (ring[j][0] + ring[i][0]) * cross;
+    cy += (ring[j][1] + ring[i][1]) * cross;
+  }
+  if (Math.abs(area2) < 1e-12) return null;
+  return [cx / (3 * area2), cy / (3 * area2)];
+}
+
+function ringBBox(ring) {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const [x, y] of ring) {
+    if (x < minX) minX = x; if (y < minY) minY = y;
+    if (x > maxX) maxX = x; if (y > maxY) maxY = y;
+  }
+  return [minX, minY, maxX, maxY];
+}
+
+// Ray-casting point-in-polygon; respects holes (odd-even winding across all rings)
+function pointInPoly(pt, poly) {
+  if (!poly.length || !pointInRing(pt, poly[0])) return false;
+  for (let i = 1; i < poly.length; i++) {
+    if (pointInRing(pt, poly[i])) return false;
+  }
+  return true;
+}
+
+function pointInRing(pt, ring) {
+  let inside = false;
+  const [x, y] = pt;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i], [xj, yj] = ring[j];
+    if (((yi > y) !== (yj > y)) &&
+        (x < (xj - xi) * (y - yi) / (yj - yi + 1e-12) + xi)) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+// Minimum distance from a point to any edge of a polygon (in degrees).
+// Good enough for choosing the interior point farthest from edges.
+function distToBoundary(pt, poly) {
+  let min = Infinity;
+  for (const ring of poly) {
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const d = distPtToSeg(pt, ring[j], ring[i]);
+      if (d < min) min = d;
+    }
+  }
+  return min;
+}
+
+function distPtToSeg(p, a, b) {
+  const dx = b[0] - a[0], dy = b[1] - a[1];
+  const len2 = dx*dx + dy*dy;
+  if (len2 === 0) {
+    const ex = p[0] - a[0], ey = p[1] - a[1];
+    return Math.sqrt(ex*ex + ey*ey);
+  }
+  let t = ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / len2;
+  t = Math.max(0, Math.min(1, t));
+  const ex = p[0] - (a[0] + t * dx), ey = p[1] - (a[1] + t * dy);
+  return Math.sqrt(ex*ex + ey*ey);
 }
 
 function getFeatureBBox(feature) {
@@ -706,12 +843,12 @@ function renderArcsLayer(finders) {
     });
   }
 
-  // Register an SVG-as-image for each unique color combination. 64x64 canvas,
-  // ring at radius 26 with stroke-width 8; segments are equal arcs of the circle.
-  const SIZE   = 64;
+  // Register an SVG-as-image for each unique color combination. 128x128 canvas
+  // (larger overall footprint), ring at radius 54 with stroke-width 16.
+  const SIZE   = 128;
   const CENTER = SIZE / 2;
-  const RADIUS = 26;
-  const STROKE = 8;
+  const RADIUS = 54;
+  const STROKE = 16;
 
   for (const { colors, iconId } of combos.values()) {
     if (mapInstance.hasImage(iconId)) continue;
