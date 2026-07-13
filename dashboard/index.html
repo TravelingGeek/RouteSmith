@@ -296,7 +296,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
 </style>
 </head>
 <body>
-<script>console.log('Routesmith | dashboard | Build 2026.07.09.033');</script>
+<script>console.log('Routesmith | dashboard | Build 2026.07.09.034');</script>
 
 
 
@@ -403,7 +403,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
   </div>
 </div>
 
-<footer>Build 2026.07.09.033</footer>
+<footer>Build 2026.07.09.034</footer>
 
 <script>
 const BASE     = 'https://routesmith-report.gtl6645.workers.dev';
@@ -1007,17 +1007,36 @@ function addTopoOverlay() {
 }
 
 // ── County map render ─────────────────────────────────────────────
+let renderingMap = false;
+
 async function renderCountyMap() {
+  // Re-entry guard — prevents concurrent constructions of the map when the
+  // caller fires twice (panel show + resize trigger + explicit trip switch).
+  // The last call wins by queuing itself once the current render finishes.
+  if (renderingMap) {
+    // schedule a re-render once the current one clears
+    setTimeout(() => { if (!renderingMap) renderCountyMap(); }, 200);
+    return;
+  }
+  renderingMap = true;
+
   const loadingEl = document.getElementById('map-loading-indicator');
   if (loadingEl) loadingEl.style.display='flex';
 
   // If a previous map instance exists but its container was destroyed by a
-  // panel re-render (innerHTML=''), tear it down so we build fresh in the
-  // new container. Otherwise it paints into a detached canvas and the new
-  // panel stays stuck on "Loading Map Data…".
-  if (mapInstance && !document.body.contains(mapInstance.getContainer())) {
-    try { mapInstance.remove(); } catch(e) { /* already gone */ }
-    mapInstance = null;
+  // panel re-render (innerHTML=''), or if the container element on the page
+  // was replaced (as happens when switching trips), tear the map down so we
+  // build fresh. Otherwise it paints into a stale canvas.
+  const currentContainer = document.getElementById('county-map');
+  if (mapInstance) {
+    const oldContainer = (() => { try { return mapInstance.getContainer(); } catch { return null; } })();
+    const detached = !oldContainer || !document.body.contains(oldContainer);
+    const swapped  = oldContainer && currentContainer && oldContainer !== currentContainer;
+    if (detached || swapped) {
+      try { mapInstance.remove(); } catch(e) { /* already gone */ }
+      mapInstance = null;
+      mapLoaded = false;
+    }
   }
 
   try {
@@ -1105,6 +1124,7 @@ async function renderCountyMap() {
       }
       if (!container || container.clientWidth === 0 || container.clientHeight === 0) {
         console.warn('county-map container never got real dimensions; aborting map render');
+        renderingMap = false;
         return;
       }
       mapboxgl.accessToken = MAPBOX_TOKEN;
@@ -1162,6 +1182,8 @@ async function renderCountyMap() {
   } catch(e) {
     console.error('Map error:',e);
     if (loadingEl) loadingEl.textContent='Error loading map: '+e.message;
+  } finally {
+    renderingMap = false;
   }
 }
 
@@ -2432,17 +2454,6 @@ async function loadTrip(tripId) {
   document.getElementById('main-view').innerHTML='';
   currentPanelId=null;
   showPanel(`${state.activeCat}::${state.activeSub}`);
-
-  // If the current view is the county map, showPanel has fired renderCountyMap
-  // once, but on a fresh navigation the container may not yet exist. Trigger a
-  // secondary render pass after a short delay so the map appears without a tab
-  // switch.
-  if (state.activeCat === 'counties' && state.activeSub === 'map') {
-    setTimeout(() => {
-      const container = document.getElementById('county-map');
-      if (container && (!mapInstance || !mapLoaded)) renderCountyMap();
-    }, 400);
-  }
 }
 
 // ── Inline report run ─────────────────────────────────────────────
