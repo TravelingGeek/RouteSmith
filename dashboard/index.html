@@ -296,7 +296,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
 </style>
 </head>
 <body>
-<script>console.log('Routesmith | dashboard | Build 2026.07.09.027');</script>
+<script>console.log('Routesmith | dashboard | Build 2026.07.09.028');</script>
 
 
 
@@ -403,7 +403,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
   </div>
 </div>
 
-<footer>Build 2026.07.09.027</footer>
+<footer>Build 2026.07.09.028</footer>
 
 <script>
 const BASE     = 'https://routesmith-report.gtl6645.workers.dev';
@@ -677,38 +677,79 @@ function renderArcsLayer(finders) {
   const centers = computeCountyCenters();
   const attr    = state.report.countiesData.countyAttribution;
   const features = [];
-  const R = 0.20;
+
+  // Group counties by their finder-combination so we generate one SVG per unique
+  // color combination and reuse it across all counties that share it.
+  const combos = new Map(); // key = "c1|c2|c3" → { colors: [...], iconId: "arcs-N" }
 
   for (const [key, info] of Object.entries(attr)) {
     const ctr = centers[key];
     if (!ctr) continue;
-    const n = info.finderIds.length;
-    info.finderIds.forEach((fid, i) => {
-      const finder = finders.find(f => f.finder_id === fid);
-      if (!finder) return;
-      const start = (2*Math.PI*i) / n - Math.PI/2;
-      const end   = (2*Math.PI*(i+1)) / n - Math.PI/2;
-      const coords = [];
-      const steps = 12;
-      for (let s=0; s<=steps; s++) {
-        const a = start + (end-start)*(s/steps);
-        coords.push([ctr.lng + R*Math.cos(a), ctr.lat + R*Math.sin(a)]);
-      }
-      features.push({
-        type:'Feature',
-        properties: { color: finder.color },
-        geometry: { type:'LineString', coordinates: coords },
-      });
+    const ownerId = state.report?.owner?.finder_id;
+    const orderedIds = info.finderIds.slice().sort((a, b) => {
+      if (a === ownerId) return -1;
+      if (b === ownerId) return  1;
+      return 0;
     });
+    const colors = orderedIds
+      .map(fid => finders.find(f => f.finder_id === fid)?.color)
+      .filter(Boolean);
+    if (!colors.length) continue;
+    const comboKey = colors.join('|');
+    if (!combos.has(comboKey)) {
+      combos.set(comboKey, { colors, iconId: `arc-icon-${combos.size}` });
+    }
+    features.push({
+      type: 'Feature',
+      properties: { icon: combos.get(comboKey).iconId },
+      geometry: { type: 'Point', coordinates: [ctr.lng, ctr.lat] },
+    });
+  }
+
+  // Register an SVG-as-image for each unique color combination. 64x64 canvas,
+  // ring at radius 26 with stroke-width 8; segments are equal arcs of the circle.
+  const SIZE   = 64;
+  const CENTER = SIZE / 2;
+  const RADIUS = 26;
+  const STROKE = 8;
+
+  for (const { colors, iconId } of combos.values()) {
+    if (mapInstance.hasImage(iconId)) continue;
+    const canvas  = document.createElement('canvas');
+    canvas.width  = SIZE;
+    canvas.height = SIZE;
+    const ctx = canvas.getContext('2d');
+    const n = colors.length;
+    const start = -Math.PI / 2; // 12 o'clock
+    for (let i = 0; i < n; i++) {
+      const a0 = start + (2 * Math.PI * i) / n;
+      const a1 = start + (2 * Math.PI * (i + 1)) / n;
+      ctx.beginPath();
+      ctx.arc(CENTER, CENTER, RADIUS, a0, a1);
+      ctx.strokeStyle = colors[i];
+      ctx.lineWidth   = STROKE;
+      ctx.lineCap     = 'butt';
+      ctx.stroke();
+    }
+    const imgData = ctx.getImageData(0, 0, SIZE, SIZE);
+    mapInstance.addImage(iconId, imgData, { pixelRatio: 2 });
   }
 
   mapInstance.addSource('finder-viz-src', { type:'geojson', data:{type:'FeatureCollection',features} });
   mapInstance.addLayer({
-    id:'finder-arcs', type:'line', source:'finder-viz-src',
-    paint:{
-      'line-color':['get','color'],
-      'line-width':4,
-      'line-opacity':0.85,
+    id: 'finder-arcs', type: 'symbol', source: 'finder-viz-src',
+    layout: {
+      'icon-image': ['get', 'icon'],
+      'icon-allow-overlap': true,
+      'icon-ignore-placement': true,
+      // Scale the icon based on zoom — smaller at national zoom, larger when zoomed in
+      'icon-size': [
+        'interpolate', ['linear'], ['zoom'],
+        3,  0.30,
+        6,  0.45,
+        9,  0.65,
+        12, 0.90,
+      ],
     },
   });
 }
@@ -721,36 +762,59 @@ function renderRingsLayer(finders) {
   const attr    = state.report.countiesData.countyAttribution;
   const features = [];
 
+  // One feature per (county, finder) — properties carry ring index and color
   for (const [key, info] of Object.entries(attr)) {
     const ctr = centers[key];
     if (!ctr) continue;
-    info.finderIds.forEach((fid, i) => {
+    // Sort so owner is innermost, then others in their listed order
+    const orderedIds = info.finderIds.slice().sort((a, b) => {
+      const ownerId = state.report?.owner?.finder_id;
+      if (a === ownerId) return -1;
+      if (b === ownerId) return  1;
+      return 0;
+    });
+    orderedIds.forEach((fid, i) => {
       const finder = finders.find(f => f.finder_id === fid);
       if (!finder) return;
-      const r = 0.08 + i*0.08;
-      const coords = [];
-      const steps = 32;
-      for (let s=0; s<=steps; s++) {
-        const a = (2*Math.PI*s)/steps;
-        coords.push([ctr.lng + r*Math.cos(a), ctr.lat + r*Math.sin(a)]);
-      }
       features.push({
         type:'Feature',
-        properties: { color: finder.color },
-        geometry: { type:'LineString', coordinates: coords },
+        properties: { finder_id: fid, color: finder.color, ring_index: i },
+        geometry: { type: 'Point', coordinates: [ctr.lng, ctr.lat] },
       });
     });
   }
 
   mapInstance.addSource('finder-viz-src', { type:'geojson', data:{type:'FeatureCollection',features} });
-  mapInstance.addLayer({
-    id:'finder-rings', type:'line', source:'finder-viz-src',
-    paint:{
-      'line-color':['get','color'],
-      'line-width':2.5,
-      'line-opacity':0.85,
-    },
-  });
+
+  // Determine the max ring index used so we know how many layers to add
+  const maxIdx = Math.max(0, ...features.map(f => f.properties.ring_index));
+
+  // One layer per ring index. Uses transparent fill + colored stroke; radius grows
+  // outward by ring_index. All values pixel-based via zoom interpolation.
+  for (let i = 0; i <= maxIdx; i++) {
+    // Base radius by ring index — inner ring smallest
+    // At zoom 3: 3px, 6px, 9px, 12px
+    // At zoom 6: 5px, 9px, 13px, 17px
+    // At zoom 9: 8px, 14px, 20px, 26px
+    // At zoom 12: 12px, 20px, 28px, 36px
+    const stops = [
+      [3,  3 + i*3],
+      [6,  5 + i*4],
+      [9,  8 + i*6],
+      [12, 12 + i*8],
+    ];
+    mapInstance.addLayer({
+      id: `finder-rings-${i}`, type: 'circle', source: 'finder-viz-src',
+      filter: ['==', ['get', 'ring_index'], i],
+      paint: {
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], ...stops.flat()],
+        'circle-color': 'rgba(0,0,0,0)',
+        'circle-stroke-color': ['get', 'color'],
+        'circle-stroke-width': 1.8,
+        'circle-stroke-opacity': 0.9,
+      },
+    });
+  }
 }
 
 function setBaseMap(mode) {
