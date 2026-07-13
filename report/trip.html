@@ -300,7 +300,7 @@
 </style>
 </head>
 <body>
-<script>console.log('Routesmith | report/trip | Build 2026.07.09.023');</script>
+<script>console.log('Routesmith | report/trip | Build 2026.07.09.024');</script>
 
 
 
@@ -449,7 +449,7 @@
   <span class="sep">·</span>
   <span>Forged 2026</span>
   <span class="sep">·</span>
-  <span>Build 2026.07.09.023</span>
+  <span>Build 2026.07.09.024</span>
 </footer>
 
 <script>
@@ -705,7 +705,8 @@ async function parseGpxInBrowser(file) {
     const FOUND_TYPES = new Set(['Found it', 'Attended', 'Webcam Photo Taken']);
     let findDate = null;
     const logsStart = cacheChunk.indexOf('<groundspeak:logs>');
-    if (logsStart !== -1) {
+    const hasLogsBlock = logsStart !== -1;
+    if (hasLogsBlock) {
       const logsBlock = cacheChunk.slice(logsStart);
       const logChunks = logsBlock.split('<groundspeak:log').slice(1);
       for (const logRaw of logChunks) {
@@ -717,13 +718,14 @@ async function parseGpxInBrowser(file) {
         findDate = dateRaw.slice(0, 10);
         break;   // take the first found log
       }
-    }
-    // Fallback for non-log files (very rare): use wpt <time>
-    if (!findDate) {
+      // A logs block existed but contained no find-type logs → this cache
+      // was NOT actually found; skip it entirely.
+      if (!findDate) continue;
+    } else {
+      // No <groundspeak:logs> block at all — very rare. Fall back to wpt <time>.
       const wptTime = between(chunk, '<time>', '</time>');
       if (wptTime) findDate = wptTime.slice(0, 10);
     }
-    // If we still have no find date, this cache has no find log — skip it entirely
     if (!findDate) continue;
     if (findDate > latestDate) latestDate = findDate;
 
