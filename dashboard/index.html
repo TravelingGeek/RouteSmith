@@ -296,7 +296,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
 </style>
 </head>
 <body>
-<script>console.log('Routesmith | dashboard | Build 2026.07.09.032');</script>
+<script>console.log('Routesmith | dashboard | Build 2026.07.09.033');</script>
 
 
 
@@ -403,7 +403,7 @@ footer{position:fixed;bottom:0;right:0;font-family:'JetBrains Mono',monospace;fo
   </div>
 </div>
 
-<footer>Build 2026.07.09.032</footer>
+<footer>Build 2026.07.09.033</footer>
 
 <script>
 const BASE     = 'https://routesmith-report.gtl6645.workers.dev';
@@ -1090,14 +1090,21 @@ async function renderCountyMap() {
     state._lastPaintedGeojson = paintedGeojson;
 
     if (!mapInstance) {
-      // Wait for the container to be present in the DOM (up to 1s)
+      // Wait for the container to be present in the DOM AND to have non-zero
+      // dimensions (up to 2s). Mapbox measures at construction time — if we
+      // create the map when width or height is 0, the canvas stays broken
+      // until something triggers a resize, which is why users had to switch
+      // tabs to make the map appear.
       let attempts = 0;
-      while (!document.getElementById('county-map') && attempts < 20) {
+      let container = null;
+      while (attempts < 40) {
+        container = document.getElementById('county-map');
+        if (container && container.clientWidth > 0 && container.clientHeight > 0) break;
         await new Promise(r => setTimeout(r, 50));
         attempts++;
       }
-      if (!document.getElementById('county-map')) {
-        console.warn('county-map container not present after wait; aborting map render');
+      if (!container || container.clientWidth === 0 || container.clientHeight === 0) {
+        console.warn('county-map container never got real dimensions; aborting map render');
         return;
       }
       mapboxgl.accessToken = MAPBOX_TOKEN;
@@ -1109,6 +1116,17 @@ async function renderCountyMap() {
         preserveDrawingBuffer:true,
       });
       mapInstance.addControl(new mapboxgl.NavigationControl(),'bottom-left');
+
+      // Watch container for future size changes and resize the map. Handles
+      // panel transitions, window resizes, and any late layout shifts.
+      try {
+        const ro = new ResizeObserver(() => {
+          if (mapInstance && document.body.contains(mapInstance.getContainer())) {
+            mapInstance.resize();
+          }
+        });
+        ro.observe(container);
+      } catch(e) { /* older browser, fall through */ }
 
       // POC-style dual-listener + polling for reliable style ready detection
       const onMapReady = () => {
